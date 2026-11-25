@@ -18,3 +18,5 @@
   of 8 issues each, plus 4 ranked demo candidates, in `fixtures/eval/`.
   `tools/check-fixtures.mjs` validates all of these. Third-party recordings are
   stored by URL and hash only and are never committed.
+
+Pull request: [#1](https://github.com/1wgrumph/foley/pull/1)
