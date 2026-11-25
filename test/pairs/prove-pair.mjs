@@ -45,11 +45,13 @@ await temporary((root) =>
 				caseId: `pair-${issue}`,
 				caseBudget: 100_000,
 				timeoutMs: 180_000,
-				memoryMiB: 1024,
+				memoryMiB: pair.memory_mib ?? 1024,
 			});
 		},
 	),
 );
 const reasons = result.attempts.map((a) => a.reason).join(",");
-console.log(`issue ${issue}: ${result.status} (${result.reason ?? reasons})`);
+console.log(
+	`issue ${issue}: ${result.status} (${result.reason ?? "verified"}; attempts: ${reasons})`,
+);
 process.exit(result.status === "verified" ? 0 : 1);

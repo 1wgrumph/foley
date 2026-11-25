@@ -150,6 +150,97 @@
 				"observed": "eraser"
 			},
 			"regression_test": "fixtures/pairs/tests/9852/regression.test.mjs"
+		},
+		{
+			"issue": 8418,
+			"url": "https://github.com/excalidraw/excalidraw/issues/8418",
+			"title": "Copy to clipboard text does not change on clicking it",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/7435d750-7e01-44bf-9ba6-fd20ee83aa70",
+				"sha256": "0a9d17ea93fb4b8d3d0652c54353c9f13044cdade7b711cc13348d1ffd8d1659",
+				"media_type": "video/mp4",
+				"duration_s": 4.0,
+				"width": 1920,
+				"height": 1080
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/8426",
+			"fix_commit": "26d22965785e0b307efaa6dc3b7e9c65f1e84a6b",
+			"bug_commit": "afb68a6467cf433e6738be297f69cd6bfe2ca57f",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press T and click the canvas to add a text element.",
+				"Type some text and press Escape.",
+				"Press Ctrl+Shift+E to open the image export dialog.",
+				"Click Copy to clipboard."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 1,
+					"action": "key_press",
+					"target": "text tool shortcut",
+					"value": "t"
+				},
+				{
+					"order": 3,
+					"t_s": 1.5,
+					"action": "click",
+					"target": "canvas",
+					"selector": "canvas.interactive"
+				},
+				{
+					"order": 4,
+					"t_s": 2,
+					"action": "type",
+					"target": "text editor",
+					"selector": "textarea.excalidraw-wysiwyg",
+					"value": "hello"
+				},
+				{
+					"order": 5,
+					"t_s": 2.5,
+					"action": "key_press",
+					"target": "Escape",
+					"value": "Escape"
+				},
+				{
+					"order": 6,
+					"t_s": 3,
+					"action": "key_press",
+					"target": "export image shortcut",
+					"value": "Control+Shift+e"
+				},
+				{
+					"order": 7,
+					"t_s": 3.5,
+					"action": "click",
+					"target": "Copy to clipboard"
+				},
+				{
+					"order": 8,
+					"t_s": 4,
+					"action": "wait",
+					"target": "copy result",
+					"value": 1500
+				}
+			],
+			"predicate": {
+				"kind": "element_count",
+				"selector": ".ExcButton--status-success",
+				"expected": 1,
+				"observed": 0
+			},
+			"regression_test": "fixtures/pairs/tests/8418/regression.test.mjs",
+			"memory_mib": 2048,
+			"build_note": "The commits declare Node 18-20; built and tested on Node 22.23.4."
 		}
 	]
 }
