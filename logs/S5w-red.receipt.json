@@ -1,0 +1,20 @@
+{
+  "status": "red",
+  "log": "S5w-red.log",
+  "log_sha256": "f569e348b0caef0154432266c90547153d8e7e46b48a48c1b7d527b3371f6cf1",
+  "ids": [
+    "TC-R06-1/pointer-draw-select",
+    "TC-R06-1/pointer-viewport",
+    "TC-R06-3/pointer-recorded-schema",
+    "TC-R06-3/pointer-whole-turn",
+    "TC-R07-1/pair-build-missing",
+    "TC-R07-1/pair-commit-mismatch",
+    "TC-R07-1/pair-receipt-boundary",
+    "TC-R07-1/pair-unknown",
+    "TC-R07-2/pointer-page-control",
+    "TC-R15-4/pair-core-proof",
+    "TC-R15-4/pair-real-9852",
+    "TC-R15-4/pair-resume-census",
+    "TC-R15-4/pair-resume-from-census"
+  ]
+}

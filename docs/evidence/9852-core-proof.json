@@ -1,0 +1,47 @@
+{
+  "schema": "foley.core-proof/1",
+  "issue_url": "https://github.com/excalidraw/excalidraw/issues/9852",
+  "target_revision": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+  "fixture": false,
+  "pair": {
+    "issue": 9852,
+    "bug_commit": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+    "fix_commit": "cce5001aaafe0286855984cf1b4e154b6ce86754"
+  },
+  "stages": {
+    "watch": "ok",
+    "locate": "ok",
+    "repro": "reproduced",
+    "prove": "verified",
+    "report": "ok"
+  },
+  "rerun_without_ember": {
+    "bug": {
+      "exitCode": 1
+    },
+    "fixed": {
+      "exitCode": 0
+    }
+  },
+  "unedited": true,
+  "artifacts": {
+    "anchors.json": "2feee3668eb0f7bef9034de9f03da06cfc9efd56159e1b806256118b8b7977b7",
+    "comment.md": "f6e9cc6a03d0788bc4498d87f817c3d1147a8444b9775117c856b516b6f02c82",
+    "proof.json": "999da3b5505220e6e36c2f2e8eddf1a7aae3682d1941ed1a5f3c78f27fb76b93",
+    "recording.mp4": "de0b3bde075388266bcf5bc9818d194f37e928e925b12be65557ddf58da9279c",
+    "regression.test.mjs": "dcf849caf7600189e43faddb0121b685f1f7971c9ccc0fccd4a10c57be9022ed",
+    "replay.html": "3d8aee0d027d936a9a1de60be8f66b8624fe6f39a83fad9d6e4809fc0a7420e0",
+    "replay.json": "0f54f0dc6ee584686cdde55c8b37c68694f666da5936b405fb97aea093e3fc01",
+    "run.json": "7a08f7ae28cf0bdef65122c1ff701fe3b837c785a5dfad6ab6da8e8df733da4a",
+    "screenshots/001.png": "881048b02b5afdca32f0004a9675b07aefd6bd2ababe28351970cd2141a3ebfd",
+    "screenshots/002.png": "b9c14dda087b023244f1d4697986b7278fe240e667eda2f765f40d2511ce5e7a",
+    "screenshots/003.png": "1ee0bf1f9894d08816d437f57f30856a3b9434333a6d8dfaff4676340883b314",
+    "screenshots/004.png": "a972c51e893024bfc3f5049dfb11514c6b77458c1a1d1fb9d73b2d1ebba460cd",
+    "screenshots/005.png": "263cb7f3d9ddf6448ac333026a7e6e980601ed7f1bef8a7dc439cf2d6006ff36",
+    "screenshots/006.png": "55d9d3ddaa58487eda3340aa89e33ebc624bb13097ac3c4f7bb072e688916a07",
+    "screenshots/007.png": "74d38ca4e94ae668b520e49b34aff518c7c934612a99f92ded40d81f16a1e3a6",
+    "screenshots/008.png": "74d38ca4e94ae668b520e49b34aff518c7c934612a99f92ded40d81f16a1e3a6",
+    "screenshots/009.png": "74d38ca4e94ae668b520e49b34aff518c7c934612a99f92ded40d81f16a1e3a6",
+    "steps.json": "57a7cb44b12392948df484964657dcea0548fc5a0543f187f64574fd0f6fea3f"
+  }
+}

@@ -84,7 +84,8 @@ exec unshare --user --map-root-user --net --mount --pid --fork --kill-child --mo
 				--allow-fs-read=/work --allow-fs-write=/work \
 				--max-old-space-size="$heap" --test-reporter=tap "$file"
 		fi
-		exec timeout -s KILL "$limit" $drop env -i PATH=/usr/bin /node \
+		# Vite reads the home directory at start; /tmp is the sandbox tmpfs.
+		exec timeout -s KILL "$limit" $drop env -i PATH=/usr/bin HOME=/tmp /node \
 			--max-old-space-size="$heap" node_modules/vitest/vitest.mjs run "$file" \
 			--cache=false --reporter=tap-flat --no-color
 	' sh "$1" "$2" "$3" "$4" "$5" "$6" "$7"

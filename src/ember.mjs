@@ -23,6 +23,11 @@ const CAP = 9_000_000; // micro-dollars; a larger cap in the ledger is ignored
 const MAX_INPUT_TOKENS = 200_000; // keeps every request in one price tier
 const FRAME_TOKENS = 1_600;
 const PRICE = { input: 100, cached: 4, output: 500 }; // thousandths of a micro-dollar per token
+// A request above 200,000 input tokens is billed at this rate in full.
+const PRICE_OVER_TIER = { input: 300, cached: 12, output: 1500 };
+const MAX_INLINE_MEDIA = 50_000_000; // bytes, the API's inline media limit
+// Video and audio ceilings come only from the live probe's bounds file.
+const BOUNDS = new URL("../fixtures/ember/bounds.json", import.meta.url);
 const LOCK_WAIT_MS = 10_000;
 const LOCK_POLL_MS = 10;
 const MAX_RETRY_AFTER_S = 60;
@@ -30,6 +35,9 @@ const DEFAULT_TIMEOUT_MS = 120_000;
 const MAX_FRAME_PX = 1_280;
 const MAX_CASE_ID = 256;
 const ROLES = new Set(["system", "user", "assistant"]);
+// Ember defaults to "max", which can spend the whole output limit on reasoning.
+const JSON_OBJECT = { type: "json_object" };
+const EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh", "max"]);
 const LOOPBACK = new Set(["127.0.0.1", "[::1]"]);
 const PNG_SIGNATURE = Buffer.from([
 	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
@@ -105,18 +113,133 @@ function boundedFrame(url) {
 	return bounded ? png : null;
 }
 
+// Duration in seconds from an MP4's movie header, or null when it has none.
+function mp4Seconds(buf) {
+	const box = (from, to, type) => {
+		for (let at = from; at + 8 <= to; ) {
+			let size = buf.readUInt32BE(at);
+			let head = 8;
+			if (size === 1) {
+				if (at + 16 > to) return null;
+				size = Number(buf.readBigUInt64BE(at + 8));
+				head = 16;
+			} else if (size === 0) size = to - at;
+			if (size < head || at + size > to) return null;
+			if (buf.toString("latin1", at + 4, at + 8) === type)
+				return { start: at + head, end: at + size };
+			at += size;
+		}
+		return null;
+	};
+	if (buf.length < 8 || buf.toString("latin1", 4, 8) !== "ftyp") return null;
+	const moov = box(0, buf.length, "moov");
+	const mvhd = moov && box(moov.start, moov.end, "mvhd");
+	if (!mvhd) return null;
+	const v1 = buf[mvhd.start] === 1;
+	const at = mvhd.start + (v1 ? 20 : 12);
+	if (at + (v1 ? 12 : 8) > mvhd.end) return null;
+	const scale = buf.readUInt32BE(at);
+	const length = v1
+		? Number(buf.readBigUInt64BE(at + 4))
+		: buf.readUInt32BE(at + 4);
+	return scale > 0 && length > 0 ? length / scale : null;
+}
+
+// Duration in seconds of a PCM WAV; a streamed WAV's unknown data size is
+// clipped to the bytes present.
+function wavSeconds(buf) {
+	if (
+		buf.length < 12 ||
+		buf.toString("latin1", 0, 4) !== "RIFF" ||
+		buf.toString("latin1", 8, 12) !== "WAVE"
+	)
+		return null;
+	let rate = 0;
+	for (let at = 12; at + 8 <= buf.length; ) {
+		const type = buf.toString("latin1", at, at + 4);
+		const size = buf.readUInt32LE(at + 4);
+		if (type === "fmt " && size >= 16 && at + 24 <= buf.length)
+			rate = buf.readUInt32LE(at + 16);
+		if (type === "data") {
+			const bytes = Math.min(size, buf.length - at - 8);
+			return rate > 0 && bytes > 0 ? bytes / rate : null;
+		}
+		at += 8 + size + (size % 2);
+	}
+	return null;
+}
+
+function mediaBounds() {
+	try {
+		return JSON.parse(readFileSync(BOUNDS, "utf8"));
+	} catch {
+		return {};
+	}
+}
+
+const MEDIA = {
+	video_url: {
+		kind: "video",
+		bytes: (part) =>
+			/^data:video\/mp4;base64,([A-Za-z0-9+/]+={0,2})$/.exec(
+				part.video_url?.url ?? "",
+			)?.[1],
+		seconds: mp4Seconds,
+		blank: (part) => ({ ...part, video_url: { ...part.video_url, url: "" } }),
+	},
+	input_audio: {
+		kind: "audio",
+		bytes: (part) =>
+			part.input_audio?.format === "wav" &&
+			typeof part.input_audio.data === "string" &&
+			/^[A-Za-z0-9+/]+={0,2}$/.test(part.input_audio.data)
+				? part.input_audio.data
+				: undefined,
+		seconds: wavSeconds,
+		blank: (part) => ({ ...part, input_audio: { format: "wav", data: "" } }),
+	},
+};
+
+// A video or audio part is priced at its whole seconds times the probe's
+// per-second ceiling, and refused without a ceiling or above its duration limit.
+function mediaPart(part, bounds) {
+	const media = MEDIA[part?.type];
+	const limit = media && bounds[media.kind];
+	const b64 = media?.bytes(part);
+	const ok =
+		b64 &&
+		Number.isSafeInteger(limit?.ceilingTokensPerSecond) &&
+		limit.ceilingTokensPerSecond > 0 &&
+		typeof limit.maxSeconds === "number" &&
+		b64.length * 0.75 <= MAX_INLINE_MEDIA;
+	if (!ok) return { status: "budget_refused" };
+	const bytes = Buffer.from(b64, "base64");
+	const seconds = media.seconds(bytes);
+	if (!seconds || seconds > limit.maxSeconds)
+		return { status: "budget_refused" };
+	const wire = { type: part.type, [part.type]: part[part.type] };
+	return {
+		tokens: Math.ceil(seconds) * limit.ceilingTokensPerSecond,
+		wire,
+		priced: media.blank(wire),
+		kept: { type: part.type, sha256: sha256(bytes), seconds },
+	};
+}
+
 // One content part as its wire, priced and kept views, or a refusal status.
-function copyPart(part) {
+// tokens is the part's priced allowance beyond its serialized bytes.
+function copyPart(part, bounds) {
 	if (part?.type === "text") {
 		if (typeof part.text !== "string") return { status: "refused_input" };
 		const copy = { type: "text", text: part.text };
 		return { wire: copy, priced: copy, kept: copy };
 	}
+	if (MEDIA[part?.type]) return mediaPart(part, bounds);
 	const url = part?.type === "image_url" && part.image_url?.url;
 	const frame = boundedFrame(url);
 	if (!frame) return { status: "budget_refused" };
 	return {
-		frame: true,
+		tokens: FRAME_TOKENS,
 		wire: { type: "image_url", image_url: { url } },
 		priced: { type: "image_url", image_url: { url: "" } },
 		kept: { type: "image_url", sha256: sha256(frame) },
@@ -128,12 +251,13 @@ function copyPart(part) {
 // digest, its priced upper bound and the prompt record kept on disk.
 // Bound: every UTF-8 byte of the serialized body counts as one input token at the
 // uncached price, with each frame's URL counted as empty plus 1,600 tokens, plus
-// the full output ceiling. Video, audio and other parts have no measured bound.
-function prepare(messages, maxOutput, key) {
+// the full output ceiling. Video and audio are bounded by the probe's ceilings.
+function prepare(messages, maxOutput, key, effort) {
 	if (!Array.isArray(messages) || messages.length === 0)
 		return { status: "refused_input" };
 	const lists = { wire: [], priced: [], kept: [] };
-	let frames = 0;
+	const bounds = mediaBounds();
+	let extra = 0;
 	for (const message of messages) {
 		if (!ROLES.has(message?.role)) return { status: "refused_input" };
 		const { role, content } = message;
@@ -143,10 +267,10 @@ function prepare(messages, maxOutput, key) {
 		}
 		if (!Array.isArray(content) || content.length === 0)
 			return { status: "refused_input" };
-		const parts = content.map(copyPart);
+		const parts = content.map((part) => copyPart(part, bounds));
 		const refused = parts.find((part) => part.status);
 		if (refused) return refused;
-		frames += parts.filter((part) => part.frame).length;
+		extra += parts.reduce((sum, part) => sum + (part.tokens ?? 0), 0);
 		for (const [view, list] of Object.entries(lists))
 			list.push({ role, content: parts.map((part) => part[view]) });
 	}
@@ -160,10 +284,13 @@ function prepare(messages, maxOutput, key) {
 			model: MODEL,
 			messages: list,
 			max_completion_tokens: maxOutput,
+			// Every caller needs a JSON object; live, a reply once came back as prose.
+			response_format: JSON_OBJECT,
+			...(effort && { reasoning_effort: effort }),
 		});
 	const text = body(wire);
 	if (text.includes(key)) return { status: "refused_input" };
-	const tokens = Buffer.byteLength(body(priced)) + frames * FRAME_TOKENS;
+	const tokens = Buffer.byteLength(body(priced)) + extra;
 	if (tokens > MAX_INPUT_TOKENS) return { status: "budget_refused" };
 	return {
 		wire: text,
@@ -172,6 +299,8 @@ function prepare(messages, maxOutput, key) {
 		record: JSON.stringify({
 			model: MODEL,
 			max_completion_tokens: maxOutput,
+			response_format: JSON_OBJECT,
+			...(effort && { reasoning_effort: effort }),
 			messages: kept,
 		}),
 	};
@@ -191,10 +320,11 @@ function usageCost(usage) {
 		output_tokens: output, // already includes reasoning; reasoning is not charged again
 		reasoning_tokens: reasoning,
 	};
+	const price = prompt > MAX_INPUT_TOKENS ? PRICE_OVER_TIER : PRICE;
 	const cost = micro(
-		tokens.input_tokens * PRICE.input +
-			cached * PRICE.cached +
-			output * PRICE.output,
+		tokens.input_tokens * price.input +
+			cached * price.cached +
+			output * price.output,
 	);
 	return { tokens, cost };
 }
@@ -505,11 +635,132 @@ async function settle(p, callId, usage, meta) {
 	return value === true && !traceFailed;
 }
 
+const MAX_IMAGES = 50; // per request, the API's limit
+
+// Copies a JSON value, replacing each string with fn(string); fn may throw.
+const mapStrings = (value, fn) =>
+	typeof value === "string"
+		? fn(value)
+		: Array.isArray(value)
+			? value.map((v) => mapStrings(v, fn))
+			: value !== null && typeof value === "object"
+				? Object.fromEntries(
+						Object.entries(value).map(([k, v]) => [k, mapStrings(v, fn)]),
+					)
+				: value;
+
+// Native computer use on the Responses API, stateless (store false): the caller
+// replays the whole history, so every input token is in the priced body. Each
+// data: URL must be a bounded PNG frame; it is priced at 1,600 tokens and kept
+// on disk as its digest.
+function prepareResponses(o, key) {
+	const { input, instructions, max_output_tokens: maxOutput } = o;
+	const effort = o.reasoning_effort;
+	if (
+		!Array.isArray(input) ||
+		input.length === 0 ||
+		(instructions !== undefined && typeof instructions !== "string")
+	)
+		return { status: "refused_input" };
+	if (!Number.isSafeInteger(maxOutput) || maxOutput < 16)
+		return { status: "budget_refused" };
+	let frames = 0;
+	const view = (blank) => (text) => {
+		if (!text.startsWith("data:")) return text;
+		const frame = boundedFrame(text);
+		if (!frame) throw new RangeError("unbounded media");
+		if (blank) frames++;
+		return blank ? "" : `sha256:${sha256(frame)}`;
+	};
+	let priced;
+	let kept;
+	try {
+		priced = mapStrings(input, view(true));
+		kept = mapStrings(input, view(false));
+	} catch {
+		return { status: "budget_refused" };
+	}
+	const body = (items) =>
+		JSON.stringify({
+			model: MODEL,
+			...(instructions !== undefined && { instructions }),
+			input: items,
+			tools: [{ type: "computer" }],
+			max_output_tokens: maxOutput,
+			...(effort && { reasoning: { effort } }),
+			store: false,
+			include: ["reasoning.encrypted_content"],
+		});
+	const text = body(input);
+	if (text.includes(key)) return { status: "refused_input" };
+	const tokens = Buffer.byteLength(body(priced)) + frames * FRAME_TOKENS;
+	if (tokens > MAX_INPUT_TOKENS || frames > MAX_IMAGES)
+		return { status: "budget_refused" };
+	return {
+		wire: text,
+		digest: sha256(text),
+		bound: micro(tokens * PRICE.input + maxOutput * PRICE.output),
+		record: body(kept),
+	};
+}
+
+// The reply must carry a JSON object as a string. Live, Ember often writes a
+// sentence before the object even in JSON mode; the object is taken from the
+// first "{" that starts one, and the leading text is discarded.
+function chatOutput(reply) {
+	const content = reply?.choices?.[0]?.message?.content;
+	if (typeof content !== "string") return { content };
+	const end = content.lastIndexOf("}");
+	for (let at = content.indexOf("{"); at >= 0 && at < end; ) {
+		try {
+			const output = JSON.parse(content.slice(at, end + 1));
+			const object =
+				output !== null && typeof output === "object" && !Array.isArray(output);
+			return { output: object ? output : undefined, content };
+		} catch {
+			at = content.indexOf("{", at + 1);
+		}
+	}
+	return { content };
+}
+
+const PROTOCOLS = {
+	chat: {
+		path: "/chat/completions",
+		prepare: (o, key) =>
+			prepare(o.messages, o.max_output_tokens, key, o.reasoning_effort),
+		usage: (u) => u,
+		finish: (reply) => reply?.choices?.[0]?.finish_reason,
+		output: chatOutput,
+	},
+	responses: {
+		path: "/responses",
+		prepare: prepareResponses,
+		usage: (u) => ({
+			prompt_tokens: u?.input_tokens,
+			completion_tokens: u?.output_tokens,
+			prompt_tokens_details: {
+				cached_tokens: u?.input_tokens_details?.cached_tokens,
+			},
+			completion_tokens_details: {
+				reasoning_tokens: u?.output_tokens_details?.reasoning_tokens,
+			},
+		}),
+		finish: (reply) => reply?.incomplete_details?.reason ?? reply?.status,
+		// The output items (computer calls, messages, reasoning) are returned as
+		// data for the caller to validate.
+		output: (reply) =>
+			Array.isArray(reply?.output)
+				? { output: { status: reply.status, items: reply.output } }
+				: {},
+	},
+};
+
 // One HTTP exchange. Error text never includes the reply body, which may echo the key.
-async function send(cfg, wire, timeoutMs) {
+async function send(cfg, wire, timeoutMs, protocol) {
 	let res;
 	try {
-		res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+		res = await fetch(`${cfg.baseUrl}${protocol.path}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -546,36 +797,54 @@ async function send(cfg, wire, timeoutMs) {
 			message: "unreadable reply",
 		};
 	}
-	const usage = usageCost(reply?.usage);
+	const usage = usageCost(protocol.usage(reply?.usage));
 	if (!usage)
 		return { status: "malformed_output", message: "reply has no usage" };
-	// The reply must carry a JSON object as a string, and must not echo the key.
-	const content = reply?.choices?.[0]?.message?.content;
-	let output;
-	try {
-		output = typeof content === "string" ? JSON.parse(content) : undefined;
-	} catch {
-		output = undefined;
-	}
+	// The API's own usage and stop reason, for reconciliation; counts only.
+	const api = JSON.parse(
+		JSON.stringify({
+			usage: reply.usage,
+			finish_reason: protocol.finish(reply),
+		}),
+	);
+	// The output must not echo the key.
+	const { output, content } = protocol.output(reply);
 	const valid =
-		output !== null &&
-		typeof output === "object" &&
-		!Array.isArray(output) &&
-		!JSON.stringify(output).includes(cfg.key);
-	if (!valid)
+		output !== undefined && !JSON.stringify(output).includes(cfg.key);
+	if (!valid) {
+		if (typeof content === "string" && !content.includes(cfg.key))
+			api.content_head = content.slice(0, 2000);
 		return {
 			status: "malformed_output",
 			usage,
+			api,
 			message: "reply content is not a JSON object",
 		};
-	return { status: "ok", usage, output };
+	}
+	return { status: "ok", usage, api, output };
 }
 
 // Never throws: storage and lock failures become ledger_unreadable, with booked
 // spend left in the ledger and no exception text returned.
 export async function callEmber(options = {}) {
 	try {
-		return await call(options);
+		return await call(options, PROTOCOLS.chat);
+	} catch {
+		return { status: "ledger_unreadable", message: "ledger storage failed" };
+	}
+}
+
+// Native computer use: { input, instructions?, max_output_tokens, reasoning_effort?,
+// caseId, caseBudget, stage?, timeoutMs? }, with the same reservation, settlement
+// and refusals as callEmber. Its output is { status, items } from the response.
+// A pilot interface: no pipeline stage calls it.
+export async function callEmberComputer(options = {}) {
+	try {
+		// This entry has no product caller that sets a budget for it, so a case
+		// budget is required here: without one the call is refused unsent.
+		if (!isCount(options.caseBudget))
+			return await refuse(paths(), "refused_input");
+		return await call(options, PROTOCOLS.responses);
 	} catch {
 		return { status: "ledger_unreadable", message: "ledger storage failed" };
 	}
@@ -591,14 +860,14 @@ async function refuse(p, status) {
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one validated reserve-send-settle sequence with its single retry
-async function call({
-	messages,
-	max_output_tokens,
-	caseId,
-	caseBudget,
-	stage,
-	timeoutMs = DEFAULT_TIMEOUT_MS,
-}) {
+async function call(options, protocol) {
+	const {
+		reasoning_effort,
+		caseId,
+		caseBudget,
+		stage,
+		timeoutMs = DEFAULT_TIMEOUT_MS,
+	} = options;
 	const p = paths();
 	const cfg = config();
 	const valid =
@@ -609,10 +878,11 @@ async function call({
 		!caseId.includes(cfg.key) &&
 		(stage === undefined || /^[a-z]{1,32}$/.test(stage)) &&
 		(caseBudget === undefined || isCount(caseBudget)) &&
+		(reasoning_effort === undefined || EFFORTS.has(reasoning_effort)) &&
 		Number.isSafeInteger(timeoutMs) &&
 		timeoutMs > 0;
 	if (!valid) return refuse(p, "refused_input");
-	const req = prepare(messages, max_output_tokens, cfg.key);
+	const req = protocol.prepare(options, cfg.key);
 	if (req.status) return refuse(p, req.status);
 	await mkdir(p.prompts, { recursive: true });
 	await writeFile(join(p.prompts, `${req.digest}.json`), req.record);
@@ -634,7 +904,7 @@ async function call({
 		let r;
 		let recorded;
 		try {
-			r = await send(cfg, req.wire, timeoutMs);
+			r = await send(cfg, req.wire, timeoutMs, protocol);
 			recorded = await settle(p, callId, r.usage, {
 				...meta,
 				outcome: r.status,
@@ -657,6 +927,8 @@ async function call({
 			return {
 				status: r.status,
 				...(r.output !== undefined && { output: r.output }),
+				...(r.api &&
+					!JSON.stringify(r.api).includes(cfg.key) && { api: r.api }),
 				...(r.message && { message: r.message }),
 			};
 		await sleep(wait * 1000); // one retry, honouring Retry-After, with its own reservation

@@ -1,0 +1,19 @@
+{
+  "issues": 50,
+  "by_status": {
+    "failure_observed": 11,
+    "unsupported_device": 12,
+    "attempted_miss": 25,
+    "excluded_sensitive_or_security": 2
+  },
+  "s6_by_status": {
+    "failure_observed": 5,
+    "unsupported_device": 12,
+    "attempted_miss": 31,
+    "excluded_sensitive_or_security": 2
+  },
+  "miss_detail": {
+    "reproduction: failure not shown": 25
+  },
+  "rerun_cost_micro_usd": 1239951
+}

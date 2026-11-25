@@ -1,0 +1,45 @@
+{
+	"schema": "foley.ember-bounds/1",
+	"model": "muse-ember-1.0",
+	"measured_on": "2026-11-25",
+	"probe": "test/probe.live.mjs on fixtures/recordings/owned-basic-flow.mp4 (16.56 s, 1280 by 720, no audio track)",
+	"endpoint": "POST /v1/chat/completions",
+	"output_limit_field": "max_completion_tokens",
+	"usage_fields": [
+		"prompt_tokens",
+		"completion_tokens",
+		"prompt_tokens_details.cached_tokens",
+		"completion_tokens_details.reasoning_tokens"
+	],
+	"prices_usd_per_million": {
+		"input": 0.1,
+		"cached": 0.004,
+		"output": 0.5,
+		"note": "Published prices. On every probe call the ledger cost equals the API usage times these prices; output includes reasoning. No probe call reported cached tokens, so the cached price is unmeasured."
+	},
+	"frame": {
+		"accepted": true,
+		"max_px": 1280,
+		"measured_prompt_tokens": 20520,
+		"frames": 17,
+		"tokensPerFrame": 1200,
+		"ceilingTokensPerFrame": 1600
+	},
+	"video": {
+		"accepted": true,
+		"part": "video_url with a data:video/mp4;base64 URL",
+		"maxSeconds": 120,
+		"maxInlineBytes": 50000000,
+		"measured_prompt_tokens": 4206,
+		"tokensPerSecond": 251,
+		"ceilingTokensPerSecond": 2000,
+		"preferred": false,
+		"watch_note": "Watch on the owned clip recovered 6 of 8 required actions from video and 8 of 8 from frames, so Watch sends frames; video stays accepted and bounded."
+	},
+	"audio": {
+		"accepted": false,
+		"part": "input_audio with format wav",
+		"measured_prompt_tokens": 196,
+		"reason": "HTTP 200, but a 10 s 440 Hz tone was reported as silence; speech understanding is unmeasured, so audio stays refused."
+	}
+}

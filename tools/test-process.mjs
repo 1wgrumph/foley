@@ -9,6 +9,9 @@ export async function runTest(args, label) {
 			HOME: process.env.HOME,
 			FOLEY_OFFLINE: "1",
 			FOLEY_TEST_API_KEY: "synthetic-repeat-only",
+			...(process.env.FOLEY_PAIRS_DIR && {
+				FOLEY_PAIRS_DIR: process.env.FOLEY_PAIRS_DIR,
+			}),
 			...(process.env.PLAYWRIGHT_BROWSERS_PATH && {
 				PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH,
 			}),

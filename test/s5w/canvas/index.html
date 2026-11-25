@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Canvas selection fixture</title></head>
+<body style="margin:0">
+<canvas width="1280" height="720" style="display:block"></canvas>
+<button id="arm" style="position:absolute;top:0;left:0">Draw rectangle</button>
+<script type="module">
+import { createScene, draw, move, click, doubleClick, selectionStatus } from './logic.mjs';
+const canvas = document.querySelector('canvas');
+const context = canvas.getContext('2d');
+const scene = createScene();
+window.h = { state: { status: 'empty' }, elements: [] };
+let start;
+let drawing = false;
+document.querySelector('#arm').onclick = () => { drawing = true; };
+const point = (event) => [event.clientX, event.clientY];
+function publish() {
+  const rect = scene.rectangle;
+  if (rect) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = scene.selected ? 'blue' : 'black';
+    context.strokeRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
+    window.h.elements = [{ x: rect[0], y: rect[1], width: rect[2] - rect[0], height: rect[3] - rect[1] }];
+  }
+  window.h.state.status = selectionStatus(scene);
+}
+canvas.onmousedown = (event) => { if (drawing) start = point(event); };
+canvas.onmouseup = (event) => {
+  if (!start) return;
+  draw(scene, start, point(event));
+  start = undefined;
+  drawing = false;
+  publish();
+};
+canvas.onmousemove = (event) => { move(scene, point(event)); publish(); };
+canvas.onclick = (event) => { click(scene, point(event)); publish(); };
+canvas.ondblclick = (event) => { doubleClick(scene, point(event)); publish(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+{
+	"note": "Foley keeps each reply only as its validated record: Watch as steps.json, reproduction as the actions, observations and reasons it executed, proof as the accepted test and the runner results. Raw reply text is not stored.",
+	"watch_steps": {
+		"schema": "foley.steps/1",
+		"steps": [
+			{
+				"order": 1,
+				"t_s": 1,
+				"action": "pointer_drag",
+				"target": "canvas",
+				"x": 500,
+				"y": 200,
+				"to_x": 425,
+				"to_y": 525
+			},
+			{
+				"order": 2,
+				"t_s": 4,
+				"action": "key_press",
+				"target": "canvas",
+				"value": "e"
+			},
+			{
+				"order": 3,
+				"t_s": 9,
+				"action": "click",
+				"target": "line tool"
+			},
+			{
+				"order": 4,
+				"t_s": 10,
+				"action": "pointer_click",
+				"target": "canvas",
+				"x": 660,
+				"y": 590
+			},
+			{
+				"order": 5,
+				"t_s": 11,
+				"action": "pointer_click",
+				"target": "canvas",
+				"x": 985,
+				"y": 340
+			},
+			{
+				"order": 6,
+				"t_s": 12,
+				"action": "key_press",
+				"target": "canvas",
+				"value": "e"
+			},
+			{
+				"order": 7,
+				"t_s": 13,
+				"action": "wait",
+				"target": "canvas"
+			}
+		],
+		"predicate": {
+			"kind": "canvas_state",
+			"source": "appState",
+			"path": [
+				"activeTool",
+				"type"
+			],
+			"expected": "line",
+			"observed": "eraser"
+		},
+		"mediaPath": "frames"
+	},
+	"reproduction": {
+		"status": "reproduced",
+		"attempts": [
+			{
+				"contextId": "context-1",
+				"observed": true,
+				"predicate_value": "eraser",
+				"model_verdict": "reproduced",
+				"actions": [
+					"pointer_drag",
+					"key_press",
+					"pointer_click",
+					"pointer_click",
+					"pointer_click",
+					"key_press",
+					"wait"
+				],
+				"steps": [
+					{
+						"order": 1,
+						"t_s": 0,
+						"action": "pointer_drag",
+						"target": "pointer_drag",
+						"x": 500,
+						"y": 200,
+						"to_x": 425,
+						"to_y": 525
+					},
+					{
+						"order": 2,
+						"t_s": 1,
+						"action": "key_press",
+						"target": "key_press",
+						"value": "e"
+					},
+					{
+						"order": 3,
+						"t_s": 2,
+						"action": "pointer_click",
+						"target": "pointer_click",
+						"x": 678,
+						"y": 41
+					},
+					{
+						"order": 4,
+						"t_s": 3,
+						"action": "pointer_click",
+						"target": "pointer_click",
+						"x": 660,
+						"y": 590
+					},
+					{
+						"order": 5,
+						"t_s": 4,
+						"action": "pointer_click",
+						"target": "pointer_click",
+						"x": 985,
+						"y": 340
+					},
+					{
+						"order": 6,
+						"t_s": 5,
+						"action": "key_press",
+						"target": "key_press",
+						"value": "e"
+					},
+					{
+						"order": 7,
+						"t_s": 6,
+						"action": "wait",
+						"target": "wait",
+						"value": "500"
+					}
+				]
+			}
+		],
+		"fixed_build_shows_failure": false,
+		"reproduced_steps": [
+			{
+				"order": 1,
+				"t_s": 0,
+				"action": "pointer_drag",
+				"target": "pointer_drag",
+				"x": 500,
+				"y": 200,
+				"to_x": 425,
+				"to_y": 525
+			},
+			{
+				"order": 2,
+				"t_s": 1,
+				"action": "key_press",
+				"target": "key_press",
+				"value": "e"
+			},
+			{
+				"order": 3,
+				"t_s": 2,
+				"action": "pointer_click",
+				"target": "pointer_click",
+				"x": 678,
+				"y": 41
+			},
+			{
+				"order": 4,
+				"t_s": 3,
+				"action": "pointer_click",
+				"target": "pointer_click",
+				"x": 660,
+				"y": 590
+			},
+			{
+				"order": 5,
+				"t_s": 4,
+				"action": "pointer_click",
+				"target": "pointer_click",
+				"x": 985,
+				"y": 340
+			},
+			{
+				"order": 6,
+				"t_s": 5,
+				"action": "key_press",
+				"target": "key_press",
+				"value": "e"
+			},
+			{
+				"order": 7,
+				"t_s": 6,
+				"action": "wait",
+				"target": "wait",
+				"value": "500"
+			}
+		],
+		"events": [
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.116
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.117
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.117
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.117
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://scripts.simpleanalyticscdn.com",
+				"t_s": 0.137
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.368
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.369
+			},
+			{
+				"type": "blocked",
+				"reason": "origin",
+				"detail": "https://excalidraw.nyc3.cdn.digitaloceanspaces.com",
+				"t_s": 0.37
+			},
+			{
+				"type": "action",
+				"action": "pointer_drag",
+				"detail": "500,200 to 425,525",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Initial drag on canvas as in recorded steps",
+				"t_s": 6.649
+			},
+			{
+				"type": "action",
+				"action": "key_press",
+				"detail": "e",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Press E to switch to eraser shortcut",
+				"t_s": 6.693
+			},
+			{
+				"type": "action",
+				"action": "pointer_click",
+				"detail": "678,41",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Click line tool in top toolbar",
+				"t_s": 6.742
+			},
+			{
+				"type": "action",
+				"action": "pointer_click",
+				"detail": "660,590",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "First point of multi-point line on canvas",
+				"t_s": 6.809
+			},
+			{
+				"type": "action",
+				"action": "pointer_click",
+				"detail": "985,340",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Second point of multi-point line on canvas",
+				"t_s": 6.874
+			},
+			{
+				"type": "action",
+				"action": "key_press",
+				"detail": "e",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Press E again while line drawing is in progress",
+				"t_s": 6.919
+			},
+			{
+				"type": "action",
+				"action": "wait",
+				"observation": "Excalidraw canvas with toolbar visible; after starting a line and pressing E the active tool switches to eraser instead of staying on line.",
+				"reason": "Wait for tool switch to take effect",
+				"t_s": 7.471
+			}
+		]
+	},
+	"proof": {
+		"status": "verified",
+		"attempts": [
+			{
+				"reason": "verified",
+				"bug": {
+					"exitCode": 1,
+					"output": "TAP version 13\n1..1\nnot ok 1 - regression.test.mjs > eraser-shortcut-during-line-drawing-keeps-line-tool # time=253.54ms\n    ---\n    error:\n        name: \"AssertionError\"\n        message: \"expected 'eraser' to be 'line' // Object.is equality\"\n    at: \"/work/regression.test.mjs:21:42\"\n    actual: \"eraser\"\n    expected: \"line\"\n    ...\n"
+				},
+				"fixed": {
+					"exitCode": 0,
+					"output": "TAP version 13\n1..1\nok 1 - regression.test.mjs > eraser-shortcut-during-line-drawing-keeps-line-tool # time=300.87ms\n"
+				}
+			}
+		],
+		"path": "regression.test.mjs",
+		"rerun_without_ember": {
+			"bug": {
+				"exitCode": 1
+			},
+			"fixed": {
+				"exitCode": 0
+			}
+		},
+		"input_rule": {
+			"refused_calls": [
+				"helpers/api",
+				"setAppState",
+				"updateScene",
+				"setState(",
+				"h.app",
+				"h.elements="
+			]
+		},
+		"test": "import React from \"react\";\nimport { Excalidraw } from \"@excalidraw/excalidraw\";\nimport { render } from \"./packages/excalidraw/tests/test-utils\";\nimport { Keyboard, Pointer, UI } from \"./packages/excalidraw/tests/helpers/ui\";\nimport { KEYS } from \"@excalidraw/common\";\n\ntest(\"eraser-shortcut-during-line-drawing-keeps-line-tool\", async () => {\n  await render(\n    React.createElement(Excalidraw, { handleKeyboardGlobally: true }),\n  );\n  const pointer = new Pointer(\"mouse\");\n  pointer.down(500, 200);\n  pointer.move(425, 525);\n  pointer.up();\n  await Keyboard.keyPress(KEYS.E);\n  UI.clickTool(\"line\");\n  const linePointer = new Pointer(\"mouse\");\n  await linePointer.clickAt(660, 590);\n  await linePointer.clickAt(985, 340);\n  await Keyboard.keyPress(KEYS.E);\n  expect(window.h.state.activeTool.type).toBe(\"line\");\n});\n"
+	}
+}

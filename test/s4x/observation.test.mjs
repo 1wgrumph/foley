@@ -219,7 +219,8 @@ test("TC-R06-3/observation", { timeout: 240000 }, async () => {
 				withApps(root, ({ bug }) =>
 					withEmber(
 						root,
-						[modelReply(reply)],
+						// The one re-ask gets the same invalid turn.
+						[modelReply(reply), modelReply(reply)],
 						async ({ callEmber, server }) => {
 							const runDir = join(root, "run");
 							mkdirSync(runDir);
@@ -229,7 +230,7 @@ test("TC-R06-3/observation", { timeout: 240000 }, async () => {
 								caseBudget: 100000,
 								callEmber,
 							});
-							assert.equal(server.requests.length, 1);
+							assert.equal(server.requests.length, 2);
 							assert.ok(
 								!containsSentinel(root),
 								"Credential-shaped model text persisted",

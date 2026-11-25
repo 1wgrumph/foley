@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
-import { hasCredentialShape } from "./text-safety.mjs";
+import { hasCredentialShape, refusedCall } from "./text-safety.mjs";
 
 export const ACTIONS = new Set([
 	"click",
@@ -15,7 +15,28 @@ export const ACTIONS = new Set([
 	"key_press",
 	"wait",
 	"screenshot",
+	"pointer_click",
+	"pointer_double_click",
+	"pointer_move",
+	"pointer_drag",
 ]);
+// The reproduction browser's fixed viewport (CSS pixels, device scale factor 1).
+// Pointer actions name integer pixels of it: 0 <= x < width, 0 <= y < height.
+export const VIEWPORT = { width: 1280, height: 720 };
+const POINTS = {
+	pointer_click: ["x", "y"],
+	pointer_double_click: ["x", "y"],
+	pointer_move: ["x", "y"],
+	pointer_drag: ["x", "y", "to_x", "to_y"],
+};
+const inside = (n, limit) => Number.isSafeInteger(n) && n >= 0 && n < limit;
+// Whether a pointer action's coordinates are integers inside the viewport;
+// true for an action that is not a pointer action.
+export function validPointer(a) {
+	return (POINTS[a.action] ?? []).every((field) =>
+		inside(a[field], field.endsWith("y") ? VIEWPORT.height : VIEWPORT.width),
+	);
+}
 export const STATUSES = new Set([
 	"no_usable_media",
 	"unsupported_device",
@@ -23,8 +44,17 @@ export const STATUSES = new Set([
 	"eligible_not_attempted",
 	"attempted_miss",
 	"failure_observed",
+	"failing_test_no_control",
 	"proof_verified",
 ]);
+// The verdict after proof. A failing test kept without a fixed build is its own
+// verdict: reproduced, with a failing test, and no fixed-build control.
+export const verdictAfterProve = (prove) =>
+	prove === "verified"
+		? "proof_verified"
+		: prove === "red_test"
+			? "failing_test_no_control"
+			: "failure_observed";
 const STATES = new Set([
 	"empty",
 	"running",
@@ -50,13 +80,14 @@ export function insideRun(path) {
 		.every((part) => part !== "" && part !== "." && part !== "..");
 }
 
-function validStep(s, index) {
+export function validStep(s, index) {
 	return (
 		isObject(s) &&
 		s.order === index + 1 &&
 		isTime(s.t_s) &&
 		ACTIONS.has(s.action) &&
 		typeof s.target === "string" &&
+		validPointer(s) &&
 		optional(s.selector, (v) => typeof v === "string") &&
 		optional(s.value, (v) => typeof v === "string")
 	);
@@ -132,7 +163,9 @@ export function validateSteps(document) {
 		ordered &&
 		nullable(document.predicate, validPredicate) &&
 		evidenceFields(document) &&
-		optional(document.mediaPath, (v) => v === "frames" || v === "video")
+		optional(document.mediaPath, (v) => v === "frames" || v === "video") &&
+		// One credential filter over every string that is kept or sent on.
+		!hasCredentialShape(JSON.stringify(document))
 	);
 }
 
@@ -284,14 +317,25 @@ export function requiredArtifacts(run, stages, replay) {
 
 const exitOf = (result) => result?.exitCode;
 
-// A verified proof: every stage passed, the browser observed the failure, and the
-// accepted test failed on the bug build and passed on the fixed build when run.
-function verifiedSemantics(manifest, run, replay, proof) {
+// A verified proof: every stage passed, the browser observed the failure on the
+// bug build and the fixed build did not show it too, and the accepted test,
+// run again without the model, failed on the bug build and passed on the fixed
+// build. Both exits must be recorded. A kept test must not use a call that the
+// input rule recorded with it refuses. A locate miss is allowed: anchors are a
+// hint for the reader and no part of the proof.
+function verifiedSemantics(manifest, run, replay, proof, test) {
 	const st = manifest.stages ?? {};
 	const rerun = proof?.rerun_without_ember;
 	const bug = exitOf(rerun?.bug);
 	const fixed = exitOf(rerun?.fixed);
+	const refused = proof?.input_rule?.refused_calls;
 	return (
+		replay?.fixed_build_shows_failure !== true &&
+		(proof?.input_rule === undefined ||
+			(Array.isArray(refused) &&
+				refused.every((call) => typeof call === "string") &&
+				typeof test === "string" &&
+				!refusedCall(test, refused))) &&
 		st.watch === "ok" &&
 		["ok", "miss"].includes(st.locate) &&
 		st.repro === "reproduced" &&
@@ -310,7 +354,7 @@ function verifiedSemantics(manifest, run, replay, proof) {
 		proof.path === run.test.path &&
 		Number.isSafeInteger(bug) &&
 		bug !== 0 &&
-		(fixed === undefined || fixed === null || fixed === 0)
+		fixed === 0
 	);
 }
 
@@ -350,6 +394,13 @@ export async function checkCoreProof(runDir) {
 		: [];
 	if (proof?.schema !== "foley.core-proof/1" || entries.length === 0)
 		return { status: "invalid" };
+	// A pair run binds its bug and fix commits in both the run and the manifest.
+	const run = await readJsonFile(join(runDir, "run.json")).catch(() => null);
+	if (
+		run === null ||
+		JSON.stringify(proof.pair ?? null) !== JSON.stringify(run?.pair ?? null)
+	)
+		return { status: "invalid" };
 	const root = await realpath(runDir);
 	const traced = new Map(events.map((e) => [e.path, e.sha256]));
 	for (const [path, digest] of entries) {
@@ -360,8 +411,8 @@ export async function checkCoreProof(runDir) {
 	}
 	const optionalJson = (name) =>
 		readJsonFile(join(runDir, name)).catch(() => null);
-	const [run, replay, report] = await Promise.all(
-		["run.json", "replay.json", "proof.json"].map(optionalJson),
+	const [replay, report] = await Promise.all(
+		["replay.json", "proof.json"].map(optionalJson),
 	);
 	const listed = entries.map(([path]) => path).sort();
 	const required = requiredArtifacts(run, proof.stages, replay);
@@ -375,7 +426,10 @@ export async function checkCoreProof(runDir) {
 		run?.issue_url === proof.issue_url &&
 		run?.target_revision === proof.target_revision &&
 		run?.fixture === proof.fixture;
-	if (!identity || !verifiedSemantics(proof, run, replay, report))
+	const test = insideRun(run?.test?.path)
+		? await readFile(join(runDir, run.test.path), "utf8").catch(() => null)
+		: null;
+	if (!identity || !verifiedSemantics(proof, run, replay, report, test))
 		return { status: "not_verified" };
 	return { status: "ok", fixture: proof.fixture === true };
 }

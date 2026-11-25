@@ -21,18 +21,19 @@ import {
 	rm,
 	writeFile,
 } from "node:fs/promises";
-import { extname, isAbsolute, join, relative } from "node:path";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { renderReplay } from "../ui/render.mjs";
 import { runOne } from "./backlog.mjs";
 import { callEmber } from "./ember.mjs";
 import { locate } from "./locate.mjs";
-import { prove, RUNNERS } from "./prove.mjs";
+import { prove, RUNNERS, serveBuild } from "./prove.mjs";
 import { report } from "./report.mjs";
 import { repro } from "./repro.mjs";
 import {
 	checkCoreProof,
 	requiredArtifacts,
 	validateRun,
+	verdictAfterProve,
 } from "./run-schema.mjs";
 import { inspect, watch } from "./watch.mjs";
 
@@ -174,6 +175,7 @@ export const identityOf = (o) => ({
 	recording_sha256: o.recordingSha256,
 	runner: o.runner,
 	fixture: Boolean(o.fixture),
+	...(o.pair && { pair: o.pair }),
 });
 
 // Only presence is checked: a spawn error means the tool is absent.
@@ -185,6 +187,21 @@ function tool(name) {
 	});
 	if (error?.code === "ENOENT")
 		throw new Refusal("tool_absent", `${name} is not available on PATH`);
+}
+
+function loopbackOrigin(text) {
+	let origin;
+	try {
+		origin = new URL(text);
+	} catch {
+		throw new Refusal("bad_argument", "--app-origin must be a URL");
+	}
+	if (origin.protocol !== "http:" || !LOOPBACK.has(origin.hostname))
+		throw new Refusal(
+			"bad_argument",
+			"--app-origin must be a loopback http origin",
+		);
+	return origin.origin;
 }
 
 /**
@@ -207,18 +224,8 @@ export function preflight(options) {
 			"unsupported_runner",
 			`--runner must be one of ${Object.keys(RUNNERS).join(", ")}`,
 		);
-	let origin;
-	try {
-		origin = new URL(o.appOrigin);
-	} catch {
-		throw new Refusal("bad_argument", "--app-origin must be a URL");
-	}
-	if (origin.protocol !== "http:" || !LOOPBACK.has(origin.hostname))
-		throw new Refusal(
-			"bad_argument",
-			"--app-origin must be a loopback http origin",
-		);
-	o.appOrigin = origin.origin;
+	// A pair run serves its own bug page; the origin is set when it starts.
+	if (!o.pair) o.appOrigin = loopbackOrigin(o.appOrigin);
 	for (const name of TOOLS) tool(name);
 	if (!existsSync(UI_PAGE))
 		throw new Refusal("ui_not_built", "run `npm run build:ui` first");
@@ -252,6 +259,161 @@ export function preflight(options) {
 		}
 	}
 	return o;
+}
+
+const PAIRS = "fixtures/pairs/pairs.json";
+const SHA1 = /^[0-9a-f]{40}$/;
+const PAIR_MEMORY_MIB = 1024;
+const SHA256 = /^[0-9a-f]{64}$/;
+
+function readPairJson(path, missing) {
+	let text;
+	try {
+		text = readFileSync(path, "utf8");
+	} catch {
+		throw new Refusal(missing, `${path} is missing`);
+	}
+	try {
+		return JSON.parse(text);
+	} catch {
+		throw new Refusal("pair_invalid", `${path} is not JSON`);
+	}
+}
+
+// A real path inside `root` (after symlinks), or a refusal: absent is
+// pair_build_missing, outside is pair_invalid.
+function within(root, path, name) {
+	let real;
+	try {
+		real = realpathSync(path);
+	} catch {
+		throw new Refusal("pair_build_missing", `${name} is missing`);
+	}
+	const rel = relative(root, real);
+	if (rel === ".." || rel.startsWith("../") || isAbsolute(rel))
+		throw new Refusal("pair_invalid", `${name} is outside the pair folder`);
+	return real;
+}
+
+// The issue URL is shown and linked, never fetched.
+const httpsUrl = (text) => {
+	try {
+		return text.length <= 2048 && new URL(text).protocol === "https:";
+	} catch {
+		return false;
+	}
+};
+
+const headOf = (dir) => {
+	try {
+		return git(dir, "rev-parse", "--verify", "HEAD");
+	} catch {
+		return null;
+	}
+};
+
+// Test-API calls that set state directly; prove refuses a test that uses one.
+const validRefusedCalls = (calls) =>
+	Array.isArray(calls) &&
+	calls.length <= 32 &&
+	calls.every((c) => typeof c === "string" && c !== "" && c.length <= 64);
+
+// One side of a pair: its single receipt build, its checkout at the manifest
+// commit with no tracked changes, and its built page inside that checkout.
+function pairSide({ folder, root, builds, side, commit }) {
+	const build = builds.filter((b) => b?.side === side);
+	if (
+		build.length !== 1 ||
+		typeof build[0].page !== "string" ||
+		!SHA1.test(build[0].commit ?? "")
+	)
+		throw new Refusal(
+			"pair_invalid",
+			`receipt has no single valid ${side} build`,
+		);
+	if (build[0].commit !== commit)
+		throw new Refusal(
+			"pair_commit_mismatch",
+			`receipt ${side} commit differs from the manifest`,
+		);
+	const checkout = within(folder, join(root, side), `${side} checkout`);
+	if (headOf(checkout) !== commit)
+		throw new Refusal(
+			"pair_commit_mismatch",
+			`${side} checkout is not at ${commit}`,
+		);
+	clean(checkout, `${side} checkout`);
+	const page = within(checkout, resolve(build[0].page), `${side} page`);
+	if (!existsSync(join(page, "index.html")))
+		throw new Refusal("pair_build_missing", `${side} page has no index.html`);
+	return { checkout, page };
+}
+
+/**
+ * Resolves `foley run --pair <issue>` from fixtures/pairs/pairs.json and the
+ * pair's build receipt under out/pairs/<issue>/. Pair fields are data: commits
+ * and digests are checked by pattern, paths must stay inside the pair folder,
+ * and nothing is fetched or built. Returns the run options a pair fixes.
+ */
+export function pairOptions(issue) {
+	if (!Number.isSafeInteger(issue) || issue <= 0)
+		throw new Refusal("bad_argument", "--pair must be a positive integer");
+	const manifest = readPairJson(PAIRS, "pair_missing");
+	if (manifest?.schema !== "foley.pairs/1" || !Array.isArray(manifest.pairs))
+		throw new Refusal("pair_invalid", `${PAIRS} is not foley.pairs/1`);
+	const pair = manifest.pairs.find((p) => p?.issue === issue);
+	if (!pair) throw new Refusal("pair_missing", `issue ${issue} is not a pair`);
+	const runner = pair.runner ?? "vitest";
+	const memory = pair.memory_mib;
+	const refused = manifest.refused_test_calls ?? [];
+	const valid =
+		validRefusedCalls(refused) &&
+		httpsUrl(pair.url) &&
+		SHA1.test(pair.bug_commit ?? "") &&
+		SHA1.test(pair.fix_commit ?? "") &&
+		SHA256.test(pair.recording?.sha256 ?? "") &&
+		Object.hasOwn(RUNNERS, runner) &&
+		(memory === undefined ||
+			(Number.isSafeInteger(memory) && memory >= 256 && memory <= 8192));
+	if (!valid) throw new Refusal("pair_invalid", `pair ${issue} is malformed`);
+	const root = join(out(), "pairs", String(issue));
+	if (!existsSync(root))
+		throw new Refusal("pair_build_missing", `${root} is missing`);
+	const folder = realpathSync(root);
+	const receipt = readPairJson(
+		join(root, "receipt.json"),
+		"pair_build_missing",
+	);
+	const builds = Array.isArray(receipt?.builds) ? receipt.builds : [];
+	const sides = { bug: pair.bug_commit, fixed: pair.fix_commit };
+	if (receipt?.issue !== issue || receipt.scan_verdict !== "PASS")
+		throw new Refusal(
+			"pair_invalid",
+			"receipt is for another issue or its scan did not pass",
+		);
+	const resolved = {};
+	for (const [side, commit] of Object.entries(sides))
+		resolved[side] = pairSide({ folder, root, builds, side, commit });
+	return {
+		issue,
+		issueUrl: pair.url,
+		reportTitle: pair.title,
+		testNotes:
+			typeof manifest.test_notes === "string" ? manifest.test_notes : undefined,
+		appNotes:
+			typeof manifest.app_notes === "string" ? manifest.app_notes : undefined,
+		refusedTestCalls: refused,
+		revision: pair.bug_commit,
+		runner,
+		target: resolved.bug.checkout,
+		fixedTarget: resolved.fixed.checkout,
+		pageDirs: [resolved.bug.page, resolved.fixed.page],
+		// A real target's Vitest needs more than prove's 256 MiB default; pairs
+		// default to 1024 MiB, as test/pairs/prove-pair.mjs does.
+		memoryMiB: memory ?? PAIR_MEMORY_MIB,
+		recordingSha256: pair.recording.sha256,
+		pair: { issue, bug_commit: pair.bug_commit, fix_commit: pair.fix_commit },
+	};
 }
 
 /**
@@ -322,12 +484,19 @@ function emptyRun(o) {
 		replay: { screenshots: [], events: [] },
 		test: null,
 		verdict: null,
+		// This run's own calls; the case figure adds every earlier run of the issue.
 		cost_micro_usd: 0,
+		case_cost_micro_usd: 0,
 		case_budget_micro_usd: o.caseBudget,
+		...(o.pair && { pair: o.pair }),
 		error: null,
 		stages: {},
 		model_calls: [],
 		call_verdicts: {},
+		// A round is one Watch document with the locate and reproduction run on
+		// it. Every watch and repro call is recorded under the round it served.
+		round: 1,
+		call_rounds: {},
 	};
 }
 
@@ -379,17 +548,28 @@ async function traceArtifacts(runDir, stage, paths) {
 const usageOf = (call) =>
 	Object.fromEntries(USAGE.filter((f) => f in call).map((f) => [f, call[f]]));
 
-// The model's stated repro verdict is display evidence only; spend never uses it.
+// Records each call's round, and for repro the model's stated verdict (display
+// evidence only; spend never uses it). The reply also names its call records,
+// so reproduction can bind them to the frame the model was shown.
 async function attributedCall(ctx, stage, args) {
 	const trace = join(out(), "trace.jsonl");
 	const before = (await readLines(trace)).length;
 	const reply = await callEmber({ ...args, stage });
-	if (stage === "repro" && typeof reply.output?.verdict === "string")
-		for (const e of (await readLines(trace)).slice(before))
-			if (e.type === "request" && e.callId)
-				ctx.run.call_verdicts[e.callId] = reply.output.verdict;
+	const callIds = (await readLines(trace))
+		.slice(before)
+		.filter((e) => e.type === "request" && e.callId)
+		.map((e) => e.callId);
+	// Only a verdict from the closed set is kept on the run document.
+	const verdict =
+		stage === "repro" &&
+		["reproduced", "not_reproduced"].includes(reply.output?.verdict) &&
+		reply.output.verdict;
+	for (const callId of callIds) {
+		if (stage !== "prove") ctx.run.call_rounds[callId] = ctx.run.round;
+		if (verdict) ctx.run.call_verdicts[callId] = verdict;
+	}
 	await ctx.publish();
-	return reply;
+	return { ...reply, callIds };
 }
 
 function callEvent(call, t_s) {
@@ -397,29 +577,46 @@ function callEvent(call, t_s) {
 		type: "model_call",
 		detail: `Ember ${call.stage} call: ${call.status}`,
 		...(call.verdict && { reason: `model verdict: ${call.verdict}` }),
+		...(call.round !== undefined && { round: call.round }),
 		...(t_s !== undefined && { t_s }),
 		...usageOf(call),
 	};
 }
 
-// Each repro model turn starts with an "observe" screenshot, so turn k matches
-// observe shot k. Its usage goes on the first action it produced (that step's
-// cost) and its status and verdict on a model_call event in the feed.
+// Each repro model turn starts with an "observe" frame that lists the turn's
+// call records (two after a re-ask). The turn's summed usage goes on the first
+// action it produced (that step's cost) and its status and verdict on a
+// model_call event at the frame's time. Repro calls no kept frame lists, which
+// are those of earlier rounds, come first, each under its round.
 function reproEvents(replay, calls) {
+	const byId = new Map(calls.map((c) => [c.callIds[0], c]));
 	const turns = replay.screenshots.filter((s) => s.action === "observe");
+	const bound = new Set(turns.flatMap((t) => t.calls ?? []));
 	const events = replay.events.map((e) => ({ ...e }));
-	const merged = [];
+	const merged = calls
+		.filter((c) => !bound.has(c.callIds[0]))
+		.map((c) => callEvent(c));
 	let k = 0;
 	const flush = (until) => {
-		for (; k < calls.length && (turns[k]?.t_s ?? 0) <= until; k++) {
-			const at = turns[k]?.t_s;
+		for (; k < turns.length && turns[k].t_s <= until; k++) {
+			const mine = (turns[k].calls ?? []).flatMap((id) => byId.get(id) ?? []);
+			if (!mine.length) continue;
+			const at = turns[k].t_s;
 			const next = turns[k + 1]?.t_s ?? Number.POSITIVE_INFINITY;
 			const step = events.find(
 				(e) => e.type === "action" && e.t_s >= at && e.t_s < next,
 			);
-			const { stage, status, verdict } = calls[k];
-			if (step) Object.assign(step, usageOf(calls[k]));
-			merged.push(callEvent(step ? { stage, status, verdict } : calls[k], at));
+			const usage = Object.fromEntries(
+				USAGE.filter((f) => mine.some((c) => f in c)).map((f) => [
+					f,
+					mine.reduce((sum, c) => sum + (c[f] ?? 0), 0),
+				]),
+			);
+			const { stage, status, verdict, round } = mine.at(-1);
+			if (step) Object.assign(step, usage);
+			merged.push(
+				callEvent({ stage, status, verdict, round, ...(!step && usage) }, at),
+			);
 		}
 	};
 	for (const event of events) {
@@ -442,9 +639,7 @@ function rebuildEvents(run, replay) {
 			: run.replay.screenshots,
 		events: [
 			...of("watch").map((c) => callEvent(c)),
-			...(replay
-				? reproEvents(replay, of("repro").slice(run.repro_calls_from ?? 0))
-				: []),
+			...(replay ? reproEvents(replay, of("repro")) : []),
 			...of("prove").map((c) => callEvent(c)),
 		],
 	};
@@ -461,8 +656,13 @@ async function openRun(o) {
 	let run = emptyRun(o);
 	const saved = await readJsonOptional(join(runDir, "run.json"));
 	if (validateRun(saved) && saved.issue === o.issue) run = saved;
+	// Calls the issue's case made before this run folder existed are earlier
+	// runs: they count in the case's spend and not in this run's.
+	else run.case_calls_before = (await caseEvents(o.issue)).length;
 	run.state = "running";
 	run.call_verdicts ??= {};
+	run.call_rounds ??= {};
+	run.round ??= 1;
 	const ctx = { o, runDir, run, caseId: caseOf(o.issue) };
 	ctx.replay = run.stages.repro
 		? await readJsonOptional(join(runDir, "replay.json"))
@@ -470,7 +670,8 @@ async function openRun(o) {
 	const elapsed = run.elapsed_ms ?? 0;
 	const opened = Date.now();
 	ctx.publish = async () => {
-		const events = await caseEvents(o.issue);
+		const all = await caseEvents(o.issue);
+		const events = all.slice(run.case_calls_before ?? 0);
 		run.model_calls = events.map((e) => ({
 			stage: e.stage,
 			status: e.outcome ?? e.type,
@@ -479,8 +680,10 @@ async function openRun(o) {
 			...(run.call_verdicts[e.callId] && {
 				verdict: run.call_verdicts[e.callId],
 			}),
+			...(run.call_rounds[e.callId] && { round: run.call_rounds[e.callId] }),
 		}));
 		run.cost_micro_usd = spendOf(events);
+		run.case_cost_micro_usd = spendOf(all);
 		rebuildEvents(run, ctx.replay);
 		run.elapsed_ms = elapsed + Date.now() - opened;
 		await writeJsonAtomic(join(runDir, "run.json"), run);
@@ -546,6 +749,7 @@ async function finish(ctx, verdict) {
 		issue_url: run.issue_url,
 		target_revision: run.target_revision,
 		fixture: run.fixture,
+		...(run.pair && { pair: run.pair }),
 		stages: run.stages,
 		rerun_without_ember: replay
 			? ((await readJsonOptional(join(runDir, "proof.json")))
@@ -572,6 +776,132 @@ async function committed(ctx, name, status) {
 	return { status };
 }
 
+const WATCH_ROUNDS = 2;
+// Reproduction outcomes that point at Watch's steps or predicate. A refused,
+// failed or over-budget model call is not retried with a new Watch round.
+const WATCH_MISSES = new Set(["predicate_holds_before", "no_predicate"]);
+const watchMissed = (replay) =>
+	replay.events
+		.filter((e) => e.type === "stopped")
+		.every((e) => WATCH_MISSES.has(e.reason));
+
+// What an earlier reproduction saw, as data for Watch's next round.
+// After a reproduction that did not show the failure, an earlier predicate the
+// page could read, which did not already hold on the fresh page, is kept: only
+// the steps change in the next round.
+// A predicate whose expected value the bug build showed is contradicted by the
+// page and is not kept.
+const readablePredicate = (replay, predicate) =>
+	!replay.observed &&
+	!replay.attempts.some((a) => a.observed_before) &&
+	!replay.attempts.some((a) => a.predicate_value === predicate?.expected) &&
+	replay.attempts.some(
+		(a) =>
+			a.predicate_value !== undefined && a.predicate_value !== "unavailable",
+	);
+
+function reproductionFeedback(run, replay) {
+	const last = replay.events.findLast((e) => e.observation)?.observation;
+	return {
+		...(readablePredicate(replay, run.predicate) && {
+			keep_predicate:
+				"the page could read this predicate; change only the steps",
+		}),
+		earlier_steps: run.steps,
+		earlier_predicate: run.predicate,
+		reproduction: {
+			status: replay.status,
+			...(replay.fixed_build_shows_failure && {
+				fixed_build_shows_failure: true,
+			}),
+			predicate_held_before: replay.attempts.some((a) => a.observed_before),
+			attempts: replay.attempts.map((a) => ({
+				observed: a.observed,
+				predicate_value_after: a.predicate_value,
+				model_verdict: a.model_verdict,
+				actions: a.actions,
+			})),
+			...(last && { last_observation: last }),
+		},
+	};
+}
+
+// Pair runs: steps that also show the failure on the fixed build do not
+// reproduce the reported bug. They are replayed there, without a model, and
+// the result is kept in replay.json: the status becomes fixed_build_conflict,
+// which is not a reproduction, so no proof is asked for and no success counted.
+async function checkedOnFixed(ctx, replay) {
+	const { o, runDir, run } = ctx;
+	if (!o.pageDirs || !replay.reproduced_steps) return replay;
+	const server = await serveBuild(o.pageDirs[1]);
+	let check;
+	try {
+		check = await repro(replay.reproduced_steps, run.predicate, server.origin, {
+			runDir: join(runDir, "fixed-check"),
+			scripted: true,
+		});
+	} finally {
+		await server.close();
+	}
+	const conflict = check.status === "reproduced";
+	const checked = {
+		...replay,
+		...(conflict && { status: "fixed_build_conflict" }),
+		fixed_build_shows_failure: conflict,
+	};
+	await writeFile(
+		join(runDir, "replay.json"),
+		`${JSON.stringify(checked, null, 2)}\n`,
+	);
+	return checked;
+}
+
+// Takes one Watch document as the run's steps, predicate and notes together,
+// so notes never describe steps of another round.
+function adoptWatch(run, document, predicate = document.predicate) {
+	run.steps = document.steps;
+	run.predicate = predicate;
+	for (const field of ["uncertainty", "narration_evidence"])
+		if (document[field]) run[field] = document[field];
+		else delete run[field];
+}
+
+// One more Watch round with reproduction's feedback; false when it fails.
+async function watchAgain(ctx, replay) {
+	const { o, runDir, run } = ctx;
+	const result = await watch(join(runDir, run.recording), {
+		runDir,
+		callEmber: ctx.ember("watch"),
+		probe: o.probe,
+		caseId: ctx.caseId,
+		caseBudget: o.caseBudget,
+		reportTitle: o.reportTitle,
+		appNotes: o.appNotes,
+		feedback: reproductionFeedback(run, replay),
+	});
+	if (result.status !== "ok") return false;
+	const kept = readablePredicate(replay, run.predicate)
+		? run.predicate
+		: undefined;
+	adoptWatch(run, result.document, kept);
+	if (kept)
+		await writeFile(
+			join(runDir, "steps.json"),
+			`${JSON.stringify({ ...result.document, predicate: kept }, null, 2)}\n`,
+		);
+	await ctx.artifacts("watch", ["steps.json"]);
+	const located = await locate(join(runDir, "steps.json"), {
+		targetDir: o.target,
+		targetRevision: o.revision,
+		runDir,
+	});
+	run.anchors = located.anchors;
+	run.stages.locate = located.status;
+	await ctx.artifacts("locate", ["anchors.json"]);
+	await ctx.publish();
+	return true;
+}
+
 // The five stages over one issue's run folder. Each returns {status}; the journal
 // decides what comes next and when the issue is finished.
 const STAGE_FNS = {
@@ -590,6 +920,8 @@ const STAGE_FNS = {
 			probe: o.probe,
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
+			reportTitle: o.reportTitle,
+			appNotes: o.appNotes,
 		});
 		if (result.status === "refused_input") {
 			await rm(copy, { force: true }); // a refused recording is never embedded
@@ -599,10 +931,7 @@ const STAGE_FNS = {
 		run.recording = name;
 		await ctx.artifacts("watch", [name]);
 		if (result.status !== "ok") return committed(ctx, "watch", result.status);
-		run.steps = result.document.steps;
-		run.predicate = result.document.predicate;
-		for (const field of ["uncertainty", "narration_evidence"])
-			if (result.document[field]) run[field] = result.document[field];
+		adoptWatch(run, result.document);
 		await ctx.artifacts("watch", ["steps.json"]);
 		return committed(ctx, "watch", "ok");
 	},
@@ -619,20 +948,39 @@ const STAGE_FNS = {
 	},
 	async repro(ctx) {
 		const { o, runDir, run } = ctx;
-		run.repro_calls_from = run.model_calls.filter(
-			(c) => c.stage === "repro",
-		).length;
-		const replay = await repro(run.steps, run.predicate, o.appOrigin, {
-			runDir,
-			caseId: ctx.caseId,
-			caseBudget: o.caseBudget,
-			callEmber: ctx.ember("repro"),
-			// Live viewers see each recorded action and frame as it happens.
-			async onProgress(progress) {
-				ctx.replay = progress;
-				await ctx.publish();
-			},
-		});
+		// A stage that runs again after an interruption starts a new round.
+		if (
+			run.model_calls.some((c) => c.stage === "repro" && c.round === run.round)
+		)
+			run.round += 1;
+		const once = () =>
+			repro(run.steps, run.predicate, o.appOrigin, {
+				runDir,
+				caseId: ctx.caseId,
+				caseBudget: o.caseBudget,
+				callEmber: ctx.ember("repro"),
+				...(o.reportTitle && { reportTitle: o.reportTitle }),
+				...(o.appNotes && { appNotes: o.appNotes }),
+				// Live viewers see each recorded action and frame as it happens.
+				async onProgress(progress) {
+					ctx.replay = progress;
+					await ctx.publish();
+				},
+			});
+		let replay = await checkedOnFixed(ctx, await once());
+		// Bounded extra Watch rounds (FOL-R06): Watch is asked again with what
+		// reproduction saw, then locate and reproduction run on its new steps.
+		for (
+			let round = 1;
+			round <= WATCH_ROUNDS &&
+			(replay.fixed_build_shows_failure ||
+				(replay.status !== "reproduced" && watchMissed(replay)));
+			round++
+		) {
+			run.round += 1;
+			if (!(await watchAgain(ctx, replay))) break;
+			replay = await checkedOnFixed(ctx, await once());
+		}
 		ctx.replay = replay;
 		await ctx.artifacts("repro", [
 			"replay.json",
@@ -642,26 +990,36 @@ const STAGE_FNS = {
 	},
 	async prove(ctx) {
 		const { o, runDir, run } = ctx;
-		const result = await prove(run.steps, run.anchors, run.predicate, {
+		// The actions that reproduced the failure, when there are any.
+		const replayed = await readFile(join(runDir, "replay.json"), "utf8")
+			.then((text) => JSON.parse(text).reproduced_steps)
+			.catch(() => undefined);
+		const steps = Array.isArray(replayed) ? replayed : run.steps;
+		const result = await prove(steps, run.anchors, run.predicate, {
 			runDir,
 			targetDir: o.target,
 			fixedTargetDir: o.fixedTarget,
+			...(o.pageDirs && { pageDirs: o.pageDirs }),
+			...(o.memoryMiB && { memoryMiB: o.memoryMiB }),
 			runner: o.runner,
 			callEmber: ctx.ember("prove"),
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
+			...(o.testNotes && { testNotes: o.testNotes }),
+			...(o.reportTitle && { reportTitle: o.reportTitle }),
+			...(o.refusedTestCalls && { refusedTestCalls: o.refusedTestCalls }),
 		});
-		if (result.status === "verified")
-			run.test = { path: result.path, verdict: "verified" };
+		if (["verified", "red_test"].includes(result.status))
+			run.test = { path: result.path, verdict: result.status };
 		await ctx.artifacts("prove", [
 			"proof.json",
 			...(result.path ? [result.path] : []),
+			...(result.red_output ? [result.red_output] : []),
 		]);
 		return committed(ctx, "prove", result.status);
 	},
 	async report(ctx) {
-		const verified = ctx.run.stages.prove === "verified";
-		await finish(ctx, verified ? "proof_verified" : "failure_observed");
+		await finish(ctx, verdictAfterProve(ctx.run.stages.prove));
 		return { status: "ok" };
 	},
 };

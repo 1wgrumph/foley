@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
 	copyFileSync,
+	existsSync,
 	mkdirSync,
 	readFileSync,
 	truncateSync,
@@ -139,28 +140,34 @@ test("TC-R04-1", { timeout: 120000 }, async () => {
 			),
 		);
 	}
-	// Structurally valid JSON, but not valid steps.
-	await temporary((root) =>
-		withEmber(
-			root,
-			[modelReply({ steps: "not-an-array" })],
-			async ({ callEmber }) => {
-				const runDir = join(root, "run");
-				mkdirSync(runDir);
-				assert.equal(
-					(
-						await watch(clip, {
-							runDir,
-							callEmber,
-							probe: frameProbe,
-							caseId: "watch-invalid",
-						})
-					).status,
-					"malformed_output",
-				);
-			},
-		),
-	);
+	// Structurally valid JSON, but not valid steps: one re-ask carries the
+	// validation error; a second invalid reply is malformed_output, and a valid
+	// one is accepted.
+	for (const second of [{ steps: "not-an-array" }, document])
+		await temporary((root) =>
+			withEmber(
+				root,
+				[modelReply({ steps: "not-an-array" }), modelReply(second)],
+				async ({ callEmber, server }) => {
+					const runDir = join(root, "run");
+					mkdirSync(runDir);
+					const result = await watch(clip, {
+						runDir,
+						callEmber,
+						probe: frameProbe,
+						caseId: "watch-invalid",
+					});
+					assert.equal(
+						result.status,
+						second === document ? "ok" : "malformed_output",
+					);
+					assert.equal(server.requests.length, 2);
+					const reask = server.requests[1].body.messages.at(-1);
+					assert.equal(reask.role, "user");
+					assert.match(reask.content, /failed validation: .*steps/);
+				},
+			),
+		);
 });
 
 test("TC-R04-2", { timeout: 120000 }, async () => {
@@ -259,12 +266,65 @@ test("TC-R04-6", { timeout: 120000 }, async () => {
 				},
 				caseId: "watch-silent",
 				caseBudget: 100000,
+				reportTitle: "Eraser shortcut ends the line tool",
+				appNotes: "E or 0 eraser",
 			});
+			assert.ok(
+				parts(server).some(
+					(part) => part.type === "text" && part.text.includes("E or 0 eraser"),
+				),
+				"Target app notes reach the model as data",
+			);
 			assert.equal(result.status, "ok");
+			// The issue title reaches the model as quoted data (S5 live miss).
+			assert.ok(
+				parts(server).some(
+					(part) =>
+						part.type === "text" &&
+						part.text.includes('"Eraser shortcut ends the line tool"'),
+				),
+			);
 			assert.equal(result.document.narration, undefined);
 			assert.equal(result.document.transcript, undefined);
 			assert.ok(parts(server).some((part) => part.type === "image_url"));
 			assert.ok(!parts(server).some((part) => part.type.includes("audio")));
 		}),
+	);
+});
+
+// W4-11: every string of a steps document passes the one credential filter
+// before it is kept, and a refused reply is never sent back to the model.
+test("TC-R04-2/credential-field", { timeout: 120000 }, async () => {
+	const watch = await product("src/watch.mjs", "watch");
+	const shaped = ["ghp_", "A".repeat(36)].join("");
+	const leaking = {
+		...document,
+		steps: document.steps.map((step, i) =>
+			i === 0 ? { ...step, target: `button ${shaped}` } : step,
+		),
+	};
+	await temporary((root) =>
+		withEmber(
+			root,
+			[modelReply(leaking), modelReply(leaking)],
+			async ({ callEmber, server }) => {
+				const runDir = join(root, "run");
+				mkdirSync(runDir);
+				const result = await watch(clip, {
+					runDir,
+					callEmber,
+					probe: frameProbe,
+					caseId: "watch-credential",
+					caseBudget: 100000,
+				});
+				assert.equal(result.status, "malformed_output");
+				assert.equal(existsSync(join(runDir, "steps.json")), false);
+				assert.equal(server.requests.length, 2);
+				assert.ok(
+					!JSON.stringify(server.requests[1].body).includes(shaped),
+					"Refused text was sent back",
+				);
+			},
+		),
 	);
 });

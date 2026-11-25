@@ -269,6 +269,23 @@ contract("TC-R01-6", async () => {
 		assert.match(event?.request_digest ?? "", /^[a-f0-9]{64}$/);
 		reconcile(ctx);
 	});
+	// S6 live: Ember often writes a sentence before the JSON object; the object
+	// is still the output and the sentence is dropped.
+	await scenario(
+		{
+			script: [
+				{
+					...ok(sampleUsage),
+					content: 'Drawing it now {as recorded}. {"answer":"ok"}',
+				},
+			],
+		},
+		async (ctx) => {
+			const result = await ctx.call(request(1000));
+			resultIs(result, "ok");
+			assert.deepEqual(result.output, { answer: "ok" });
+		},
+	);
 });
 
 contract("TC-R01-7", async () => {
@@ -366,6 +383,158 @@ contract("TC-R01-8", async () => {
 						.update(Buffer.from(encoded, "base64"))
 						.digest("hex"),
 				),
+			);
+		},
+	);
+	// Video bounded by the live probe: whole seconds times the probe's ceiling, plus
+	// the wire framing and the output limit. Audio has no ceiling and stays refused.
+	const fixture = (path) =>
+		readFileSync(new URL(`../../${path}`, import.meta.url));
+	const bounds = JSON.parse(fixture("fixtures/ember/bounds.json"));
+	const truth = JSON.parse(
+		fixture("fixtures/recordings/owned-basic-flow.truth.json"),
+	);
+	const clip = fixture("fixtures/recordings/owned-basic-flow.mp4");
+	const videoPart = (url) => ({ type: "video_url", video_url: { url } });
+	const video = request(1000, {
+		max_output_tokens: 1998,
+		reasoning_effort: "low",
+		messages: [
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "abcdefghij" },
+					videoPart(`data:video/mp4;base64,${clip.toString("base64")}`),
+				],
+			},
+		],
+	});
+	const sent = { ...wireBody(video), reasoning_effort: "low" };
+	const blank = structuredClone(sent);
+	blank.messages[0].content[1] = videoPart("");
+	const videoBound = Math.ceil(
+		((Buffer.byteLength(JSON.stringify(blank)) +
+			Math.ceil(truth.duration_s) * bounds.video.ceilingTokensPerSecond) *
+			100 +
+			1998 * 500) /
+			1000,
+	);
+	const wav = Buffer.alloc(44 + 32000);
+	wav.write("RIFFxxxxWAVEfmt ", 0, "latin1");
+	wav.writeUInt32LE(16, 16);
+	wav.writeUInt16LE(1, 20);
+	wav.writeUInt16LE(1, 22);
+	wav.writeUInt32LE(16000, 24);
+	wav.writeUInt32LE(32000, 28);
+	wav.write("data", 36, "latin1");
+	wav.writeUInt32LE(32000, 40);
+	await scenario(
+		{ script: [ok({ prompt_tokens: 4206, completion_tokens: 2 }, true)] },
+		async (ctx) => {
+			await refuse(
+				ctx,
+				{ ...video, reasoning_effort: "turbo" },
+				"refused_input",
+			);
+			await refuse(
+				ctx,
+				request(1000, {
+					max_output_tokens: 1998,
+					messages: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_audio",
+									input_audio: { format: "wav", data: wav.toString("base64") },
+								},
+							],
+						},
+					],
+				}),
+			);
+			const running = ctx.call(video);
+			await ctx.server.waitForRequests(1);
+			assert.equal(booked(ctx.ledger()), videoBound);
+			assert.deepEqual(ctx.server.requests[0].body, sent);
+			ctx.server.release(0);
+			resultIs(await running, "ok");
+		},
+	);
+	// Native computer use is stateless: the replayed history is the whole input, so
+	// the priced body bounds it; each screenshot is a bounded frame at 1,600 tokens,
+	// and the Responses usage names settle the call.
+	const png = mediaRequest("image").messages[0].content[1].image_url.url;
+	const computer = (url) => ({
+		input: [
+			{ role: "user", content: [{ type: "input_text", text: "abcdefghij" }] },
+			{
+				type: "computer_call_output",
+				call_id: "call-1",
+				acknowledged_safety_checks: [],
+				output: { type: "computer_screenshot", image_url: url },
+			},
+		],
+		max_output_tokens: 1998,
+		reasoning_effort: "low",
+		caseId: "case-a",
+		caseBudget: 100000,
+		timeoutMs: 15000,
+	});
+	const computerBody = (url) => ({
+		model,
+		input: computer(url).input,
+		tools: [{ type: "computer" }],
+		max_output_tokens: 1998,
+		reasoning: { effort: "low" },
+		store: false,
+		include: ["reasoning.encrypted_content"],
+	});
+	const computerBound = Math.ceil(
+		((Buffer.byteLength(JSON.stringify(computerBody(""))) + 1600) * 100 +
+			1998 * 500) /
+			1000,
+	);
+	await scenario(
+		{
+			script: [
+				ok(
+					{
+						input_tokens: 1700,
+						output_tokens: 40,
+						input_tokens_details: { cached_tokens: 0 },
+						output_tokens_details: { reasoning_tokens: 30 },
+					},
+					true,
+				),
+			],
+		},
+		async (ctx) => {
+			const before = readFileSync(ctx.ledgerPath);
+			resultIs(
+				await ctx.ember.callEmberComputer(
+					computer("data:image/jpeg;base64,/9j/4AAQ"),
+				),
+				"budget_refused",
+			);
+			// W4-09: a native computer call names its case budget, or is refused
+			// before anything is reserved or sent.
+			const { caseBudget: _unset, ...unbudgeted } = computer(png);
+			resultIs(await ctx.ember.callEmberComputer(unbudgeted), "refused_input");
+			assert.equal(ctx.server.requests.length, 0);
+			assert.deepEqual(readFileSync(ctx.ledgerPath), before);
+			const running = ctx.ember.callEmberComputer(computer(png));
+			await ctx.server.waitForRequests(1);
+			assert.equal(ctx.server.requests[0].url, "/v1/responses");
+			assert.deepEqual(ctx.server.requests[0].body, computerBody(png));
+			assert.equal(booked(ctx.ledger()), computerBound);
+			ctx.server.release(0);
+			const result = await running;
+			resultIs(result, "ok");
+			assert.equal(result.output.items[0].type, "message");
+			assert.equal(
+				ctx.ledger().settled,
+				Math.ceil((1700 * 100 + 40 * 500) / 1000),
 			);
 		},
 	);

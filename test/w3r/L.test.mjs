@@ -111,6 +111,32 @@ function cliRun(root, args, env = localEnv()) {
 	).done;
 }
 
+// W4-07: an issue's evaluation cost is its latest run's own cost; what its
+// case spent over every run is reported beside it, never averaged as a run.
+test("TC-R10-1/eval-run-cost", async () => {
+	await temporary((root) => {
+		evalCorpus(root);
+		writeJson(join(root, "out/backlog-report.json"), [
+			{ issue: ids[0], status: "attempted_miss", cost_micro_usd: 900 },
+		]);
+		const dir = join(root, "out/runs", String(ids[0]));
+		mkdirSync(dir);
+		writeJson(join(dir, "run.json"), {
+			anchors: [],
+			elapsed_ms: 12,
+			cost_micro_usd: 100,
+			case_cost_micro_usd: 900,
+		});
+		return cliRun(root, ["eval", "--max-issues", "0"]).then((result) => {
+			assert.equal(result.code, 0, result.stderr);
+			const report = readJson(join(root, "out/eval-report.json"));
+			assert.equal(report.cost_per_attempt_micro_usd, 100);
+			assert.equal(report.results[0].cost_micro_usd, 100);
+			assert.equal(report.results[0].case_cost_micro_usd, 900);
+		});
+	});
+});
+
 test("TC-R10-1/eval-population", async () => {
 	await temporary((root) => {
 		evalCorpus(root);
@@ -228,34 +254,39 @@ function cachedCorpus(root, origin) {
 test("TC-R10-3/eval-execution", { timeout: 240000 }, async () => {
 	await temporary((root) =>
 		withApps(root, ({ bug }) =>
-			withEmber(root, [modelReply({})], async ({ env, server }) => {
-				const options = cachedCorpus(root, bug.origin);
-				const result = await cliRun(
-					root,
-					["eval", "--max-issues", "1", ...options],
-					env,
-				);
-				assert.equal(result.code, 0, result.stderr);
-				assert.equal(
-					server.requests.length,
-					1,
-					"Evaluation must attempt a held-out issue",
-				);
-				const report = readJson(join(root, "out/eval-report.json"));
-				assert.deepEqual(
-					report.results.map((r) => r.issue),
-					ids,
-				);
-				assert.equal(
-					report.results.filter((r) => r.status === "attempted_miss").length,
-					1,
-				);
-				assert.equal(
-					report.results.filter((r) => r.status === "eligible_not_attempted")
-						.length,
-					7,
-				);
-			}),
+			// An invalid steps reply gets one re-ask with its validation error.
+			withEmber(
+				root,
+				[modelReply({}), modelReply({})],
+				async ({ env, server }) => {
+					const options = cachedCorpus(root, bug.origin);
+					const result = await cliRun(
+						root,
+						["eval", "--max-issues", "1", ...options],
+						env,
+					);
+					assert.equal(result.code, 0, result.stderr);
+					assert.equal(
+						server.requests.length,
+						2,
+						"Evaluation must attempt a held-out issue",
+					);
+					const report = readJson(join(root, "out/eval-report.json"));
+					assert.deepEqual(
+						report.results.map((r) => r.issue),
+						ids,
+					);
+					assert.equal(
+						report.results.filter((r) => r.status === "attempted_miss").length,
+						1,
+					);
+					assert.equal(
+						report.results.filter((r) => r.status === "eligible_not_attempted")
+							.length,
+						7,
+					);
+				},
+			),
 		),
 	);
 });

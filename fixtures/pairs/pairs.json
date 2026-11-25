@@ -1,0 +1,256 @@
+{
+	"schema": "foley.pairs/1",
+	"repository": "https://github.com/excalidraw/excalidraw",
+	"selected_on": "2026-11-25",
+	"rule": "Closed Excalidraw bug issues with a reporter recording and a merged fix pull request. The bug commit is the fix commit's parent. No held-out issue is used. Recordings are referenced by URL and SHA-256 and are never committed.",
+	"build_command": "tools/build-pair.sh <issue>",
+	"check_command": "node test/pairs/check.mjs <issue> <bug|fixed>",
+	"prove_command": "node test/pairs/prove-pair.mjs <issue>",
+	"test_notes": "Excalidraw's Vitest setup, for a test file at the checkout root. The file is plain JavaScript: no JSX and no TypeScript. Render the editor with: import React from \"react\"; import { Excalidraw } from \"@excalidraw/excalidraw\"; import { render, act } from \"./packages/excalidraw/tests/test-utils\"; await render(React.createElement(Excalidraw, { handleKeyboardGlobally: true })). After rendering, window.h.state is the app state and window.h.elements the scene; read them in assertions only. Reach every state through input, as the reporter did: a test that sets state directly is refused before it runs (see refused_test_calls). Helpers: Keyboard and UI from \"./packages/excalidraw/tests/helpers/ui\" (Keyboard.keyPress(KEYS.E), Keyboard.withModifierKeys({ alt: true }, () => Keyboard.keyPress(KEYS.R)), UI.clickTool(\"line\")); Pointer from the same module (new Pointer(\"mouse\"), then clickAt(x, y), down, move, up); KEYS from \"@excalidraw/common\". Dialogs render in portals, so query document, not the render container.",
+	"refused_test_calls": [
+		"helpers/api",
+		"setAppState",
+		"updateScene",
+		"setState(",
+		"h.app",
+		"h.elements="
+	],
+	"app_notes": "Excalidraw's documented keyboard shortcuts and hints, from its help dialog (HelpDialog.tsx), actions/shortcuts.ts and locales/en.json. Tools: H hand; V or 1 selection; R or 2 rectangle; D or 3 diamond; O or 4 ellipse; A or 5 arrow; L or 6 line; P or 7 freedraw; T or 8 text; 9 image; E or 0 eraser; F frame; K laser pointer; I eyedropper; Q keep the selected tool active. View: Alt+R view mode; Alt+Z zen mode; Alt+Shift+D dark theme; Control+' grid; Shift+1 zoom to fit; Control++ and Control+- zoom; Control+0 reset zoom. Editing: Control+Z undo; Control+Shift+Z redo; Control+D duplicate; Delete delete; Control+A select all; Control+G group; Control+C, Control+X, Control+V clipboard; Control+Shift+E export image; Shift+Alt+C copy as PNG; Enter edit the selected text; Escape finish or cancel. Hints the app shows: line and arrow tools: click to start multiple points, drag for a single line; with a multi-point line in progress, click the last point or press Escape or Enter to finish; freedraw: click and drag, release when finished; text: double-click anywhere with the selection tool.",
+	"pairs": [
+		{
+			"issue": 10840,
+			"url": "https://github.com/excalidraw/excalidraw/issues/10840",
+			"title": "In view mode, if laser pointer was active, stopping view mode, the active tool will default to hand",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/8fde38fd-c267-40a6-bf70-79e60545346e",
+				"sha256": "ce93af94b1e806b8995ac93f8db66d5e3ad4c3944925aedbd2e167ccfea03f27",
+				"media_type": "video/mp4",
+				"duration_s": 23.6,
+				"width": 1210,
+				"height": 834
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/10841",
+			"fix_commit": "cae9d2bcbd3e6c70c579a52574d91ea8898a80bb",
+			"bug_commit": "2874f9e48c3bf9e7c4a46015b4bb65b177f18b13",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press Alt+R to enter view mode.",
+				"Press K for the laser pointer.",
+				"Press Escape to leave the laser pointer.",
+				"Press Alt+R to leave view mode."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 1,
+					"action": "key_press",
+					"target": "view mode shortcut",
+					"value": "Alt+r"
+				},
+				{
+					"order": 3,
+					"t_s": 3,
+					"action": "key_press",
+					"target": "laser pointer shortcut",
+					"value": "k"
+				},
+				{
+					"order": 4,
+					"t_s": 6,
+					"action": "key_press",
+					"target": "Escape",
+					"value": "Escape"
+				},
+				{
+					"order": 5,
+					"t_s": 9,
+					"action": "key_press",
+					"target": "view mode shortcut",
+					"value": "Alt+r"
+				},
+				{
+					"order": 6,
+					"t_s": 10,
+					"action": "wait",
+					"target": "saved state",
+					"value": 1000
+				}
+			],
+			"predicate": {
+				"kind": "canvas_state",
+				"source": "appState",
+				"path": ["activeTool", "type"],
+				"expected": "selection",
+				"observed": "hand"
+			},
+			"regression_test": "fixtures/pairs/tests/10840/regression.test.mjs"
+		},
+		{
+			"issue": 9852,
+			"url": "https://github.com/excalidraw/excalidraw/issues/9852",
+			"title": "Switching to eraser via shortcut bypasses normal tool-switch restrictions, causing inconsistent states",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/c0901eb0-3b82-46a8-a883-64778e3b18e0",
+				"sha256": "de0b3bde075388266bcf5bc9818d194f37e928e925b12be65557ddf58da9279c",
+				"media_type": "video/mp4",
+				"duration_s": 23.4,
+				"width": 2560,
+				"height": 1440
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/11571",
+			"fix_commit": "cce5001aaafe0286855984cf1b4e154b6ce86754",
+			"bug_commit": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press L for the line tool.",
+				"Click once on the canvas to start a multi-point line.",
+				"Press E, the eraser shortcut, before finishing the line."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 2,
+					"action": "key_press",
+					"target": "line tool shortcut",
+					"value": "l"
+				},
+				{
+					"order": 3,
+					"t_s": 4,
+					"action": "click",
+					"target": "canvas",
+					"selector": "canvas.interactive"
+				},
+				{
+					"order": 4,
+					"t_s": 6,
+					"action": "key_press",
+					"target": "eraser shortcut",
+					"value": "e"
+				},
+				{
+					"order": 5,
+					"t_s": 7,
+					"action": "wait",
+					"target": "saved state",
+					"value": 1000
+				}
+			],
+			"predicate": {
+				"kind": "canvas_state",
+				"source": "appState",
+				"path": ["activeTool", "type"],
+				"expected": "line",
+				"observed": "eraser"
+			},
+			"regression_test": "fixtures/pairs/tests/9852/regression.test.mjs"
+		},
+		{
+			"issue": 8418,
+			"url": "https://github.com/excalidraw/excalidraw/issues/8418",
+			"title": "Copy to clipboard text does not change on clicking it",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/7435d750-7e01-44bf-9ba6-fd20ee83aa70",
+				"sha256": "0a9d17ea93fb4b8d3d0652c54353c9f13044cdade7b711cc13348d1ffd8d1659",
+				"media_type": "video/mp4",
+				"duration_s": 4.0,
+				"width": 1920,
+				"height": 1080
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/8426",
+			"fix_commit": "26d22965785e0b307efaa6dc3b7e9c65f1e84a6b",
+			"bug_commit": "afb68a6467cf433e6738be297f69cd6bfe2ca57f",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press T and click the canvas to add a text element.",
+				"Type some text and press Escape.",
+				"Press Ctrl+Shift+E to open the image export dialog.",
+				"Click Copy to clipboard."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 1,
+					"action": "key_press",
+					"target": "text tool shortcut",
+					"value": "t"
+				},
+				{
+					"order": 3,
+					"t_s": 1.5,
+					"action": "click",
+					"target": "canvas",
+					"selector": "canvas.interactive"
+				},
+				{
+					"order": 4,
+					"t_s": 2,
+					"action": "type",
+					"target": "text editor",
+					"selector": "textarea.excalidraw-wysiwyg",
+					"value": "hello"
+				},
+				{
+					"order": 5,
+					"t_s": 2.5,
+					"action": "key_press",
+					"target": "Escape",
+					"value": "Escape"
+				},
+				{
+					"order": 6,
+					"t_s": 3,
+					"action": "key_press",
+					"target": "export image shortcut",
+					"value": "Control+Shift+e"
+				},
+				{
+					"order": 7,
+					"t_s": 3.5,
+					"action": "click",
+					"target": "Copy to clipboard"
+				},
+				{
+					"order": 8,
+					"t_s": 4,
+					"action": "wait",
+					"target": "copy result",
+					"value": 1500
+				}
+			],
+			"predicate": {
+				"kind": "element_count",
+				"selector": ".ExcButton--status-success",
+				"expected": 1,
+				"observed": 0
+			},
+			"regression_test": "fixtures/pairs/tests/8418/regression.test.mjs",
+			"memory_mib": 2048,
+			"build_note": "The commits declare Node 18-20; built and tested on Node 22.23.4."
+		}
+	]
+}

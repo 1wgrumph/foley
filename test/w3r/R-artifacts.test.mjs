@@ -12,6 +12,8 @@ import {
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+	archive,
+	modelReply,
 	product,
 	readJson,
 	readLines,
@@ -355,11 +357,12 @@ test("TC-R04-2/audio-extraction-refusal", settings, async () => {
 			streams.some(({ codec_type }) => codec_type === "audio"),
 			"Fixture must contain an audio track",
 		);
-		const probe = join(ctx.root, "probe.json");
-		writeJson(probe, {
+		// Measured bounds (fixtures/ember/bounds.json) refuse audio, and the CLI
+		// ignores --probe once they exist, so Watch is driven with the probe directly.
+		const probe = {
 			video: { accepted: false },
 			audio: { accepted: true, tokensPerSecond: 100 },
-		});
+		};
 		const tools = join(ctx.root, "decoder-tools");
 		mkdirSync(tools);
 		const ffmpeg = runCommand("which", ["ffmpeg"]).trim();
@@ -378,13 +381,28 @@ exec ${ffmpeg} "$@"
 `,
 			{ mode: 0o755 },
 		);
-		const result = await ctx.start(option(ctx.runArgs, "--recording", audio), {
-			PATH: `${tools}:${process.env.PATH}`,
-		}).done;
-		assertExit(result, 1);
-		assert.equal(ctx.readRun().stages.watch, "refused_input");
-		assert.equal(ctx.readRun().verdict, "attempted_miss");
-		assert.equal(ctx.server.requests.length, 0);
+		const { watch } = await import("../../src/watch.mjs");
+		const path = process.env.PATH;
+		let calls = 0;
+		let result;
+		process.env.PATH = `${tools}:${path}`;
+		try {
+			result = await watch(audio, {
+				runDir: join(ctx.root, "watch-run"),
+				callEmber: async () => {
+					calls++;
+					return { status: "api_error" };
+				},
+				probe,
+				caseId: "audio-extraction",
+				caseBudget: 100000,
+			});
+		} finally {
+			process.env.PATH = path;
+		}
+		assert.equal(result.status, "refused_input");
+		assert.match(result.message, /audio/);
+		assert.equal(calls, 0);
 	});
 });
 
@@ -495,5 +513,123 @@ test("TC-INT-1/resume-input-identity", settings, async () => {
 		for (const result of statuses) assertExit(result, 2, /resume_mismatch/);
 		assert.deepEqual(readFileSync(join(ctx.runDir, "run.json")), original);
 		assert.equal(ctx.server.requests.length, 1);
+	});
+});
+
+// S5 live: a predicate that already holds on the fresh page sends Watch one
+// more bounded round with what reproduction saw; the new steps reach proof.
+test("TC-R06-7/watch-round", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const holdsBefore = modelReply({
+		...archive,
+		predicate: { ...archive.predicate, observed: "Ready" },
+	});
+	await scenario(
+		[holdsBefore, watchReply, reproReply, proveReply],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			const run = ctx.readRun();
+			assert.deepEqual(
+				run.model_calls.map((call) => call.stage),
+				["watch", "watch", "repro", "prove"],
+			);
+			const feedback = ctx.server.requests[1].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.match(feedback.text, /"predicate_held_before":true/);
+			assert.equal(run.predicate.observed, archive.predicate.observed);
+		},
+	);
+});
+
+// S5 live: after a reproduction that did not show the failure, a predicate the
+// page could read is kept and only Watch's new steps are used.
+test("TC-R06-7/watch-round-keeps-predicate", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const nothing = modelReply({
+		actions: [],
+		done: true,
+		verdict: "not_reproduced",
+	});
+	const changed = modelReply({
+		...archive,
+		predicate: {
+			kind: "visible_text",
+			selector: "#context",
+			expected: "Fresh",
+			observed: "Touched",
+		},
+	});
+	await scenario(
+		[watchReply, nothing, nothing, nothing, changed, reproReply, proveReply],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			assert.deepEqual(ctx.readRun().predicate, archive.predicate);
+			const feedback = ctx.server.requests[4].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.match(feedback.text, /"keep_predicate"/);
+			assert.match(feedback.text, /"predicate_value_after":"Ready"/);
+		},
+	);
+});
+
+// S6b (e): a predicate whose expected value the bug build showed is
+// contradicted by the page and is not kept into the next Watch round.
+test("TC-R06-7/watch-round-drops-contradicted", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const nothing = modelReply({
+		actions: [],
+		done: true,
+		verdict: "not_reproduced",
+	});
+	const contradicted = modelReply({
+		...archive,
+		predicate: {
+			...archive.predicate,
+			expected: "Ready",
+			observed: "Archived",
+		},
+	});
+	await scenario(
+		[
+			contradicted,
+			nothing,
+			nothing,
+			nothing,
+			watchReply,
+			reproReply,
+			proveReply,
+		],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			assert.deepEqual(ctx.readRun().predicate, archive.predicate);
+			const feedback = ctx.server.requests[4].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.doesNotMatch(feedback.text, /"keep_predicate"/);
+		},
+	);
+});
+
+// S6b (d): a census run with no fixed build keeps its red test and failing
+// output and ends with its own verdict, shown on the replay page's census index.
+test("TC-R09-1/failing-test-no-control", settings, async () => {
+	await scenario([watchReply, reproReply, proveReply], async (ctx) => {
+		const at = ctx.runArgs.indexOf("--fixed-target");
+		const args = ctx.runArgs.filter((_, i) => i !== at && i !== at + 1);
+		assertExit(await ctx.start(args).done, 1);
+		const run = ctx.readRun();
+		assert.equal(run.verdict, "failing_test_no_control");
+		assert.deepEqual(run.test, {
+			path: "regression.test.mjs",
+			verdict: "red_test",
+		});
+		assert.ok(existsSync(join(ctx.runDir, "regression.red.txt")));
+		const page = readFileSync(join(ctx.runDir, "replay.html"), "utf8");
+		assert.match(page, /failing_test_no_control/);
 	});
 });

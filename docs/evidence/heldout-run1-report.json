@@ -1,0 +1,682 @@
+{
+  "success_per_attempt": 0.125,
+  "success_per_eligible": 0.125,
+  "top1": 0,
+  "top5": 0,
+  "cost_per_attempt_micro_usd": 17186.75,
+  "cost_per_verified_proof_micro_usd": null,
+  "elapsed_ms": 714844,
+  "misses": [
+    11223,
+    10928,
+    10898,
+    10000,
+    9960,
+    8989,
+    9710
+  ],
+  "results": [
+    {
+      "issue": 11223,
+      "status": "attempted_miss",
+      "cost_micro_usd": 30506,
+      "anchors": [
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 37,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 42,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 54,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 155,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 211,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 212,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 239,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 292,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 295,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 298,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 13,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 23,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 28,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 30,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 35,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 49,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 50,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 58,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/StaticCanvas.tsx",
+          "line": 18,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/StaticCanvas.tsx",
+          "line": 21,
+          "term": "canvas"
+        }
+      ],
+      "elapsed_ms": 198234
+    },
+    {
+      "issue": 10928,
+      "status": "attempted_miss",
+      "cost_micro_usd": 13703,
+      "anchors": [
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 37,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 42,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 54,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 155,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 211,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 212,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 239,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 292,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 295,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 298,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 13,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 23,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 28,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 30,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 35,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 49,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 50,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 58,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/StaticCanvas.tsx",
+          "line": 18,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/StaticCanvas.tsx",
+          "line": 21,
+          "term": "canvas"
+        }
+      ],
+      "elapsed_ms": 65116
+    },
+    {
+      "issue": 10898,
+      "status": "attempted_miss",
+      "cost_micro_usd": 16255,
+      "anchors": [
+        {
+          "file": "packages/excalidraw/CHANGELOG.md",
+          "line": 105,
+          "term": "selection tool"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 37,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 42,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 54,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 155,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 211,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 212,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 239,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 292,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 295,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/InteractiveCanvas.tsx",
+          "line": 298,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 13,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 23,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 28,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 30,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 35,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 49,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 50,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/NewElementCanvas.tsx",
+          "line": 58,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/components/canvases/StaticCanvas.tsx",
+          "line": 18,
+          "term": "canvas"
+        }
+      ],
+      "elapsed_ms": 103570
+    },
+    {
+      "issue": 10000,
+      "status": "attempted_miss",
+      "cost_micro_usd": 48931,
+      "anchors": [
+        {
+          "file": "packages/element/src/__tests__/stickyNote.test.ts",
+          "line": 717,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/element/tests/renderEnvironmentCaches.test.ts",
+          "line": 14,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/contextmenu.test.tsx.snap",
+          "line": 7386,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/contextmenu.test.tsx.snap",
+          "line": 8132,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/contextmenu.test.tsx.snap",
+          "line": 8134,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/contextmenu.test.tsx.snap",
+          "line": 8136,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/contextmenu.test.tsx.snap",
+          "line": 8138,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/excalidraw.test.tsx.snap",
+          "line": 441,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/excalidraw.test.tsx.snap",
+          "line": 685,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/regressionTests.test.tsx.snap",
+          "line": 13647,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/regressionTests.test.tsx.snap",
+          "line": 13779,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/regressionTests.test.tsx.snap",
+          "line": 13781,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/regressionTests.test.tsx.snap",
+          "line": 13783,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/__snapshots__/regressionTests.test.tsx.snap",
+          "line": 13785,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/packages/__snapshots__/excalidraw.test.tsx.snap",
+          "line": 314,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/tests/packages/__snapshots__/excalidraw.test.tsx.snap",
+          "line": 519,
+          "term": "canvas"
+        },
+        {
+          "file": "excalidraw-app/index.scss",
+          "line": 84,
+          "term": "canvas"
+        },
+        {
+          "file": "package.json",
+          "line": 45,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/element/src/textMeasurements.ts",
+          "line": 164,
+          "term": "canvas"
+        },
+        {
+          "file": "packages/excalidraw/actions/actionCanvas.tsx",
+          "line": 75,
+          "term": "canvas"
+        }
+      ],
+      "elapsed_ms": 216869
+    },
+    {
+      "issue": 9960,
+      "status": "attempted_miss",
+      "cost_micro_usd": 4649,
+      "anchors": [
+        {
+          "file": "packages/element/tests/groups.test.ts",
+          "line": 17,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/groups.test.ts",
+          "line": 33,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/align.test.tsx",
+          "line": 467,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/align.test.tsx",
+          "line": 489,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/align.test.tsx",
+          "line": 1041,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 410,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 411,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 412,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 432,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 457,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 466,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 486,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 496,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 529,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/element/tests/duplicate.test.tsx",
+          "line": 540,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/excalidraw/tests/history.test.tsx",
+          "line": 208,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/excalidraw/tests/history.test.tsx",
+          "line": 209,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/excalidraw/tests/history.test.tsx",
+          "line": 2440,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/excalidraw/tests/history.test.tsx",
+          "line": 2441,
+          "term": "rectangle"
+        },
+        {
+          "file": "packages/excalidraw/tests/regressionTests.test.tsx",
+          "line": 1132,
+          "term": "rectangle"
+        }
+      ],
+      "elapsed_ms": 16607
+    },
+    {
+      "issue": 9812,
+      "status": "failure_observed",
+      "cost_micro_usd": 13292,
+      "anchors": [
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 2,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 3,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 7,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 52,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 57,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 59,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 67,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 79,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 115,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 125,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 127,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 128,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 131,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 134,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 139,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 144,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 152,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 157,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 166,
+          "term": "arrow"
+        },
+        {
+          "file": "packages/element/src/arrowEndpointText.ts",
+          "line": 171,
+          "term": "arrow"
+        }
+      ],
+      "elapsed_ms": 75837
+    },
+    {
+      "issue": 8989,
+      "status": "attempted_miss",
+      "cost_micro_usd": 5428,
+      "anchors": [],
+      "elapsed_ms": 19519
+    },
+    {
+      "issue": 9710,
+      "status": "attempted_miss",
+      "cost_micro_usd": 4730,
+      "anchors": [],
+      "elapsed_ms": 19092
+    }
+  ]
+}

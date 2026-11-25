@@ -7,6 +7,8 @@
 <button id="touch">Touch</button>
 <p id="status" role="status">Ready</p>
 <p id="context">Fresh</p>
+<textarea id="note" aria-label="Note"></textarea>
+<p id="typed"></p>
 <a id="other-origin" href="__DECOY_ORIGIN__">Other origin</a>
 <a id="file-link" href="__FILE_URL__">Local file</a>
 <a id="download" href="/download.txt" download>Download</a>
@@ -15,6 +17,9 @@ import { archiveItem } from "./logic.mjs";
 const status = document.getElementById("status");
 const context = document.getElementById("context");
 context.textContent = localStorage.getItem("touched") ? "Touched" : "Fresh";
+document.getElementById("note").addEventListener("input", (event) => {
+  document.getElementById("typed").textContent = event.target.value;
+});
 document.getElementById("touch").addEventListener("click", () => {
   localStorage.setItem("touched", "yes");
   context.textContent = "Touched";

@@ -61,9 +61,45 @@ test("TC-R06-1", { timeout: 120000 }, async () => {
 					app.origin,
 					opts,
 				);
-				evidence(result, opts.runDir, reproduced);
+				const replay = evidence(result, opts.runDir, reproduced);
 				assert.ok(app.requests.includes("/"));
+				// What the page showed for the predicate, for Watch's feedback.
+				assert.equal(
+					replay.attempts[0].predicate_value,
+					reproduced ? "Not archived" : "Archived",
+				);
+				// The actions that showed the failure become steps for the proof.
+				assert.deepEqual(
+					replay.reproduced_steps,
+					reproduced
+						? [
+								{
+									order: 1,
+									t_s: 0,
+									action: "click",
+									target: "Archive",
+									selector: "#archive",
+								},
+							]
+						: undefined,
+				);
 			}
+			// A predicate that holds on the freshly loaded page shows nothing the
+			// steps cause: no step runs and the run reports why.
+			const opts = options(root, "holds-before", { scripted: true });
+			const result = await repro(
+				archive.steps,
+				{ ...archive.predicate, expected: "Archived", observed: "Ready" },
+				bug.origin,
+				opts,
+			);
+			assert.equal(result.status, "not_reproduced");
+			assert.deepEqual(
+				result.events
+					.filter((e) => e.type !== "blocked")
+					.map((e) => (e.type === "stopped" ? e.reason : e.type)),
+				["predicate_holds_before"],
+			);
 		}),
 	);
 });
@@ -235,6 +271,165 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 						ledger().settled +
 							ledger().open.reduce((sum, item) => sum + item.upperBound, 0) <=
 							opts.caseBudget,
+					);
+				},
+			),
+		),
+	);
+});
+
+// S5 live: an invalid JSON turn runs none of its actions and gets one re-ask
+// that names the broken rule; a valid answer then reproduces.
+test("TC-R06-3/reask", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply(
+						final([{ action: "click", x: 5, y: 5, note: "REJECTED-VALUE-77" }]),
+					),
+					// A wait written as decimal text is a valid wait.
+					modelReply(final([archiveAction, { action: "wait", value: "200" }])),
+				],
+				async ({ callEmber, server }) => {
+					const opts = options(root, "reask", {
+						callEmber,
+						appNotes: "K laser pointer",
+					});
+					const result = await repro(
+						archive.steps,
+						archive.predicate,
+						bug.origin,
+						opts,
+					);
+					evidence(result, opts.runDir, true);
+					assert.equal(server.requests.length, 2);
+					assert.match(
+						server.requests[1].body.messages.at(-1).content,
+						/failed validation and none of its actions ran: action 1 is invalid/,
+					);
+					// W4-11: the diagnostic names the rule, never the rejected value.
+					assert.ok(
+						!server.requests[1].body.messages
+							.at(-1)
+							.content.includes("REJECTED-VALUE-77"),
+						"Diagnostic echoed a rejected value",
+					);
+					const first = JSON.parse(
+						server.requests[0].body.messages[1].content[0].text,
+					);
+					assert.equal(first.app_notes, "K laser pointer");
+					// What the failure check reads before any action.
+					assert.equal(first.failure_check_now, "Ready");
+				},
+			),
+		),
+	);
+});
+
+// S5 live: the replay records which key each key_press sent.
+test("TC-R06-1/key-detail", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, async ({ bug }) => {
+			const opts = options(root, "keys", { scripted: true });
+			const key = {
+				order: 1,
+				t_s: 0,
+				action: "key_press",
+				target: "Escape",
+				value: "Escape",
+			};
+			const steps = [key, { ...archiveAction, order: 2 }];
+			const result = await repro(steps, archive.predicate, bug.origin, opts);
+			assert.deepEqual(
+				result.events
+					.filter((e) => e.action === "key_press")
+					.map((e) => e.detail),
+				["Escape"],
+			);
+		}),
+	);
+});
+
+// S6b (a): type with no selector types into the focused element only; a type
+// aimed at a selector that is not on the page runs nothing.
+test("TC-R06-1/focused-type", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	const typed = {
+		kind: "visible_text",
+		selector: "#typed",
+		expected: "",
+		observed: "hello",
+	};
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply(
+						final([
+							{ action: "type", selector: "#missing", value: "x" },
+							{ action: "click", selector: "#note" },
+							{ action: "type", value: "hello" },
+						]),
+					),
+				],
+				async ({ callEmber }) => {
+					const opts = options(root, "focused", { callEmber });
+					const result = await repro(archive.steps, typed, bug.origin, opts);
+					evidence(result, opts.runDir, true);
+					const types = result.events.filter((e) => e.action === "type");
+					assert.deepEqual(
+						types.map((e) => e.type),
+						["action_error", "action"],
+					);
+				},
+			),
+		),
+	);
+});
+
+// S6b (b, c): unambiguous turn forms run without a re-ask: a free-text verdict
+// on an unfinished turn is dropped, a drag missing one end coordinate keeps its
+// start value, and a pointer click with only a selector is a click.
+test("TC-R06-3/canonical-turn", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply({
+						actions: [
+							{ action: "pointer_drag", x: 10, y: 600, to_x: 40 },
+							{ action: "pointer_click", selector: "#archive" },
+						],
+						done: false,
+						verdict: "pending",
+					}),
+					modelReply(final([])),
+				],
+				async ({ callEmber, server }) => {
+					const opts = options(root, "canonical", { callEmber });
+					const result = await repro(
+						archive.steps,
+						archive.predicate,
+						bug.origin,
+						opts,
+					);
+					evidence(result, opts.runDir, true);
+					assert.equal(server.requests.length, 2);
+					assert.ok(!result.events.some((e) => e.type === "reask"));
+					const actions = result.events.filter((e) => e.type === "action");
+					assert.deepEqual(
+						actions.slice(0, 2).map((e) => [e.action, e.detail]),
+						[
+							["pointer_drag", "10,600 to 40,600"],
+							["click", "#archive"],
+						],
 					);
 				},
 			),

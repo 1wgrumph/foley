@@ -1,0 +1,265 @@
+{
+  "schema": "foley.core-summary/1",
+  "date": "2026-11-25",
+  "verified_real_issues": 1,
+  "verified": [
+    "9852"
+  ],
+  "target": 3,
+  "runs": [
+    {
+      "run_dir": "out/runs.miss/10840-attempt1",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "not_verified",
+        "report": "ok"
+      },
+      "verdict": "failure_observed"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-attempt2",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "not_verified",
+        "report": "ok"
+      },
+      "verdict": "failure_observed"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-attempt3",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run10",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run4",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run5",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run6",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run7",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run8",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/10840-run9",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/8418-attempt1",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/8418-attempt2",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/8418-run3",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/8418-run4",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "not_verified",
+        "report": "ok"
+      },
+      "verdict": "failure_observed"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-attempt1",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-attempt2",
+      "stages": {
+        "watch": "malformed_output",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-attempt3",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-run4",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-run5",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "not_verified",
+        "report": "ok"
+      },
+      "verdict": "failure_observed"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-run6",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-run7",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs.miss/9852-run8",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs/10840",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "not_reproduced",
+        "report": "ok"
+      },
+      "verdict": "attempted_miss"
+    },
+    {
+      "run_dir": "out/runs/8418",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "not_verified",
+        "report": "ok"
+      },
+      "verdict": "failure_observed"
+    },
+    {
+      "run_dir": "out/runs/9852",
+      "stages": {
+        "watch": "ok",
+        "locate": "ok",
+        "repro": "reproduced",
+        "prove": "verified",
+        "report": "ok"
+      },
+      "verdict": "proof_verified"
+    }
+  ]
+}

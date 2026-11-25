@@ -141,13 +141,14 @@ test("TC-R07-2/no-independent-control", { timeout: 120000 }, async () => {
 				archive.predicate,
 				options,
 			);
-			assert.equal(
+			// S6b: the red test is kept under its own status; it is still not a proof.
+			assert.notEqual(
 				result.status,
-				"not_verified",
+				"verified",
 				"Repeatable red without a control is not a proof",
 			);
-			assert.equal(result.reason, "inconclusive");
-			assert.equal(existsSync(join(runDir, "regression.test.mjs")), false);
+			assert.equal(result.status, "red_test");
+			assert.equal(existsSync(join(runDir, "regression.test.mjs")), true);
 		}),
 	);
 });
@@ -605,12 +606,13 @@ test("TC-R04-1/unsupported-watch-predicate", { timeout: 120000 }, async () => {
 	await temporary((root) =>
 		withEmber(
 			root,
-			[
+			// The one re-ask (validation error as feedback) is refused the same way.
+			Array.from({ length: 2 }, () =>
 				modelReply({
 					...archive,
 					predicate: { ...archive.predicate, kind: "unknown" },
 				}),
-			],
+			),
 			async ({ callEmber, server }) => {
 				const runDir = join(root, "run");
 				const result = await watch(clip, {
@@ -620,7 +622,7 @@ test("TC-R04-1/unsupported-watch-predicate", { timeout: 120000 }, async () => {
 					caseId: "watch",
 					caseBudget: 100000,
 				});
-				assert.equal(server.requests.length, 1);
+				assert.equal(server.requests.length, 2);
 				assert.equal(result.status, "malformed_output");
 				assert.equal(existsSync(join(runDir, "steps.json")), false);
 			},
@@ -692,29 +694,34 @@ test("TC-R06-3/whole-turn", { timeout: 240000 }, async () => {
 	for (const reply of turns)
 		await temporary((root) =>
 			withApps(root, ({ bug }) =>
-				withEmber(root, [modelReply(reply)], async ({ callEmber, server }) => {
-					const runDir = join(root, "run");
-					const replay = await repro(
-						archive.steps,
-						archive.predicate,
-						bug.origin,
-						{ runDir, callEmber, caseId: "whole-turn", caseBudget: 100000 },
-					);
-					assert.deepEqual(readJson(join(runDir, "replay.json")), replay);
-					actual.push({
-						requests: server.requests.length,
-						status: replay.status,
-						observed: replay.observed,
-						actions: replay.events.filter((e) => e.type === "action").length,
-						stopped: replay.events.find((e) => e.type === "stopped")?.reason,
-					});
-				}),
+				// A malformed turn's one re-ask gets the same turn.
+				withEmber(
+					root,
+					[modelReply(reply), modelReply(reply)],
+					async ({ callEmber, server }) => {
+						const runDir = join(root, "run");
+						const replay = await repro(
+							archive.steps,
+							archive.predicate,
+							bug.origin,
+							{ runDir, callEmber, caseId: "whole-turn", caseBudget: 100000 },
+						);
+						assert.deepEqual(readJson(join(runDir, "replay.json")), replay);
+						actual.push({
+							requests: server.requests.length,
+							status: replay.status,
+							observed: replay.observed,
+							actions: replay.events.filter((e) => e.type === "action").length,
+							stopped: replay.events.find((e) => e.type === "stopped")?.reason,
+						});
+					},
+				),
 			),
 		);
 	assert.deepEqual(
 		actual,
 		turns.map(() => ({
-			requests: 1,
+			requests: 2,
 			status: "not_reproduced",
 			observed: false,
 			actions: 0,

@@ -174,6 +174,62 @@ function checkLine(f, line, at, add) {
 	}
 }
 
+// A published JSON trace may carry prompts as text (the event asks for a prompt
+// and token trace, and the prompts are this repository's own source). Its
+// decoded strings get the same home-path, key and routing checks as any line,
+// so a JSON escape cannot hide one, and none may hold inline media: frames,
+// video and audio appear only as digests.
+function checkTraceJson(f, text, add) {
+	let document;
+	try {
+		document = JSON.parse(text);
+	} catch {
+		add("trace-json", f, "file is not JSON");
+		return;
+	}
+	const visit = (value) => {
+		if (typeof value === "string") {
+			if (/\bdata:[a-z]+\/[a-z0-9.+-]+[;,]/i.test(value))
+				add("trace-json", f, "inline media (data: URL)");
+			for (const line of value.split("\n"))
+				checkLine(f, line, f, (_cls, at, detail) =>
+					add("trace-json", at, detail),
+				);
+		} else if (value !== null && typeof value === "object")
+			for (const [key, child] of Object.entries(value)) {
+				visit(key);
+				visit(child);
+			}
+	};
+	visit(document);
+}
+
+// A published JSONL trace: every line is JSON with allow-listed fields only.
+function checkTraceLines(f, lines, add) {
+	lines.forEach((line, i) => {
+		if (!line.trim()) return;
+		let obj;
+		try {
+			obj = JSON.parse(line);
+		} catch {
+			add("trace-field", `${f}:${i + 1}`, "line is not JSON");
+			return;
+		}
+		const extra = Object.keys(obj).filter((k) => !TRACE_FIELDS.has(k));
+		if (extra.length)
+			add(
+				"trace-field",
+				`${f}:${i + 1}`,
+				`fields outside allow-list: ${extra.join(", ")}`,
+			);
+	});
+}
+
+function checkTrace(f, text, lines, add) {
+	if (f.endsWith(".json")) checkTraceJson(f, text, add);
+	if (f.endsWith(".jsonl")) checkTraceLines(f, lines, add);
+}
+
 export function checkTree(rootArg) {
 	const root = realpathSync(rootArg);
 	const findings = [];
@@ -202,25 +258,7 @@ export function checkTree(rootArg) {
 		for (const [i, line] of lines.entries())
 			checkLine(f, line, `${f}:${i + 1}`, add);
 
-		if (f.startsWith("trace/") && f.endsWith(".jsonl")) {
-			lines.forEach((line, i) => {
-				if (!line.trim()) return;
-				let obj;
-				try {
-					obj = JSON.parse(line);
-				} catch {
-					add("trace-field", `${f}:${i + 1}`, "line is not JSON");
-					return;
-				}
-				const extra = Object.keys(obj).filter((k) => !TRACE_FIELDS.has(k));
-				if (extra.length)
-					add(
-						"trace-field",
-						`${f}:${i + 1}`,
-						`fields outside allow-list: ${extra.join(", ")}`,
-					);
-			});
-		}
+		if (f.startsWith("trace/")) checkTrace(f, text, lines, add);
 
 		if (RUNTIME_DIRS.some((d) => f.startsWith(d))) {
 			for (const m of text.matchAll(

@@ -1,0 +1,15 @@
+{
+	"schema": "foley.trace/1",
+	"issue": 9852,
+	"run": "Repeat run 24 on the repaired code (demo run)",
+	"verdict": "proof_verified",
+	"model": "muse-ember-1.0",
+	"calls": 3,
+	"input_tokens": 33541,
+	"cached_input_tokens": 0,
+	"output_tokens": 8575,
+	"reasoning_tokens": 7843,
+	"cost_micro_usd": 7643,
+	"case_cost_micro_usd": 353784,
+	"redaction": "No key; images and media appear only as SHA-256 digests; no local paths."
+}

@@ -20,6 +20,7 @@ import {
 	readOptional,
 } from "../src/eval.mjs";
 import { startLive } from "../src/live.mjs";
+import { serveBuild } from "../src/prove.mjs";
 import {
 	checkRecording,
 	identityOf,
@@ -27,6 +28,7 @@ import {
 	issueSpend,
 	issueStages,
 	lockRun,
+	pairOptions,
 	preflight,
 	Refusal,
 	runIssue,
@@ -38,6 +40,9 @@ const HELP = `usage: foley <command> [options]
   run <issue> --issue-url URL --recording FILE --target DIR --revision SHA
       --app-origin URL --runner node-test|vitest --case-budget MICRO_USD
       [--fixed-target DIR] [--probe FILE] [--fixture] [--live] [--dry-run]
+  run --pair <issue> --recording FILE --case-budget MICRO_USD
+      [--probe FILE] [--live] [--dry-run]   (bug and fixed builds from
+      fixtures/pairs/pairs.json and out/pairs/<issue>/)
   backlog <census.json> --target DIR --app-origin URL --runner NAME
       [--per-issue-usd USD | --case-budget MICRO_USD] [--budget-usd USD]
       [--fixed-target DIR] [--probe FILE] [--media-dir DIR] [--max-issues N]
@@ -67,6 +72,7 @@ const OPTIONS = {
 	"media-dir": { type: "string" },
 	"max-issues": { type: "string" },
 	labels: { type: "string" },
+	pair: { type: "string" },
 	"budget-usd": { type: "string" },
 	"per-issue-usd": { type: "string" },
 	version: { type: "boolean" },
@@ -93,29 +99,70 @@ function common(v) {
 	};
 }
 
-async function run([issue, ...extra], v) {
-	if (extra.length) throw new Refusal("bad_argument", "run takes one issue");
-	if (!v["issue-url"] || !v.recording)
+// A pair fixes the target, revision, runner, origin and issue URL itself.
+const PAIR_FIXED = [
+	"issue-url",
+	"target",
+	"revision",
+	"fixed-target",
+	"app-origin",
+	"runner",
+];
+
+async function runOptions(issue, v) {
+	if (v.pair === undefined) {
+		if (!v["issue-url"] || !v.recording)
+			throw new Refusal(
+				"bad_argument",
+				"--issue-url and --recording are required",
+			);
+		const o = preflight({
+			...common(v),
+			issue: integer(issue),
+			issueUrl: v["issue-url"],
+			recording: v.recording,
+			fixture: v.fixture,
+		});
+		o.recordingSha256 = await checkRecording(o.recording);
+		return o;
+	}
+	if (issue !== undefined || PAIR_FIXED.some((name) => v[name] !== undefined))
 		throw new Refusal(
 			"bad_argument",
-			"--issue-url and --recording are required",
+			`--pair takes no issue and none of --${PAIR_FIXED.join(", --")}`,
 		);
+	if (!v.recording)
+		throw new Refusal("bad_argument", "--recording is required");
+	const pair = pairOptions(integer(v.pair));
 	const o = preflight({
-		...common(v),
-		issue: integer(issue),
-		issueUrl: v["issue-url"],
+		...pair,
+		caseBudget: integer(v["case-budget"]),
+		probe: v.probe,
 		recording: v.recording,
 		fixture: v.fixture,
 	});
 	o.recordingSha256 = await checkRecording(o.recording);
+	if (o.recordingSha256 !== pair.recordingSha256)
+		throw new Refusal(
+			"media_digest",
+			`--recording is not pair ${pair.issue}'s recording`,
+		);
+	return o;
+}
+
+async function run([issue, ...extra], v) {
+	if (extra.length) throw new Refusal("bad_argument", "run takes one issue");
+	const o = await runOptions(issue, v);
 	if (v["dry-run"]) {
 		console.log(`dry run: issue ${o.issue} ready; no model call made`);
 		return 0;
 	}
 	const unlock = await lockRun();
 	let live;
+	let page;
 	const stop = async () => {
 		await live?.close().catch(() => {});
+		await page?.close().catch(() => {});
 		await unlock();
 		process.exit(143);
 	};
@@ -128,11 +175,16 @@ async function run([issue, ...extra], v) {
 			live = await startLive(runDir);
 			console.log(`LIVE_URL=${live.origin}`);
 		}
+		if (o.pair) {
+			page = await serveBuild(o.pageDirs[0]); // the bug build, on loopback
+			o.appOrigin = page.origin;
+		}
 		const result = await runIssue(o);
 		console.log(`issue ${o.issue}: ${result.verdict} (out/runs/${o.issue}/)`);
 		return result.verdict === "proof_verified" ? 0 : 1;
 	} finally {
 		await live?.close().catch(() => {});
+		await page?.close().catch(() => {});
 		await unlock();
 	}
 }
@@ -219,6 +271,7 @@ async function processCensus(census, v, { total, perIssue, population }) {
 		caseBudget: await caseBudget(c.issue),
 		issue: c.issue,
 		issueUrl: c.url,
+		reportTitle: c.title,
 		recording: recordings.get(c.issue) ?? (await cachedMedia(c, mediaDir)),
 		recordingSha256: c.media?.[0]?.sha256,
 	});

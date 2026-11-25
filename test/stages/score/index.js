@@ -80,3 +80,31 @@ test("TC-R10-1", async () => {
 	assert.equal(allMiss.cost_per_verified_proof_micro_usd, null);
 	assert.deepEqual(allMiss.misses, [3]);
 });
+
+// W4-06: top-1 and top-5 are measured only over entries that carry a file label.
+// The frozen held-out set has none, so its accuracy is unavailable, not zero.
+test("TC-R10-1/unlabelled", async () => {
+	const score = await product("src/score.mjs", "score");
+	const heldOut = readJson(fixture("eval", "held-out.json"));
+	const rows = heldOut.entries.map(({ issue }) => ({
+		issue,
+		status: "attempted_miss",
+		anchors: [{ file: "a.mjs" }],
+		cost_micro_usd: 1,
+		elapsed_ms: 1,
+	}));
+	const real = score(rows, heldOut);
+	assert.equal(real.top1, null);
+	assert.equal(real.top5, null);
+	assert.deepEqual(real.anchor_labels, {
+		labelled: 0,
+		total: heldOut.entries.length,
+	});
+	const mixed = score(results, {
+		...labels,
+		entries: [...labels.entries.slice(0, 2), { issue: 3 }],
+	});
+	assert.equal(mixed.top1, 1 / 2);
+	assert.equal(mixed.top5, 2 / 2);
+	assert.deepEqual(mixed.anchor_labels, { labelled: 2, total: 3 });
+});

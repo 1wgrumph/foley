@@ -24,11 +24,11 @@ const candidate = (code) =>
 	});
 const importTest =
 	'import { test } from "node:test";\nimport assert from "node:assert/strict";\n';
-async function proofScenario(prove, code, run, extra = {}) {
+async function proofScenario(prove, code, run, extra = {}, first = []) {
 	await temporary((root) =>
 		withEmber(
 			root,
-			Array.from({ length: 4 }, () => candidate(code)),
+			[...first, ...Array.from({ length: 4 }, () => candidate(code))],
 			async ({ server, callEmber }) => {
 				const runDir = join(root, "run");
 				mkdirSync(runDir);
@@ -103,10 +103,42 @@ function accepted(result, runDir) {
 	assert.equal(result.rerun_without_ember.fixed.exitCode, 0);
 }
 
+// S6 live: a reply that is not a JSON object is a failed round, not the end.
+test("TC-R07-1/malformed-round", { timeout: 120000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			accepted(result, runDir);
+			assert.equal(result.attempts[0].reason, "malformed_candidate");
+		},
+		{},
+		[
+			{
+				mode: "invalid_output",
+				usage: { prompt_tokens: 10, completion_tokens: 20 },
+			},
+		],
+	);
+});
+
 test("TC-R07-1", { timeout: 120000 }, async () => {
 	const prove = await product("src/prove.mjs", "prove");
-	await proofScenario(prove, proofCode, (result, { runDir }) =>
-		accepted(result, runDir),
+	// The target's test notes and the issue title reach the model as data (S5 live misses).
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir, server }) => {
+			accepted(result, runDir);
+			const sent = JSON.parse(server.requests[0].body.messages[1].content);
+			assert.equal(sent.target_test_notes, "Tests import ./logic.mjs.");
+			assert.equal(sent.report_title, "Archive shows the wrong status");
+		},
+		{
+			testNotes: "Tests import ./logic.mjs.",
+			reportTitle: "Archive shows the wrong status",
+		},
 	);
 });
 
@@ -247,5 +279,69 @@ test("TC-R07-4", { timeout: 120000 }, async () => {
 	}
 	await proofScenario(prove, proofCode, (result, { runDir }) =>
 		accepted(result, runDir),
+	);
+});
+
+// S6b (d): with no fixed build, a red test that shows the predicate's values is
+// kept with its failing output, and named for what it is.
+test("TC-R07-1/red-test-no-control", { timeout: 120000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			assert.equal(result.status, "red_test");
+			assert.equal(result.path, "regression.test.mjs");
+			assert.equal(
+				readFileSync(join(runDir, result.path), "utf8").trim(),
+				proofCode.trim(),
+			);
+			assert.match(
+				readFileSync(join(runDir, result.red_output), "utf8"),
+				/archive-status/,
+			);
+			assert.notEqual(result.rerun_without_ember.bug.exitCode, 0);
+			assert.equal(result.rerun_without_ember.fixed, null);
+		},
+		{ fixedTargetDir: undefined },
+	);
+});
+
+// W4-01: a candidate that reaches the failing state through a call the target's
+// configuration refuses is rejected before it runs, and the rule is fed back.
+test("TC-R07-2/seeds-state", { timeout: 240000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	const refusedTestCalls = ["API.setAppState"];
+	const seeded = `${proofCode}\nconst API = { setAppState() {} };\nAPI . setAppState({});\n`;
+	await proofScenario(
+		prove,
+		seeded,
+		(result, { runDir, server }) => {
+			assert.equal(result.status, "not_verified");
+			assert.equal(result.reason, "seeds_state");
+			assert.equal(result.attempts.length, 4);
+			assert.ok(
+				result.attempts.every(
+					(attempt) => attempt.reason === "seeds_state" && !attempt.bug,
+				),
+				"A seeded candidate must not run",
+			);
+			assert.equal(existsSync(join(runDir, "regression.test.mjs")), false);
+			const sent = (n) =>
+				JSON.parse(server.requests[n].body.messages[1].content);
+			assert.deepEqual(sent(0).refused_test_calls, refusedTestCalls);
+			assert.equal(sent(1).earlier_round.reason, "seeds_state");
+		},
+		{ refusedTestCalls },
+	);
+	// The same rule accepts a test without the refused call and records the rule.
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			accepted(result, runDir);
+			assert.deepEqual(result.input_rule, { refused_calls: refusedTestCalls });
+		},
+		{ refusedTestCalls },
 	);
 });
