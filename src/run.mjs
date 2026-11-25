@@ -1,33 +1,45 @@
 // The integrated pipeline (DES-FOL-R15): watch, locate, repro, prove and report
 // for one issue, every artifact in out/runs/<issue>/. The same stage functions
-// serve `foley run` and the backlog. Model calls go only through callEmber; each
-// call is attributed to its stage in out/stage-spend.jsonl.
+// serve `foley run` and the backlog, both through the one stage journal in
+// src/backlog.mjs. Model calls go only through callEmber; each call record in the
+// Ember trace carries its case and stage, and all spend shown here is rebuilt
+// from those records.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import {
+	createReadStream,
+	existsSync,
+	readFileSync,
+	realpathSync,
+} from "node:fs";
 import {
 	appendFile,
 	copyFile,
 	mkdir,
 	readFile,
 	rename,
+	rm,
 	writeFile,
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative } from "node:path";
 import { renderReplay } from "../ui/render.mjs";
+import { runOne } from "./backlog.mjs";
 import { callEmber } from "./ember.mjs";
 import { locate } from "./locate.mjs";
-import { prove } from "./prove.mjs";
+import { prove, RUNNERS } from "./prove.mjs";
 import { report } from "./report.mjs";
 import { repro } from "./repro.mjs";
-import { validateRun } from "./run-schema.mjs";
-import { watch } from "./watch.mjs";
+import {
+	checkCoreProof,
+	requiredArtifacts,
+	validateRun,
+} from "./run-schema.mjs";
+import { inspect, watch } from "./watch.mjs";
 
 export const STAGES = ["watch", "locate", "repro", "prove", "report"];
 const BOUNDS = new URL("../fixtures/ember/bounds.json", import.meta.url);
 const UI_PAGE = new URL("../ui/dist/replay.html", import.meta.url);
 const TOOLS = ["git", "ffmpeg", "ffprobe", "cargo", "unshare", "flock"];
-const RUNNERS = new Set(["node-test", "vitest"]);
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const USAGE = [
 	"input_tokens",
@@ -101,13 +113,68 @@ function pinned(targetDir, revision, name) {
 			"--end-of-options",
 			`${revision}^{commit}`,
 		);
-		if (git(targetDir, "rev-parse", "--verify", "HEAD") === commit) return;
-	} catch {}
+		if (git(targetDir, "rev-parse", "--verify", "HEAD") === commit) {
+			clean(targetDir, name);
+			return;
+		}
+	} catch (error) {
+		if (error instanceof Refusal) throw error;
+	}
 	throw new Refusal(
 		"target_not_pinned",
 		`${name} HEAD is not the pinned revision ${revision}`,
 	);
 }
+
+// Tracked files must equal the commit; fsmonitor hooks of the target never run.
+function clean(dir, name) {
+	let dirty = "?";
+	try {
+		dirty = git(
+			dir,
+			"-c",
+			"core.fsmonitor=false",
+			"status",
+			"--porcelain",
+			"--untracked-files=no",
+		);
+	} catch {}
+	if (dirty)
+		throw new Refusal(
+			"target_not_pinned",
+			`${name} has tracked changes or is not a Git work tree`,
+		);
+}
+
+const streamDigest = (path) =>
+	new Promise((resolve, reject) => {
+		const hash = createHash("sha256");
+		createReadStream(path)
+			.on("error", reject)
+			.on("data", (chunk) => hash.update(chunk))
+			.on("end", () => resolve(hash.digest("hex")));
+	});
+
+/**
+ * Type, size, duration and content are checked (no full read) before the
+ * recording is copied or hashed. Returns its SHA-256, read as a stream.
+ */
+export async function checkRecording(path) {
+	if (!(await inspect(path)))
+		throw new Refusal(
+			"refused_input",
+			"recording type, size, duration or content refused",
+		);
+	return streamDigest(path);
+}
+
+/** The inputs a run is bound to; a resume with any other value is refused. */
+export const identityOf = (o) => ({
+	target_revision: o.revision,
+	recording_sha256: o.recordingSha256,
+	runner: o.runner,
+	fixture: Boolean(o.fixture),
+});
 
 // Only presence is checked: a spawn error means the tool is absent.
 function tool(name) {
@@ -133,8 +200,11 @@ export function preflight(options) {
 			"bad_argument",
 			"--case-budget must be a positive integer of micro-dollars",
 		);
-	if (!RUNNERS.has(o.runner))
-		throw new Refusal("bad_argument", "--runner must be node-test or vitest");
+	if (!Object.hasOwn(RUNNERS, o.runner ?? ""))
+		throw new Refusal(
+			"unsupported_runner",
+			`--runner must be one of ${Object.keys(RUNNERS).join(", ")}`,
+		);
 	let origin;
 	try {
 		origin = new URL(o.appOrigin);
@@ -162,7 +232,10 @@ export function preflight(options) {
 		);
 	if (o.recording) o.recording = insideCwd(o.recording, "--recording");
 	o.target = insideCwd(o.target, "--target");
-	if (o.fixedTarget) o.fixedTarget = insideCwd(o.fixedTarget, "--fixed-target");
+	if (o.fixedTarget) {
+		o.fixedTarget = insideCwd(o.fixedTarget, "--fixed-target");
+		clean(o.fixedTarget, "--fixed-target");
+	}
 	if (typeof o.revision !== "string" || !/^[0-9a-f]{7,64}$/.test(o.revision))
 		throw new Refusal("bad_argument", "--revision must be a commit id");
 	pinned(o.target, o.revision, "--target");
@@ -252,7 +325,38 @@ function emptyRun(o) {
 		error: null,
 		stages: {},
 		model_calls: [],
+		call_verdicts: {},
 	};
+}
+
+const runDirOf = (issue) => join(out(), "runs", String(issue));
+const caseOf = (issue) => `issue-${issue}`;
+
+async function readJsonOptional(path) {
+	try {
+		return JSON.parse(await readFile(path, "utf8"));
+	} catch {
+		return null;
+	}
+}
+
+// The authoritative call records of one issue: Ember trace events of its case.
+async function caseEvents(issue) {
+	const caseId = caseOf(issue);
+	return (await readLines(join(out(), "trace.jsonl"))).filter(
+		(e) => e.caseId === caseId && e.callId,
+	);
+}
+
+const spendOf = (events) =>
+	events.reduce(
+		(sum, e) => sum + (e.cost_micro_usd ?? 0) + (e.booked_micro_usd ?? 0),
+		0,
+	);
+
+/** Settled plus booked spend of one issue, rebuilt from the call records. */
+export async function issueSpend(issue) {
+	return spendOf(await caseEvents(issue));
 }
 
 async function traceArtifacts(runDir, stage, paths) {
@@ -270,68 +374,21 @@ async function traceArtifacts(runDir, stage, paths) {
 		);
 }
 
-// Sums the usage fields of the trace events one call added.
-function usageSum(call, events) {
-	for (const event of events)
-		for (const field of USAGE)
-			if (Number.isSafeInteger(event[field]))
-				call[field] = (call[field] ?? 0) + event[field];
-	return call;
-}
+const usageOf = (call) =>
+	Object.fromEntries(USAGE.filter((f) => f in call).map((f) => [f, call[f]]));
 
-// Attributes every trace request event a call adds; runs are serial (lockRun).
+// The model's stated repro verdict is display evidence only; spend never uses it.
 async function attributedCall(ctx, stage, args) {
 	const trace = join(out(), "trace.jsonl");
 	const before = (await readLines(trace)).length;
-	const reply = await callEmber(args);
-	const added = (await readLines(trace))
-		.slice(before)
-		.filter((e) => e.type === "request" && e.callId);
-	const callIds = added.map((e) => e.callId);
-	const call = usageSum({ stage, status: reply.status, callIds }, added);
-	if (added.length)
-		await appendFile(
-			join(out(), "stage-spend.jsonl"),
-			callIds
-				.map((callId) => `${JSON.stringify({ callId, stage })}\n`)
-				.join(""),
-		);
+	const reply = await callEmber({ ...args, stage });
 	if (stage === "repro" && typeof reply.output?.verdict === "string")
-		call.verdict = reply.output.verdict;
-	ctx.run.model_calls.push(call);
-	ctx.run.cost_micro_usd += call.cost_micro_usd ?? 0;
+		for (const e of (await readLines(trace)).slice(before))
+			if (e.type === "request" && e.callId)
+				ctx.run.call_verdicts[e.callId] = reply.output.verdict;
 	await ctx.publish();
 	return reply;
 }
-
-/**
- * The per-issue context shared by the stages. A run.json left by an earlier
- * interrupted run is reloaded, so the backlog resumes from the run folder.
- */
-export async function openRun(o) {
-	const runDir = join(out(), "runs", String(o.issue));
-	await mkdir(runDir, { recursive: true });
-	let run = emptyRun(o);
-	try {
-		const saved = JSON.parse(await readFile(join(runDir, "run.json"), "utf8"));
-		if (validateRun(saved) && saved.issue === o.issue) run = saved;
-	} catch {}
-	run.state = "running";
-	const ctx = { o, runDir, run, caseId: `issue-${o.issue}` };
-	const elapsed = run.elapsed_ms ?? 0;
-	const opened = Date.now();
-	ctx.publish = async () => {
-		run.elapsed_ms = elapsed + Date.now() - opened;
-		await writeJsonAtomic(join(runDir, "run.json"), run);
-	};
-	ctx.artifacts = (stage, paths) => traceArtifacts(runDir, stage, paths);
-	ctx.ember = (stage) => (args) => attributedCall(ctx, stage, args);
-	await ctx.publish();
-	return ctx;
-}
-
-const usageOf = (call) =>
-	Object.fromEntries(USAGE.filter((f) => f in call).map((f) => [f, call[f]]));
 
 function callEvent(call, t_s) {
 	return {
@@ -371,8 +428,7 @@ function reproEvents(replay, calls) {
 	return merged;
 }
 
-function rebuildEvents(ctx, replay) {
-	const { run } = ctx;
+function rebuildEvents(run, replay) {
 	const of = (stage) => run.model_calls.filter((c) => c.stage === stage);
 	run.replay = {
 		// Executed-action frames only: the static page opens on the last one, and
@@ -392,19 +448,62 @@ function rebuildEvents(ctx, replay) {
 	};
 }
 
-const stageCost = (ctx, stage, from) =>
-	ctx.run.model_calls
-		.slice(from)
-		.filter((c) => c.stage === stage)
-		.reduce((sum, c) => sum + (c.cost_micro_usd ?? 0), 0);
-
-async function readJson(path) {
-	return JSON.parse(await readFile(path, "utf8"));
+/**
+ * The per-issue context shared by the stages. A run.json left by an earlier
+ * interrupted run is reloaded; every publication rebuilds the issue's calls and
+ * spend from the call records, so it is idempotent after any interruption.
+ */
+async function openRun(o) {
+	const runDir = runDirOf(o.issue);
+	await mkdir(runDir, { recursive: true });
+	let run = emptyRun(o);
+	const saved = await readJsonOptional(join(runDir, "run.json"));
+	if (validateRun(saved) && saved.issue === o.issue) run = saved;
+	run.state = "running";
+	run.call_verdicts ??= {};
+	const ctx = { o, runDir, run, caseId: caseOf(o.issue) };
+	ctx.replay = run.stages.repro
+		? await readJsonOptional(join(runDir, "replay.json"))
+		: null;
+	const elapsed = run.elapsed_ms ?? 0;
+	const opened = Date.now();
+	ctx.publish = async () => {
+		const events = await caseEvents(o.issue);
+		run.model_calls = events.map((e) => ({
+			stage: e.stage,
+			status: e.outcome ?? e.type,
+			callIds: [e.callId],
+			...usageOf(e),
+			...(run.call_verdicts[e.callId] && {
+				verdict: run.call_verdicts[e.callId],
+			}),
+		}));
+		run.cost_micro_usd = spendOf(events);
+		rebuildEvents(run, ctx.replay);
+		run.elapsed_ms = elapsed + Date.now() - opened;
+		await writeJsonAtomic(join(runDir, "run.json"), run);
+	};
+	ctx.artifacts = (stage, paths) => traceArtifacts(runDir, stage, paths);
+	ctx.ember = (stage) => (args) => attributedCall(ctx, stage, args);
+	await ctx.publish();
+	return ctx;
 }
 
-/** Writes the draft report, final run document, static page and core proof. */
+const FINAL_FILES = new Set(["comment.md", "run.json", "replay.html"]);
+const complete = async (runDir) =>
+	(await readJsonOptional(join(runDir, "completion.json")))?.schema ===
+	"foley.completion/1";
+
+/**
+ * Final export, in commit order: report, final run document, static page, the
+ * artifact trace compacted to exactly the inventory (each stage file must still
+ * match the digest its stage traced), core proof, its check, and last the
+ * completion marker. Only the marker makes an issue complete; an interrupted
+ * export is repeated in full and makes no model call.
+ */
 async function finish(ctx, verdict) {
 	const { run, runDir } = ctx;
+	if (await complete(runDir)) return;
 	run.verdict = verdict;
 	run.state = "finished";
 	run.error = null;
@@ -412,151 +511,215 @@ async function finish(ctx, verdict) {
 	await report(run, { runDir });
 	await ctx.publish();
 	await renderReplay(runDir);
-	await ctx.artifacts("report", ["comment.md", "run.json", "replay.html"]);
+	const replay = await readJsonOptional(join(runDir, "replay.json"));
 	const traced = new Map(
 		(await readLines(join(runDir, "artifact-trace.jsonl"))).map((e) => [
 			e.path,
-			e.sha256,
+			e,
 		]),
 	);
-	let rerun = null;
-	try {
-		rerun =
-			(await readJson(join(runDir, "proof.json"))).rerun_without_ember ?? null;
-	} catch {}
+	const artifacts = {};
+	const lines = [];
+	for (const path of requiredArtifacts(run, run.stages, replay)) {
+		const digest = sha256(await readFile(join(runDir, path)));
+		const prior = traced.get(path);
+		if (!FINAL_FILES.has(path) && prior?.sha256 !== digest)
+			throw new Error(`${path} changed after its stage recorded it`);
+		artifacts[path] = digest;
+		const stage = FINAL_FILES.has(path) ? "report" : prior.stage;
+		lines.push(
+			JSON.stringify({ type: "artifact", stage, path, sha256: digest }),
+		);
+	}
+	const trace = join(runDir, "artifact-trace.jsonl");
+	await writeFile(`${trace}.tmp`, `${lines.join("\n")}\n`);
+	await rename(`${trace}.tmp`, trace);
 	await writeJsonAtomic(join(runDir, "core-proof.json"), {
 		schema: "foley.core-proof/1",
 		issue_url: run.issue_url,
 		target_revision: run.target_revision,
 		fixture: run.fixture,
 		stages: run.stages,
-		rerun_without_ember: rerun,
+		rerun_without_ember: replay
+			? ((await readJsonOptional(join(runDir, "proof.json")))
+					?.rerun_without_ember ?? null)
+			: null,
 		unedited: true,
-		artifacts: Object.fromEntries(traced),
+		artifacts,
+	});
+	const check = await checkCoreProof(runDir);
+	const expected = verdict === "proof_verified" ? "ok" : "not_verified";
+	if (check.status !== expected)
+		throw new Error(`core proof check: ${check.status}, expected ${expected}`);
+	await writeJsonAtomic(join(runDir, "completion.json"), {
+		schema: "foley.completion/1",
+		issue: run.issue,
+		verdict,
+		core_proof_sha256: sha256(await readFile(join(runDir, "core-proof.json"))),
 	});
 }
 
-/** Stage functions over the run folder; each returns {status, cost_micro_usd}. */
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one table of the five short stage functions sharing the run context
-export function stages(ctx) {
-	const { o, runDir, run } = ctx;
-	const done = async (name, status, from, verdict) => {
-		run.stages[name] = status;
-		const cost = stageCost(ctx, name, from);
-		if (verdict) await finish(ctx, verdict);
-		else await ctx.publish();
-		return { status, cost_micro_usd: cost };
+async function committed(ctx, name, status) {
+	ctx.run.stages[name] = status;
+	await ctx.publish();
+	return { status };
+}
+
+// The five stages over one issue's run folder. Each returns {status}; the journal
+// decides what comes next and when the issue is finished.
+const STAGE_FNS = {
+	async watch(ctx) {
+		const { o, runDir, run } = ctx;
+		const name = `recording${extname(o.recording).toLowerCase()}`;
+		const copy = join(runDir, name);
+		await copyFile(o.recording, copy);
+		if ((await streamDigest(copy)) !== o.recordingSha256) {
+			await rm(copy, { force: true });
+			throw new Error("recording changed after its check");
+		}
+		const result = await watch(copy, {
+			runDir,
+			callEmber: ctx.ember("watch"),
+			probe: o.probe,
+			caseId: ctx.caseId,
+			caseBudget: o.caseBudget,
+		});
+		if (result.status === "refused_input") {
+			await rm(copy, { force: true }); // a refused recording is never embedded
+			run.recording = null;
+			return committed(ctx, "watch", result.status);
+		}
+		run.recording = name;
+		await ctx.artifacts("watch", [name]);
+		if (result.status !== "ok") return committed(ctx, "watch", result.status);
+		run.steps = result.document.steps;
+		run.predicate = result.document.predicate;
+		for (const field of ["uncertainty", "narration_evidence"])
+			if (result.document[field]) run[field] = result.document[field];
+		await ctx.artifacts("watch", ["steps.json"]);
+		return committed(ctx, "watch", "ok");
+	},
+	async locate(ctx) {
+		const { o, runDir, run } = ctx;
+		const result = await locate(join(runDir, "steps.json"), {
+			targetDir: o.target,
+			targetRevision: o.revision,
+			runDir,
+		});
+		run.anchors = result.anchors;
+		await ctx.artifacts("locate", ["anchors.json"]);
+		return committed(ctx, "locate", result.status);
+	},
+	async repro(ctx) {
+		const { o, runDir, run } = ctx;
+		run.repro_calls_from = run.model_calls.filter(
+			(c) => c.stage === "repro",
+		).length;
+		const replay = await repro(run.steps, run.predicate, o.appOrigin, {
+			runDir,
+			caseId: ctx.caseId,
+			caseBudget: o.caseBudget,
+			callEmber: ctx.ember("repro"),
+			// Live viewers see each recorded action and frame as it happens.
+			async onProgress(progress) {
+				ctx.replay = progress;
+				await ctx.publish();
+			},
+		});
+		ctx.replay = replay;
+		await ctx.artifacts("repro", [
+			"replay.json",
+			...replay.screenshots.map((s) => s.path),
+		]);
+		return committed(ctx, "repro", replay.status);
+	},
+	async prove(ctx) {
+		const { o, runDir, run } = ctx;
+		const result = await prove(run.steps, run.anchors, run.predicate, {
+			runDir,
+			targetDir: o.target,
+			fixedTargetDir: o.fixedTarget,
+			runner: o.runner,
+			callEmber: ctx.ember("prove"),
+			caseId: ctx.caseId,
+			caseBudget: o.caseBudget,
+		});
+		if (result.status === "verified")
+			run.test = { path: result.path, verdict: "verified" };
+		await ctx.artifacts("prove", [
+			"proof.json",
+			...(result.path ? [result.path] : []),
+		]);
+		return committed(ctx, "prove", result.status);
+	},
+	async report(ctx) {
+		const verified = ctx.run.stages.prove === "verified";
+		await finish(ctx, verified ? "proof_verified" : "failure_observed");
+		return { status: "ok" };
+	},
+};
+
+/**
+ * Journal stage functions for the issues `optionsFor(candidate)` describes,
+ * plus `finalize`, which the journal calls after recording a terminal status.
+ * A stage that throws publishes the error on the run document and rethrows.
+ */
+export function issueStages(optionsFor) {
+	const contexts = new Map();
+	const contextFor = async (c) => {
+		if (!contexts.has(c.issue))
+			contexts.set(c.issue, await openRun(await optionsFor(c)));
+		return contexts.get(c.issue);
 	};
-	return {
-		async watch() {
-			const from = run.model_calls.length;
-			const name = `recording${extname(o.recording).toLowerCase()}`;
-			await copyFile(o.recording, join(runDir, name));
-			run.recording = name;
-			await ctx.artifacts("watch", [name]);
-			const result = await watch(join(runDir, name), {
-				runDir,
-				callEmber: ctx.ember("watch"),
-				probe: o.probe,
-				caseId: ctx.caseId,
-				caseBudget: o.caseBudget,
-			});
-			rebuildEvents(ctx);
-			if (result.status !== "ok")
-				return done("watch", result.status, from, "attempted_miss");
-			run.steps = result.document.steps;
-			run.predicate = result.document.predicate;
-			for (const field of ["uncertainty", "narration_evidence"])
-				if (result.document[field]) run[field] = result.document[field];
-			await ctx.artifacts("watch", ["steps.json"]);
-			return done("watch", "ok", from);
-		},
-		async locate() {
-			const result = await locate(join(runDir, "steps.json"), {
-				targetDir: o.target,
-				targetRevision: o.revision,
-				runDir,
-			});
-			run.anchors = result.anchors;
-			await ctx.artifacts("locate", ["anchors.json"]);
-			return done("locate", result.status, run.model_calls.length);
-		},
-		async repro() {
-			const from = run.model_calls.length;
-			run.repro_calls_from = run.model_calls.filter(
-				(c) => c.stage === "repro",
-			).length;
-			const replay = await repro(run.steps, run.predicate, o.appOrigin, {
-				runDir,
-				caseId: ctx.caseId,
-				caseBudget: o.caseBudget,
-				callEmber: ctx.ember("repro"),
-			});
-			rebuildEvents(ctx, replay);
-			await ctx.artifacts("repro", [
-				"replay.json",
-				...replay.screenshots.map((s) => s.path),
-			]);
-			return done(
-				"repro",
-				replay.status,
-				from,
-				replay.status === "reproduced" ? null : "attempted_miss",
-			);
-		},
-		async prove() {
-			const from = run.model_calls.length;
-			const result = await prove(run.steps, run.anchors, run.predicate, {
-				runDir,
-				targetDir: o.target,
-				fixedTargetDir: o.fixedTarget,
-				runner: o.runner,
-				callEmber: ctx.ember("prove"),
-				caseId: ctx.caseId,
-				caseBudget: o.caseBudget,
-			});
-			const replay = await readJson(join(runDir, "replay.json"));
-			rebuildEvents(ctx, replay);
-			if (result.status === "verified")
-				run.test = { path: result.path, verdict: "verified" };
-			await ctx.artifacts("prove", [
-				"proof.json",
-				...(result.path ? [result.path] : []),
-			]);
-			return done("prove", result.status, from);
-		},
-		async report() {
-			const verified = run.stages.prove === "verified";
-			await finish(ctx, verified ? "proof_verified" : "failure_observed");
-			return { status: "ok", cost_micro_usd: 0 };
-		},
+	const guarded =
+		(fn) =>
+		async (c, ...rest) => {
+			const ctx = await contextFor(c);
+			try {
+				return await fn(ctx, ...rest);
+			} catch (error) {
+				ctx.run.state = "error";
+				ctx.run.error = String(error?.message ?? error).split("\n")[0];
+				await ctx.publish().catch(() => {});
+				throw error;
+			}
+		};
+	const fns = Object.fromEntries(
+		STAGES.map((name) => [name, guarded(STAGE_FNS[name])]),
+	);
+	const finalize = guarded(finish);
+	fns.finalize = async (c, status) => {
+		if (!(await complete(runDirOf(c.issue)))) await finalize(c, status);
 	};
+	return fns;
 }
 
 /**
- * Runs the stages for one issue and returns the run document. Stages finished
- * by an interrupted earlier run are not repeated; a finished run is returned
- * unchanged (a second run changes nothing).
+ * Runs one issue through the shared journal and returns its run document. A
+ * complete issue is returned unchanged; a journal bound to other inputs is
+ * refused before anything in the run folder changes.
  */
-export async function runIssue(o, { beforeStages = async () => {} } = {}) {
-	const runDir = join(out(), "runs", String(o.issue));
-	try {
-		const saved = JSON.parse(await readFile(join(runDir, "run.json"), "utf8"));
-		if (saved.state === "finished" && validateRun(saved)) return saved;
-	} catch {}
-	const ctx = await openRun(o);
-	const steps = stages(ctx);
-	await beforeStages(ctx.runDir);
-	try {
-		for (const name of STAGES) {
-			if (ctx.run.state === "finished") break;
-			if (!(name in ctx.run.stages)) await steps[name]();
-		}
-	} catch (error) {
-		ctx.run.state = "error";
-		ctx.run.error = String(error?.message ?? error).split("\n")[0];
-		await ctx.publish();
-		throw error;
-	}
-	return ctx.run;
+export async function runIssue(o) {
+	const result = await runOne(
+		{ issue: o.issue, url: o.issueUrl },
+		{
+			runRoot: join(out(), "runs"),
+			stages: issueStages(() => o),
+			identity: identityOf(o),
+			cost: (c) => issueSpend(c.issue),
+		},
+	);
+	if (result.status === "resume_mismatch")
+		throw new Refusal(
+			"resume_mismatch",
+			`issue ${o.issue} was started with a different recording, revision, runner or fixture mode`,
+		);
+	if (result.status !== "ok")
+		throw new Refusal(
+			"refused_input",
+			`issue ${o.issue} has an invalid stage journal`,
+		);
+	return JSON.parse(
+		await readFile(join(runDirOf(o.issue), "run.json"), "utf8"),
+	);
 }
