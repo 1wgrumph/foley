@@ -125,7 +125,7 @@ Two mechanisms were tried and taken out, and neither is committed:
 | `az-lint --changed main` | 0 | |
 | `gitleaks detect --no-banner --redact` | 0 | |
 | `node tools/check-public.mjs --tree .` | 0 | 0 findings |
-| `az-simplicity --changed main --format json` (advisory) | 0 | 8 advisory findings in my files: cognitive complexity 21 to 23 in `prepareResponses`/`call` (`src/ember.mjs`), `prove`, `execute`, `watch` and `pairOptions`, and length over 50 lines in `ask` (`src/repro.mjs`) and `pairOptions`. Not changed in this slice; listed for a simplification pass. Friction: `checked_paths` came back empty although findings named these paths |
+| `az-simplicity --changed main --format json` (advisory) | 0 | 8 advisory findings in my files: cognitive complexity 21 to 23 in `prepareResponses`/`call` (`src/ember.mjs`), `prove`, `execute`, `watch` and `pairOptions`, and length over 50 lines in `ask` (`src/repro.mjs`) and `pairOptions`. Not changed in this slice; listed for a simplification pass. Biome's `tools[].checked_paths` lists 35 paths (an earlier note that it was empty read a top-level field that does not exist) |
 
 These tests were run against the previous product code: red there, green
 after. TC-R04-6, TC-R07-1, TC-R01-1, TC-R06-1, TC-R06-7/watch-round,
