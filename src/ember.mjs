@@ -36,6 +36,7 @@ const MAX_FRAME_PX = 1_280;
 const MAX_CASE_ID = 256;
 const ROLES = new Set(["system", "user", "assistant"]);
 // Ember defaults to "max", which can spend the whole output limit on reasoning.
+const JSON_OBJECT = { type: "json_object" };
 const EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh", "max"]);
 const LOOPBACK = new Set(["127.0.0.1", "[::1]"]);
 const PNG_SIGNATURE = Buffer.from([
@@ -283,6 +284,8 @@ function prepare(messages, maxOutput, key, effort) {
 			model: MODEL,
 			messages: list,
 			max_completion_tokens: maxOutput,
+			// Every caller needs a JSON object; live, a reply once came back as prose.
+			response_format: JSON_OBJECT,
 			...(effort && { reasoning_effort: effort }),
 		});
 	const text = body(wire);
@@ -296,6 +299,7 @@ function prepare(messages, maxOutput, key, effort) {
 		record: JSON.stringify({
 			model: MODEL,
 			max_completion_tokens: maxOutput,
+			response_format: JSON_OBJECT,
 			...(effort && { reasoning_effort: effort }),
 			messages: kept,
 		}),

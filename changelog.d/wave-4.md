@@ -46,3 +46,11 @@
   the replayed history with each screenshot bounded as a frame. On the 9852
   flow both drivers reproduced the failure first time; the screenshot-and-action
   loop stays the reproduction driver.
+- Live core proof attempts (S5). No pair reached `proof_verified` within three
+  runs each; the live runs found and fixed these defects. Watch and proof now
+  receive the issue title as data. Pointer steps must carry every field, and
+  the prompt lists the app state a predicate can read. Reproduction lets the
+  page settle before its check, because Excalidraw saves state on a debounce.
+  Proof states the assertion format, names the failed rule after a malformed
+  candidate, and receives the target's test notes (`test_notes` in
+  `fixtures/pairs/pairs.json`). Every chat request asks for JSON mode.

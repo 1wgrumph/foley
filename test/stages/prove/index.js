@@ -105,8 +105,20 @@ function accepted(result, runDir) {
 
 test("TC-R07-1", { timeout: 120000 }, async () => {
 	const prove = await product("src/prove.mjs", "prove");
-	await proofScenario(prove, proofCode, (result, { runDir }) =>
-		accepted(result, runDir),
+	// The target's test notes and the issue title reach the model as data (S5 live misses).
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir, server }) => {
+			accepted(result, runDir);
+			const sent = JSON.parse(server.requests[0].body.messages[1].content);
+			assert.equal(sent.target_test_notes, "Tests import ./logic.mjs.");
+			assert.equal(sent.report_title, "Archive shows the wrong status");
+		},
+		{
+			testNotes: "Tests import ./logic.mjs.",
+			reportTitle: "Archive shows the wrong status",
+		},
 	);
 });
 

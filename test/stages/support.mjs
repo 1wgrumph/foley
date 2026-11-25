@@ -168,6 +168,7 @@ export async function withEmber(root, script, run) {
 						model: "muse-ember-1.0",
 						messages: request.messages,
 						max_completion_tokens: request.max_output_tokens,
+						response_format: { type: "json_object" },
 					}),
 					redirect: "error",
 					signal: AbortSignal.timeout(15000),
@@ -205,7 +206,9 @@ export async function withEmber(root, script, run) {
 				"max_completion_tokens",
 				"messages",
 				"model",
+				"response_format",
 			]);
+			assert.deepEqual(request.body.response_format, { type: "json_object" });
 			assert.ok(
 				[undefined, "low", "medium"].includes(reasoning_effort),
 				"Unexpected reasoning effort",

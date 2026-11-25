@@ -76,6 +76,7 @@ const wireBody = (options) => ({
 	model,
 	messages: options.messages,
 	max_completion_tokens: options.max_output_tokens,
+	response_format: { type: "json_object" },
 });
 const inputBound = (options) => {
 	let frames = 0;

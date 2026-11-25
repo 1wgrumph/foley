@@ -271,6 +271,7 @@ async function processCensus(census, v, { total, perIssue, population }) {
 		caseBudget: await caseBudget(c.issue),
 		issue: c.issue,
 		issueUrl: c.url,
+		reportTitle: c.title,
 		recording: recordings.get(c.issue) ?? (await cachedMedia(c, mediaDir)),
 		recordingSha256: c.media?.[0]?.sha256,
 	});

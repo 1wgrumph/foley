@@ -259,8 +259,17 @@ test("TC-R04-6", { timeout: 120000 }, async () => {
 				},
 				caseId: "watch-silent",
 				caseBudget: 100000,
+				reportTitle: "Eraser shortcut ends the line tool",
 			});
 			assert.equal(result.status, "ok");
+			// The issue title reaches the model as quoted data (S5 live miss).
+			assert.ok(
+				parts(server).some(
+					(part) =>
+						part.type === "text" &&
+						part.text.includes('"Eraser shortcut ends the line tool"'),
+				),
+			);
 			assert.equal(result.document.narration, undefined);
 			assert.equal(result.document.transcript, undefined);
 			assert.ok(parts(server).some((part) => part.type === "image_url"));

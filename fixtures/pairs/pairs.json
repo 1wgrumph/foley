@@ -6,6 +6,7 @@
 	"build_command": "tools/build-pair.sh <issue>",
 	"check_command": "node test/pairs/check.mjs <issue> <bug|fixed>",
 	"prove_command": "node test/pairs/prove-pair.mjs <issue>",
+	"test_notes": "Excalidraw's Vitest setup, for a test file at the checkout root. The file is plain JavaScript: no JSX and no TypeScript. Render the editor with: import React from \"react\"; import { Excalidraw } from \"@excalidraw/excalidraw\"; import { render, act } from \"./packages/excalidraw/tests/test-utils\"; await render(React.createElement(Excalidraw, { handleKeyboardGlobally: true })). After rendering, window.h.state is the app state, window.h.elements the scene and window.h.app the App instance; change state inside act(). Helpers: Keyboard and UI from \"./packages/excalidraw/tests/helpers/ui\" (Keyboard.keyPress(KEYS.E), Keyboard.withModifierKeys({ alt: true }, () => Keyboard.keyPress(KEYS.R)), UI.clickTool(\"line\")); Pointer from the same module (new Pointer(\"mouse\"), then clickAt(x, y), down, move, up); API from \"./packages/excalidraw/tests/helpers/api\" (API.setAppState({...})); KEYS from \"@excalidraw/common\". Dialogs render in portals, so query document, not the render container.",
 	"pairs": [
 		{
 			"issue": 10840,

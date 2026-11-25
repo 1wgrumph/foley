@@ -388,6 +388,9 @@ export function pairOptions(issue) {
 	return {
 		issue,
 		issueUrl: pair.url,
+		reportTitle: pair.title,
+		testNotes:
+			typeof manifest.test_notes === "string" ? manifest.test_notes : undefined,
 		revision: pair.bug_commit,
 		runner,
 		target: resolved.bug.checkout,
@@ -739,6 +742,7 @@ const STAGE_FNS = {
 			probe: o.probe,
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
+			reportTitle: o.reportTitle,
 		});
 		if (result.status === "refused_input") {
 			await rm(copy, { force: true }); // a refused recording is never embedded
@@ -776,6 +780,7 @@ const STAGE_FNS = {
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
 			callEmber: ctx.ember("repro"),
+			...(o.reportTitle && { reportTitle: o.reportTitle }),
 			// Live viewers see each recorded action and frame as it happens.
 			async onProgress(progress) {
 				ctx.replay = progress;
@@ -801,6 +806,8 @@ const STAGE_FNS = {
 			callEmber: ctx.ember("prove"),
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
+			...(o.testNotes && { testNotes: o.testNotes }),
+			...(o.reportTitle && { reportTitle: o.reportTitle }),
 		});
 		if (result.status === "verified")
 			run.test = { path: result.path, verdict: "verified" };

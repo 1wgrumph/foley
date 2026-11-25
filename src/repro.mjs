@@ -13,6 +13,9 @@ const MAX_ATTEMPTS = 3;
 const MAX_STEPS = 25; // per attempt; each model turn counts at least one
 const ACTION_TIMEOUT_MS = 3_000;
 const MAX_WAIT_MS = 2_000;
+// Excalidraw commits app state to local storage on a debounce (300 ms upstream);
+// the check reads that state, so the page settles first.
+const SETTLE_MS = 1_000;
 // A turn of 25 actions with 512-character reasons and a 1,024-character
 // observation is about 14 KiB of JSON, under 4,096 output tokens.
 const DEFAULT_OUTPUT_TOKENS = 8_192;
@@ -264,6 +267,7 @@ async function executePointer(run, page, action, observation) {
 async function ask(run, page) {
 	const png = await capture(run, page, "observe");
 	const text = JSON.stringify({
+		...(run.reportTitle && { report_title: run.reportTitle }),
 		recorded_steps: run.steps,
 		failure_to_show: run.predicate,
 		earlier_attempts: run.attempts,
@@ -356,6 +360,7 @@ async function attempt(run, browser, contextId, scripted) {
 		if (scripted) for (const step of run.steps) await execute(run, page, step);
 		else turns = await modelTurns(run, page);
 		if (turns.stopped && !turns.executed.length) return true;
+		await page.waitForTimeout(SETTLE_MS);
 		const observed = await checkPredicate(page, run.predicate, {
 			consoleErrors,
 		});
@@ -384,6 +389,8 @@ export async function repro(
 		scripted = false,
 		maxOutputTokens = DEFAULT_OUTPUT_TOKENS,
 		onProgress,
+		// The issue title, sent as data; at most 300 characters are kept.
+		reportTitle,
 	},
 ) {
 	const origin = new URL(appOrigin).origin;
@@ -402,6 +409,8 @@ export async function repro(
 		callEmber,
 		maxOutputTokens,
 		onProgress,
+		reportTitle:
+			typeof reportTitle === "string" ? reportTitle.slice(0, 300) : undefined,
 		t_s: () => Math.round(Date.now() - started) / 1000,
 		events: [],
 		screenshots: [],
