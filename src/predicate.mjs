@@ -53,6 +53,37 @@ const CHECKS = {
 	},
 };
 
+// What the page shows for the predicate's subject, for feedback: a JSON scalar,
+// or "unavailable" when it cannot be read.
+const VALUES = {
+	async visible_text(page, { selector }) {
+		const element = page.locator(selector).first();
+		if (!(await element.isVisible().catch(() => false))) return "unavailable";
+		// biome-ignore lint/performance/useDomNodeTextContent: Playwright locator; innerText is the rendered visible text
+		return (await element.innerText()).trim().slice(0, 200);
+	},
+	element_count: (page, { selector }) => page.locator(selector).count(),
+	console_error: (_page, { message }, { consoleErrors = [] }) =>
+		consoleErrors.includes(message),
+	async canvas_state(page, { source, path }) {
+		const read = await page.evaluate(readHook, { source, path });
+		return read.available
+			? typeof read.value === "string"
+				? read.value.slice(0, 200)
+				: read.value
+			: "unavailable";
+	},
+};
+
+export async function predicateValue(page, predicate, context = {}) {
+	if (!validPredicate(predicate)) return "unavailable";
+	try {
+		return await VALUES[predicate.kind](page, predicate, context);
+	} catch {
+		return "unavailable";
+	}
+}
+
 export async function checkPredicate(page, predicate, context = {}) {
 	if (!validPredicate(predicate))
 		throw new TypeError(

@@ -5,7 +5,7 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
-import { checkPredicate } from "./predicate.mjs";
+import { checkPredicate, predicateValue } from "./predicate.mjs";
 import {
 	VIEWPORT,
 	validateSteps,
@@ -269,6 +269,26 @@ async function executePointer(run, page, action, observation) {
 	}
 }
 
+// A short copy of invalid model data for feedback, or nothing when it has a
+// credential shape.
+function shown(value) {
+	const text = JSON.stringify(value).slice(0, 300);
+	return hasCredentialShape(text) ? "" : ` (${text})`;
+}
+
+// The first rule a turn breaks, for the one re-ask. No action of it has run.
+function turnReason(output) {
+	if (!isRecord(output)) return "the reply was not one JSON object";
+	if (!Array.isArray(output.actions)) return "actions must be a list";
+	const bad = output.actions.findIndex((a) => !validAction(a));
+	if (bad >= 0)
+		return `action ${bad + 1} is invalid${shown(output.actions[bad])}: click, double_click, move, type and drag need a CSS selector, a point needs pointer_click with integer x and y inside the viewport, key_press and type need a value, reason is at most 512 characters`;
+	if (typeof output.done !== "boolean") return "done must be true or false";
+	if (output.done && !VERDICTS.has(output.verdict))
+		return 'a finished turn needs verdict "reproduced" or "not_reproduced"';
+	return "observation must be one sentence of at most 1,024 characters";
+}
+
 async function ask(run, page) {
 	const png = await capture(run, page, "observe");
 	const text = JSON.stringify({
@@ -277,27 +297,45 @@ async function ask(run, page) {
 		failure_to_show: run.predicate,
 		earlier_attempts: run.attempts,
 	});
-	const reply = await run.callEmber({
-		messages: [
-			{ role: "system", content: SYSTEM },
+	const messages = [
+		{ role: "system", content: SYSTEM },
+		{
+			role: "user",
+			content: [
+				{ type: "text", text },
+				{
+					type: "image_url",
+					image_url: {
+						url: `data:image/png;base64,${png.toString("base64")}`,
+					},
+				},
+			],
+		},
+	];
+	const call = (extra = []) =>
+		run.callEmber({
+			messages: [...messages, ...extra],
+			max_output_tokens: run.maxOutputTokens,
+			reasoning_effort: REASONING,
+			caseId: run.caseId,
+			caseBudget: run.caseBudget,
+		});
+	let reply = await call();
+	// One re-ask on a JSON turn that fails validation, with the error as feedback.
+	// Credential-shaped model text is never sent back or kept.
+	if (reply?.status === "ok" && !validTurn(reply.output)) {
+		record(run, { type: "reask", reason: "malformed_turn" });
+		const echo = JSON.stringify(reply.output);
+		reply = await call([
+			...(hasCredentialShape(echo)
+				? []
+				: [{ role: "assistant", content: echo }]),
 			{
 				role: "user",
-				content: [
-					{ type: "text", text },
-					{
-						type: "image_url",
-						image_url: {
-							url: `data:image/png;base64,${png.toString("base64")}`,
-						},
-					},
-				],
+				content: `That turn failed validation and none of its actions ran: ${turnReason(reply.output)}. Reply again with the whole corrected JSON object.`,
 			},
-		],
-		max_output_tokens: run.maxOutputTokens,
-		reasoning_effort: REASONING,
-		caseId: run.caseId,
-		caseBudget: run.caseBudget,
-	});
+		]);
+	}
 	const status =
 		reply?.status === "ok" && !validTurn(reply.output)
 			? "malformed_output"
@@ -400,9 +438,11 @@ async function attempt(run, browser, contextId, scripted) {
 			consoleErrors,
 		});
 		await capture(run, page, "check");
+		const value = await predicateValue(page, run.predicate, { consoleErrors });
 		run.attempts.push({
 			contextId,
 			observed,
+			predicate_value: value,
 			model_verdict: turns.verdict,
 			actions: turns.executed,
 			...(observed && { steps: turns.taken.map(asStep) }),

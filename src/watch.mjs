@@ -24,6 +24,7 @@ import {
 	validPredicate,
 	validStep,
 } from "./run-schema.mjs";
+import { hasCredentialShape } from "./text-safety.mjs";
 
 const run = promisify(execFile);
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -190,14 +191,16 @@ const SYSTEM = [
 	"Prefer target text or a selector otherwise.",
 	"For canvas_state, appState holds activeTool.type (the selected tool, such as",
 	"selection, hand, rectangle, line, freedraw, text, eraser or laser),",
-	"viewModeEnabled, zenModeEnabled, theme and selectedElementIds; elements is the",
-	"scene's element list, each with type, isDeleted and text.",
+	"viewModeEnabled, zenModeEnabled, theme and selectedElementIds (an object keyed",
+	"by element id); elements is the scene's element list, each with type, isDeleted",
+	"and text. A path names keys that exist; there is no length key.",
 	"When a report title is given, it says what the reporter found wrong: give the",
 	"predicate that shows that failure. Use null for predicate when the recording",
 	"shows correct behaviour and the title names no failure.",
 	"When an earlier round is given, its steps or predicate did not make the page show",
 	"the failure in a fresh browser: correct them. A predicate must be false on the freshly",
-	"loaded page and true only after the steps.",
+	"loaded page and true only after the steps. If the earlier steps showed the failure on",
+	"the fixed build too, they did not reproduce the reported bug.",
 	"Describe only what is visible; if narration disagrees with the screen, follow the screen",
 	"and record the conflict in uncertainty. Each list has at most 40 entries of at most",
 	"1,024 characters; omit a list when it would be empty.",
@@ -279,6 +282,13 @@ async function audioParts(path, media, limits) {
 	return [{ type: "input_audio", input_audio: { format: "wav", data } }];
 }
 
+// A short copy of invalid model data for feedback, or nothing when it has a
+// credential shape.
+function shown(value) {
+	const text = JSON.stringify(value).slice(0, 300);
+	return hasCredentialShape(text) ? "" : ` (${text})`;
+}
+
 // The first rule a reply breaks, for the one re-ask.
 function invalidReason(output) {
 	if (output === null || typeof output !== "object")
@@ -288,9 +298,9 @@ function invalidReason(output) {
 	if (!Array.isArray(output.steps)) return "steps must be a list";
 	const bad = output.steps.findIndex((s, i) => !validStep(s, i));
 	if (bad >= 0)
-		return `step ${bad + 1} is invalid (${JSON.stringify(output.steps[bad]).slice(0, 300)}): each step needs order counting from 1, t_s, a listed action and a target, and pointer steps need every coordinate as an integer inside the viewport`;
+		return `step ${bad + 1} is invalid${shown(output.steps[bad])}: each step needs order counting from 1, t_s, a listed action and a target, and pointer steps need every coordinate as an integer inside the viewport`;
 	if (output.predicate !== null && !validPredicate(output.predicate))
-		return `the predicate is invalid (${JSON.stringify(output.predicate).slice(0, 300)})`;
+		return `the predicate is invalid${shown(output.predicate)}`;
 	return "a list has more than 40 entries or an entry longer than 1,024 characters";
 }
 
@@ -392,8 +402,11 @@ export async function watch(
 	let document = result.status === "ok" && steps(result.output, mediaPath);
 	// One re-ask on a JSON reply that fails validation, with the error as feedback.
 	if (!document && result.status === "ok") {
+		const echo = JSON.stringify(result.output);
 		result = await attempt(mediaPath, content, [
-			{ role: "assistant", content: JSON.stringify(result.output) },
+			...(hasCredentialShape(echo)
+				? []
+				: [{ role: "assistant", content: echo }]),
 			{
 				role: "user",
 				content: `That reply failed validation: ${invalidReason(result.output)}. Reply again with the whole corrected JSON object.`,

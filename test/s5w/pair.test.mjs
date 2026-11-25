@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test } from "node:test";
-import { product, readJson, sha256, writeJson } from "../stages/support.mjs";
+import {
+	modelReply,
+	product,
+	readJson,
+	sha256,
+	writeJson,
+} from "../stages/support.mjs";
 import {
 	assertExit,
 	issue,
@@ -169,5 +175,48 @@ test("TC-R15-4/pair-resume-from-census", { timeout: 120000 }, async () => {
 			assert.equal(ctx.server.requests.length, 1);
 		},
 		false,
+	);
+});
+
+// S5 live: steps that show the failure on the fixed build too do not reproduce
+// the reported bug; Watch gets one more round that says so.
+test("TC-R06-7/pair-fixed-build-check", { timeout: 240000 }, async () => {
+	const touch = {
+		order: 1,
+		t_s: 1,
+		action: "click",
+		target: "Touch",
+		selector: "#touch",
+	};
+	const unspecific = modelReply({
+		schema: "foley.steps/1",
+		steps: [touch],
+		predicate: {
+			kind: "visible_text",
+			selector: "#context",
+			expected: "Fresh",
+			observed: "Touched",
+		},
+	});
+	const touched = modelReply({
+		actions: [touch],
+		done: true,
+		verdict: "reproduced",
+	});
+	const [watch, reproduction, proof] = replies;
+	await syntheticPair(
+		[unspecific, touched, watch, reproduction, proof],
+		async (ctx) => {
+			const result = await ctx.exec(ctx.args);
+			assertExit(result, 0);
+			assert.match(result.stdout, /proof_verified/);
+			assert.equal(ctx.server.requests.length, 5);
+			const feedback = ctx.server.requests[2].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.match(feedback.text, /"fixed_build_shows_failure":true/);
+			const replay = readJson(join(ctx.runDir, "replay.json"));
+			assert.equal(replay.fixed_build_shows_failure, false);
+		},
 	);
 });

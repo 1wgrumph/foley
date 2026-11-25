@@ -26,7 +26,7 @@ import { renderReplay } from "../ui/render.mjs";
 import { runOne } from "./backlog.mjs";
 import { callEmber } from "./ember.mjs";
 import { locate } from "./locate.mjs";
-import { prove, RUNNERS } from "./prove.mjs";
+import { prove, RUNNERS, serveBuild } from "./prove.mjs";
 import { report } from "./report.mjs";
 import { repro } from "./repro.mjs";
 import {
@@ -741,15 +741,46 @@ function reproductionFeedback(run, replay) {
 		earlier_predicate: run.predicate,
 		reproduction: {
 			status: replay.status,
+			...(replay.fixed_build_shows_failure && {
+				fixed_build_shows_failure: true,
+			}),
 			predicate_held_before: replay.attempts.some((a) => a.observed_before),
 			attempts: replay.attempts.map((a) => ({
 				observed: a.observed,
+				predicate_value_after: a.predicate_value,
 				model_verdict: a.model_verdict,
 				actions: a.actions,
 			})),
 			...(last && { last_observation: last }),
 		},
 	};
+}
+
+// Pair runs: steps that also show the failure on the fixed build do not
+// reproduce the reported bug. They are replayed there, without a model, and
+// the result is kept in replay.json.
+async function checkedOnFixed(ctx, replay) {
+	const { o, runDir, run } = ctx;
+	if (!o.pageDirs || !replay.reproduced_steps) return replay;
+	const server = await serveBuild(o.pageDirs[1]);
+	let check;
+	try {
+		check = await repro(replay.reproduced_steps, run.predicate, server.origin, {
+			runDir: join(runDir, "fixed-check"),
+			scripted: true,
+		});
+	} finally {
+		server.close();
+	}
+	const checked = {
+		...replay,
+		fixed_build_shows_failure: check.status === "reproduced",
+	};
+	await writeFile(
+		join(runDir, "replay.json"),
+		`${JSON.stringify(checked, null, 2)}\n`,
+	);
+	return checked;
 }
 
 // One more Watch round with reproduction's feedback; false when it fails.
@@ -843,18 +874,18 @@ const STAGE_FNS = {
 					await ctx.publish();
 				},
 			});
-		let replay = await once();
+		let replay = await checkedOnFixed(ctx, await once());
 		// Bounded extra Watch rounds (FOL-R06): Watch is asked again with what
 		// reproduction saw, then locate and reproduction run on its new steps.
 		for (
 			let round = 1;
-			replay.status !== "reproduced" &&
-			watchMissed(replay) &&
-			round <= WATCH_ROUNDS;
+			round <= WATCH_ROUNDS &&
+			(replay.fixed_build_shows_failure ||
+				(replay.status !== "reproduced" && watchMissed(replay)));
 			round++
 		) {
 			if (!(await watchAgain(ctx, replay))) break;
-			replay = await once();
+			replay = await checkedOnFixed(ctx, await once());
 		}
 		ctx.replay = replay;
 		await ctx.artifacts("repro", [

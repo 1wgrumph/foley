@@ -63,6 +63,11 @@ test("TC-R06-1", { timeout: 120000 }, async () => {
 				);
 				const replay = evidence(result, opts.runDir, reproduced);
 				assert.ok(app.requests.includes("/"));
+				// What the page showed for the predicate, for Watch's feedback.
+				assert.equal(
+					replay.attempts[0].predicate_value,
+					reproduced ? "Not archived" : "Archived",
+				);
 				// The actions that showed the failure become steps for the proof.
 				assert.deepEqual(
 					replay.reproduced_steps,
@@ -266,6 +271,38 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 						ledger().settled +
 							ledger().open.reduce((sum, item) => sum + item.upperBound, 0) <=
 							opts.caseBudget,
+					);
+				},
+			),
+		),
+	);
+});
+
+// S5 live: an invalid JSON turn runs none of its actions and gets one re-ask
+// that names the broken rule; a valid answer then reproduces.
+test("TC-R06-3/reask", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply(final([{ action: "click", x: 5, y: 5 }])),
+					modelReply(final([archiveAction])),
+				],
+				async ({ callEmber, server }) => {
+					const opts = options(root, "reask", { callEmber });
+					const result = await repro(
+						archive.steps,
+						archive.predicate,
+						bug.origin,
+						opts,
+					);
+					evidence(result, opts.runDir, true);
+					assert.equal(server.requests.length, 2);
+					assert.match(
+						server.requests[1].body.messages.at(-1).content,
+						/failed validation and none of its actions ran: action 1 is invalid/,
 					);
 				},
 			),

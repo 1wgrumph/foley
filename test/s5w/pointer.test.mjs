@@ -110,15 +110,20 @@ async function modelRun(items, check) {
 	const repro = await product("src/repro.mjs", "repro");
 	await temporary((root) =>
 		canvasApp((origin) =>
-			withEmber(root, [turn(items)], async ({ callEmber, server }) => {
-				const replay = await repro(steps, predicate, origin, {
-					runDir: root,
-					caseId: "pointer",
-					caseBudget: 100000,
-					callEmber,
-				});
-				await check(replay, server, origin);
-			}),
+			// A malformed turn's one re-ask gets the same turn.
+			withEmber(
+				root,
+				[turn(items), turn(items)],
+				async ({ callEmber, server }) => {
+					const replay = await repro(steps, predicate, origin, {
+						runDir: root,
+						caseId: "pointer",
+						caseBudget: 100000,
+						callEmber,
+					});
+					await check(replay, server, origin);
+				},
+			),
 		),
 	);
 }
@@ -188,7 +193,7 @@ test("TC-R06-3/pointer-whole-turn", { timeout: 120000 }, async () => {
 			executed: [],
 			reason: "malformed_output",
 			observed: false,
-			calls: 1,
+			calls: 2,
 		})),
 		"Reject the whole malformed turn before even the valid selector action",
 	);
