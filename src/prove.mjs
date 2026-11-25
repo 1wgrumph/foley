@@ -387,6 +387,9 @@ export async function prove(
 		runDir,
 		targetDir,
 		fixedTargetDir,
+		// Built pages for the control, when they are not the checkouts' roots
+		// (an Excalidraw checkout serves excalidraw-app/build).
+		pageDirs = [targetDir, fixedTargetDir],
 		runner,
 		callEmber,
 		caseId,
@@ -424,10 +427,7 @@ export async function prove(
 		fixedTargetDir,
 		predicate,
 		control: () => {
-			controlled ??= predicateControl(steps, predicate, [
-				targetDir,
-				fixedTargetDir,
-			]);
+			controlled ??= predicateControl(steps, predicate, pageDirs);
 			return controlled;
 		},
 		runner,
