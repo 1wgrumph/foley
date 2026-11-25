@@ -25,5 +25,17 @@
 	"structural_gap": {
 		"finding": "W3-18",
 		"reason": "Identical prior policies have no behavioral red; compatibility checks at both boundaries and structural inspection required."
+	},
+	"repeat": {
+		"runs": 5,
+		"same_ids": true,
+		"assertion_failures": 70,
+		"log_sha256": "0e86169e95bc1136870414b633b80b963907002f51c3beeba006e137b947d7eb"
+	},
+	"two_copy": {
+		"runs": 2,
+		"same_ids": true,
+		"assertion_failures": 28,
+		"log_sha256": "dd3d7136ada1dbdda3edb9e30596d10b0ecd65c76ccf9819338a29a8f078ea73"
 	}
 }
