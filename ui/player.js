@@ -375,7 +375,7 @@ function evidence(data) {
 		const notes = list(run[id.replace("-", "_")]).map((note) => {
 			const item = element("li", null, "evidence-line");
 			item.append(
-				element("code", stamp(note.t_s)),
+				element("code", `${note.t_s}s`),
 				element("span", ` ${note.text}`),
 			);
 			return item;
