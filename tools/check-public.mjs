@@ -204,6 +204,27 @@ function checkTraceJson(f, text, add) {
 	visit(document);
 }
 
+// A published JSONL trace: every line is JSON with allow-listed fields only.
+function checkTraceLines(f, lines, add) {
+	lines.forEach((line, i) => {
+		if (!line.trim()) return;
+		let obj;
+		try {
+			obj = JSON.parse(line);
+		} catch {
+			add("trace-field", `${f}:${i + 1}`, "line is not JSON");
+			return;
+		}
+		const extra = Object.keys(obj).filter((k) => !TRACE_FIELDS.has(k));
+		if (extra.length)
+			add(
+				"trace-field",
+				`${f}:${i + 1}`,
+				`fields outside allow-list: ${extra.join(", ")}`,
+			);
+	});
+}
+
 export function checkTree(rootArg) {
 	const root = realpathSync(rootArg);
 	const findings = [];
@@ -234,26 +255,8 @@ export function checkTree(rootArg) {
 
 		if (f.startsWith("trace/") && f.endsWith(".json"))
 			checkTraceJson(f, text, add);
-
-		if (f.startsWith("trace/") && f.endsWith(".jsonl")) {
-			lines.forEach((line, i) => {
-				if (!line.trim()) return;
-				let obj;
-				try {
-					obj = JSON.parse(line);
-				} catch {
-					add("trace-field", `${f}:${i + 1}`, "line is not JSON");
-					return;
-				}
-				const extra = Object.keys(obj).filter((k) => !TRACE_FIELDS.has(k));
-				if (extra.length)
-					add(
-						"trace-field",
-						`${f}:${i + 1}`,
-						`fields outside allow-list: ${extra.join(", ")}`,
-					);
-			});
-		}
+		if (f.startsWith("trace/") && f.endsWith(".jsonl"))
+			checkTraceLines(f, lines, add);
 
 		if (RUNTIME_DIRS.some((d) => f.startsWith(d))) {
 			for (const m of text.matchAll(

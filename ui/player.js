@@ -380,36 +380,9 @@ function watchNotes(run) {
 	}
 }
 
-function evidence(data) {
-	const { run } = data;
-	const pred = run.predicate;
-	const shown = (v) => (typeof v === "string" ? v : JSON.stringify(v));
-	byId("predicate").replaceChildren(
-		...(pred
-			? [
-					pair("Expected", shown(pred.expected)),
-					pair("Failure value", shown(pred.observed)),
-					pair(
-						human(pred.kind),
-						pred.selector ??
-							pred.message ??
-							[pred.source, ...list(pred.path)].join("."),
-					),
-				]
-			: [empty("No failure predicate recorded.")]),
-	);
-	watchNotes(run);
-	const anchors = list(run.anchors).map((a) => {
-		const anchor = element("p", null, "evidence-line");
-		anchor.append(element("code", `${a.file}:${a.line}`));
-		if (a.term) anchor.append(element("span", ` · ${a.term}`, "muted"));
-		return anchor;
-	});
-	byId("anchors").replaceChildren(
-		...(anchors.length ? anchors : [empty("No code anchor located.")]),
-	);
-	// Two scopes, each labelled: this run's own calls, and everything the
-	// issue's case has spent over all its runs, which is what the cap limits.
+// Two scopes, each labelled: this run's own calls, and everything the issue's
+// case has spent over all its runs, which is what the cap limits.
+function costMeter(run) {
 	const cost = run.cost_micro_usd;
 	const spent = count(run.case_cost_micro_usd) ? run.case_cost_micro_usd : cost;
 	const runCap = run.case_budget_micro_usd ?? run.cap_micro_usd;
@@ -441,6 +414,37 @@ function evidence(data) {
 		meter.append(gauge);
 	}
 	meter.append(empty(`${label} ${money(cap)}`));
+}
+
+function evidence(data) {
+	const { run } = data;
+	const pred = run.predicate;
+	const shown = (v) => (typeof v === "string" ? v : JSON.stringify(v));
+	byId("predicate").replaceChildren(
+		...(pred
+			? [
+					pair("Expected", shown(pred.expected)),
+					pair("Failure value", shown(pred.observed)),
+					pair(
+						human(pred.kind),
+						pred.selector ??
+							pred.message ??
+							[pred.source, ...list(pred.path)].join("."),
+					),
+				]
+			: [empty("No failure predicate recorded.")]),
+	);
+	watchNotes(run);
+	const anchors = list(run.anchors).map((a) => {
+		const anchor = element("p", null, "evidence-line");
+		anchor.append(element("code", `${a.file}:${a.line}`));
+		if (a.term) anchor.append(element("span", ` · ${a.term}`, "muted"));
+		return anchor;
+	});
+	byId("anchors").replaceChildren(
+		...(anchors.length ? anchors : [empty("No code anchor located.")]),
+	);
+	costMeter(run);
 	const candidates = list(data.candidates);
 	byId("no-census").hidden = candidates.length > 0;
 	byId("census").replaceChildren(

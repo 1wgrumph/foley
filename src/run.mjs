@@ -312,6 +312,12 @@ const headOf = (dir) => {
 	}
 };
 
+// Test-API calls that set state directly; prove refuses a test that uses one.
+const validRefusedCalls = (calls) =>
+	Array.isArray(calls) &&
+	calls.length <= 32 &&
+	calls.every((c) => typeof c === "string" && c !== "" && c.length <= 64);
+
 // One side of a pair: its single receipt build, its checkout at the manifest
 // commit with no tracked changes, and its built page inside that checkout.
 function pairSide({ folder, root, builds, side, commit }) {
@@ -359,12 +365,9 @@ export function pairOptions(issue) {
 	if (!pair) throw new Refusal("pair_missing", `issue ${issue} is not a pair`);
 	const runner = pair.runner ?? "vitest";
 	const memory = pair.memory_mib;
-	// Test-API calls that set state directly; prove refuses a test that uses one.
 	const refused = manifest.refused_test_calls ?? [];
 	const valid =
-		Array.isArray(refused) &&
-		refused.length <= 32 &&
-		refused.every((c) => typeof c === "string" && c !== "" && c.length <= 64) &&
+		validRefusedCalls(refused) &&
 		httpsUrl(pair.url) &&
 		SHA1.test(pair.bug_commit ?? "") &&
 		SHA1.test(pair.fix_commit ?? "") &&

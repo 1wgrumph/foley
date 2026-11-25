@@ -395,14 +395,10 @@ export async function checkCoreProof(runDir) {
 	if (proof?.schema !== "foley.core-proof/1" || entries.length === 0)
 		return { status: "invalid" };
 	// A pair run binds its bug and fix commits in both the run and the manifest.
-	let runDoc;
-	try {
-		runDoc = JSON.parse(await readFile(join(runDir, "run.json"), "utf8"));
-	} catch {
-		return { status: "invalid" };
-	}
+	const run = await readJsonFile(join(runDir, "run.json")).catch(() => null);
 	if (
-		JSON.stringify(proof.pair ?? null) !== JSON.stringify(runDoc?.pair ?? null)
+		run === null ||
+		JSON.stringify(proof.pair ?? null) !== JSON.stringify(run?.pair ?? null)
 	)
 		return { status: "invalid" };
 	const root = await realpath(runDir);
@@ -415,8 +411,8 @@ export async function checkCoreProof(runDir) {
 	}
 	const optionalJson = (name) =>
 		readJsonFile(join(runDir, name)).catch(() => null);
-	const [run, replay, report] = await Promise.all(
-		["run.json", "replay.json", "proof.json"].map(optionalJson),
+	const [replay, report] = await Promise.all(
+		["replay.json", "proof.json"].map(optionalJson),
 	);
 	const listed = entries.map(([path]) => path).sort();
 	const required = requiredArtifacts(run, proof.stages, replay);
