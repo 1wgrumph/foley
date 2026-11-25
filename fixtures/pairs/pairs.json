@@ -82,6 +82,74 @@
 				"observed": "hand"
 			},
 			"regression_test": "fixtures/pairs/tests/10840/regression.test.mjs"
+		},
+		{
+			"issue": 9852,
+			"url": "https://github.com/excalidraw/excalidraw/issues/9852",
+			"title": "Switching to eraser via shortcut bypasses normal tool-switch restrictions, causing inconsistent states",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/c0901eb0-3b82-46a8-a883-64778e3b18e0",
+				"sha256": "de0b3bde075388266bcf5bc9818d194f37e928e925b12be65557ddf58da9279c",
+				"media_type": "video/mp4",
+				"duration_s": 23.4,
+				"width": 2560,
+				"height": 1440
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/11571",
+			"fix_commit": "cce5001aaafe0286855984cf1b4e154b6ce86754",
+			"bug_commit": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press L for the line tool.",
+				"Click once on the canvas to start a multi-point line.",
+				"Press E, the eraser shortcut, before finishing the line."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 2,
+					"action": "key_press",
+					"target": "line tool shortcut",
+					"value": "l"
+				},
+				{
+					"order": 3,
+					"t_s": 4,
+					"action": "click",
+					"target": "canvas",
+					"selector": "canvas.interactive"
+				},
+				{
+					"order": 4,
+					"t_s": 6,
+					"action": "key_press",
+					"target": "eraser shortcut",
+					"value": "e"
+				},
+				{
+					"order": 5,
+					"t_s": 7,
+					"action": "wait",
+					"target": "saved state",
+					"value": 1000
+				}
+			],
+			"predicate": {
+				"kind": "canvas_state",
+				"source": "appState",
+				"path": ["activeTool", "type"],
+				"expected": "line",
+				"observed": "eraser"
+			},
+			"regression_test": "fixtures/pairs/tests/9852/regression.test.mjs"
 		}
 	]
 }
