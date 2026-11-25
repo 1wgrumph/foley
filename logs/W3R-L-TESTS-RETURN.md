@@ -20,7 +20,7 @@
 | W3-11 | TC-R10-3/envelope-ledger | Exhausted envelope gives unknown-option outcome, not budget outcome |
 | W3-11 | TC-R10-3/envelope-ceilings | Missing typed budget refusal for all three over-ceiling flags |
 | W3-12 | TC-R11-1/return-metadata | Seeded metadata exits 0 instead of 1 |
-| W3-19 | TC-R13-1/node-minimum | Advertised >=20 instead of >=22.12.0 |
+| W3-19 | TC-R13-1/node-minimum | Advertised >=20 instead of >=22.13.0 |
 | W3-19 | TC-R13-1/node-preflight | Does not diagnose older Node |
 
 All 10 failures use ERR_ASSERTION. `node --test test/w3r/L.test.mjs` exits 1, 10/10 red. `node tools/repeat.mjs 5 test/w3r/L.test.mjs` exits 1 (expected), 50/50 same assertions, no signal. `node tools/concurrent2.mjs test/w3r/L.test.mjs` exits 1 (expected), 20/20 same assertions, no signal. Digests in the red receipt.
@@ -45,6 +45,18 @@ All 10 failures use ERR_ASSERTION. `node --test test/w3r/L.test.mjs` exits 1, 10
 
 Vendor retry corrected the scratch repository root and missing base reference; it used identical pinned vendor bytes. The vendor tag comparison exits 0. Original suites all pass.
 
-Shared lint failure: formatting in `src/eval.mjs` and `ui/render.mjs`; warnings in other pre-existing files. Own file passes Biome. No edit to concurrent product files. The three final Node/public-boundary regressions await the corresponding product changes; their exact red evidence is preserved. No paid requests, no publication. Native repository discovery unavailable; ordinary Git inspection and actual adapter tests used.
+Shared lint failure: formatting in `src/eval.mjs` and `ui/render.mjs`; warnings in other pre-existing files. Own file passes Biome. No edit to concurrent product files. The final Node/public-boundary repairs now pass; exact red evidence retained. No paid requests, no publication. Native repository discovery unavailable; ordinary Git inspection and actual adapter tests used.
 
-Blocker: none for test delivery. Full integrated green and fresh shared-tree gate belong to the repaired candidate's verification.
+Blocker: none for test delivery. Full integrated green belongs to the repaired candidate's verification.
+
+## Follow-up: corrected Node boundary and repaired group
+
+Node 22.13.0 is required by the stable permission flag; 22.12.0 is only the dependency minimum. The interface and older-version regression now use that stricter boundary. All ten cases reproduced their original red assertions, including five sequential runs and two concurrent copies; the red receipt records the replacement digests.
+
+| Command | Exit | Count | SHA-256 |
+| --- | ---: | --- | --- |
+| `node --test test/w3r/L.test.mjs` | 0 | 10/10 | `9479c8323685df0ac4ae2bd26d3341260acb82c31abf1ef575c1d266ca07cdb5` |
+| `node tools/check-public.mjs --tree .` | 0 | zero findings | `61271a678bde438ebba0d0f29332e9b1f8ad669da320cdd01d40f55ec2b378b6` |
+| `node tools/check-public.mjs --self-test fixtures/public-negative/` | 0 | 9/9 classes | `8a4098e49626f717f8044b08b36ab742e6def38dad0171c25875ccb86361a0a3` |
+| `node tools/repeat.mjs 5 test/w3r/L.test.mjs` | 0 | 50/50 | `f19fce79c03f16e1f191060af310b419dd56881e4aadaa81da741cc16fb506c1` |
+| `node tools/concurrent2.mjs test/w3r/L.test.mjs` | 0 | 20/20 | `a3966f0f2aa9a886e0016355c33fccb0c2d49985bd31929d09445230ade20a5a` |

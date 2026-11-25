@@ -4,7 +4,7 @@
   "command": "node --test test/w3r/L.test.mjs",
   "exit_code": 1,
   "log": "w3r-L-red.log",
-  "log_sha256": "99b2950aee5a57d646454d077e4308dfc98343758b93feb15ad15ab46f93ab55",
+  "log_sha256": "ebe72f9278f7265887400ed368cc09564d30aeb8e2d51af8d80db729d9da993d",
   "ids": [
     "TC-R05-1/graph-tie",
     "TC-R05-1/json-number-grammar",
@@ -22,12 +22,12 @@
     "runs": 5,
     "assertion_failures": 50,
     "same_ids": true,
-    "log_sha256": "6cd35c8a2c2a1b425fc80ac15e0a2de01de7fc8c09d7e0b4b85a91009b2258dd"
+    "log_sha256": "c9b818b7c3462572fb5cc94fbafcd1852ea9be318c1cf653befd104726143e35"
   },
   "two_copy": {
     "runs": 2,
     "assertion_failures": 20,
     "same_ids": true,
-    "log_sha256": "3f382c7fba84db01ca298baeade4984a009a73f540465556c3d528e6b89ed811"
+    "log_sha256": "129a278c41f5fd985d5c3d3bc564b4770ce1403fd9082e3184f4fa016587a46c"
   }
 }

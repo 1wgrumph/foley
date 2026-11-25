@@ -398,7 +398,7 @@ test("TC-R11-1/return-metadata", async () => {
 test("TC-R13-1/node-minimum", () => {
 	const pkg = readJson(entry("package.json"));
 	const lock = readJson(entry("package-lock.json"));
-	assert.equal(pkg.engines.node, ">=22.12.0");
+	assert.equal(pkg.engines.node, ">=22.13.0");
 	assert.equal(lock.packages[""].engines.node, pkg.engines.node);
 });
 
@@ -418,8 +418,8 @@ test("TC-R13-1/node-preflight", async () => {
 			join(bin, "node"),
 			`#!/bin/sh
 case "$*" in
-  --version|-v) printf 'v22.11.0\\n';;
-  *process.versions.node*) printf '22.11.0\\n';;
+  --version|-v) printf 'v22.12.0\\n';;
+  *process.versions.node*) printf '22.12.0\\n';;
   *) exec "${process.execPath}" "$@";;
 esac
 `,
@@ -434,7 +434,7 @@ esac
 		assert.equal(result.status, 1);
 		assert.match(
 			result.stderr,
-			/node[^\n]*22\.12\.0/i,
+			/node[^\n]*22\.13\.0/i,
 			"Preflight must diagnose old Node even when other tools are absent",
 		);
 	});
