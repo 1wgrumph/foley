@@ -54,3 +54,15 @@
   Proof states the assertion format, names the failed rule after a malformed
   candidate, and receives the target's test notes (`test_notes` in
   `fixtures/pairs/pairs.json`). Every chat request asks for JSON mode.
+- Live core proof (S5). Issue 9852 reached `proof_verified` live: Ember's test
+  fails on the bug build and passes on the fixed build, also when rerun without
+  Ember. Bounded in-product retries were added for model variance:
+  - one re-ask on an invalid Watch reply or reproduction turn, naming the
+    broken rule;
+  - a rejection of predicates that hold before any action;
+  - up to two extra Watch rounds with what reproduction saw, keeping a
+    readable predicate;
+  - a model-free check on the fixed build;
+  - the reproducing actions handed to proof;
+  - the failure check's live value on each turn;
+  - the target's documented shortcuts as data.
