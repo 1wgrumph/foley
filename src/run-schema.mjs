@@ -15,7 +15,28 @@ export const ACTIONS = new Set([
 	"key_press",
 	"wait",
 	"screenshot",
+	"pointer_click",
+	"pointer_double_click",
+	"pointer_move",
+	"pointer_drag",
 ]);
+// The reproduction browser's fixed viewport (CSS pixels, device scale factor 1).
+// Pointer actions name integer pixels of it: 0 <= x < width, 0 <= y < height.
+export const VIEWPORT = { width: 1280, height: 720 };
+const POINTS = {
+	pointer_click: ["x", "y"],
+	pointer_double_click: ["x", "y"],
+	pointer_move: ["x", "y"],
+	pointer_drag: ["x", "y", "to_x", "to_y"],
+};
+const inside = (n, limit) => Number.isSafeInteger(n) && n >= 0 && n < limit;
+// Whether a pointer action's coordinates are integers inside the viewport;
+// true for an action that is not a pointer action.
+export function validPointer(a) {
+	return (POINTS[a.action] ?? []).every((field) =>
+		inside(a[field], field.endsWith("y") ? VIEWPORT.height : VIEWPORT.width),
+	);
+}
 export const STATUSES = new Set([
 	"no_usable_media",
 	"unsupported_device",
@@ -57,6 +78,7 @@ function validStep(s, index) {
 		isTime(s.t_s) &&
 		ACTIONS.has(s.action) &&
 		typeof s.target === "string" &&
+		validPointer(s) &&
 		optional(s.selector, (v) => typeof v === "string") &&
 		optional(s.value, (v) => typeof v === "string")
 	);

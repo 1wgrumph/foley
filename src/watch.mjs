@@ -17,7 +17,7 @@ import {
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import { ACTIONS, validateSteps } from "./run-schema.mjs";
+import { ACTIONS, VIEWPORT, validateSteps } from "./run-schema.mjs";
 
 const run = promisify(execFile);
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -170,6 +170,10 @@ const SYSTEM = [
 	'{"kind":"canvas_state","source":"elements" or "appState","path":[<keys or indices>],',
 	'"expected":<JSON scalar>,"observed":<JSON scalar>}. Expected and observed must differ.',
 	`Actions: ${[...ACTIONS].join(", ")}. Number steps from 1 and order them by time.`,
+	"Pointer actions (pointer_click, pointer_double_click, pointer_move: x, y;",
+	"pointer_drag: x, y, to_x, to_y) are for what is drawn on a canvas and has no",
+	`visible text or selector; give integer pixels of a ${VIEWPORT.width} by ${VIEWPORT.height} viewport,`,
+	"scaling the frame's position to it. Prefer target text or a selector otherwise.",
 	"Use null for predicate when the recording shows correct behaviour.",
 	"Describe only what is visible; if narration disagrees with the screen, follow the screen",
 	"and record the conflict in uncertainty. Each list has at most 40 entries of at most",
@@ -205,6 +209,7 @@ function steps(output, mediaPath) {
 		target: s?.target,
 		...(s?.value !== undefined && { value: s.value }),
 		...(s?.selector !== undefined && { selector: s.selector }),
+		...fields(s, ["x", "y", "to_x", "to_y"]),
 	});
 	const p = output.predicate;
 	const fields = (o, names) =>
