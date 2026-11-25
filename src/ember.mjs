@@ -704,17 +704,24 @@ function prepareResponses(o, key) {
 	};
 }
 
-// The reply must carry a JSON object as a string.
+// The reply must carry a JSON object as a string. Live, Ember often writes a
+// sentence before the object even in JSON mode; the object is taken from the
+// first "{" that starts one, and the leading text is discarded.
 function chatOutput(reply) {
 	const content = reply?.choices?.[0]?.message?.content;
-	try {
-		const output = typeof content === "string" ? JSON.parse(content) : null;
-		const object =
-			output !== null && typeof output === "object" && !Array.isArray(output);
-		return { output: object ? output : undefined, content };
-	} catch {
-		return { content };
+	if (typeof content !== "string") return { content };
+	const end = content.lastIndexOf("}");
+	for (let at = content.indexOf("{"); at >= 0 && at < end; ) {
+		try {
+			const output = JSON.parse(content.slice(at, end + 1));
+			const object =
+				output !== null && typeof output === "object" && !Array.isArray(output);
+			return { output: object ? output : undefined, content };
+		} catch {
+			at = content.indexOf("{", at + 1);
+		}
 	}
+	return { content };
 }
 
 const PROTOCOLS = {

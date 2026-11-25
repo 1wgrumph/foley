@@ -470,6 +470,16 @@ export async function prove(
 			caseId,
 			caseBudget,
 		});
+		// A reply that was not a JSON object (for example all output spent on
+		// reasoning) is a failed round with feedback, not the end of the proof.
+		if (reply?.status === "malformed_output") {
+			attempts.push({ reason: "malformed_candidate" });
+			feedback = {
+				reason: "malformed_candidate",
+				rule: "reply with one JSON object and keep reasoning short",
+			};
+			continue;
+		}
 		if (reply?.status !== "ok") {
 			stopReason = String(reply?.status);
 			break;

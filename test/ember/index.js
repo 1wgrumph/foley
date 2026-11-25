@@ -269,6 +269,23 @@ contract("TC-R01-6", async () => {
 		assert.match(event?.request_digest ?? "", /^[a-f0-9]{64}$/);
 		reconcile(ctx);
 	});
+	// S6 live: Ember often writes a sentence before the JSON object; the object
+	// is still the output and the sentence is dropped.
+	await scenario(
+		{
+			script: [
+				{
+					...ok(sampleUsage),
+					content: 'Drawing it now {as recorded}. {"answer":"ok"}',
+				},
+			],
+		},
+		async (ctx) => {
+			const result = await ctx.call(request(1000));
+			resultIs(result, "ok");
+			assert.deepEqual(result.output, { answer: "ok" });
+		},
+	);
 });
 
 contract("TC-R01-7", async () => {

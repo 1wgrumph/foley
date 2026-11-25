@@ -24,11 +24,11 @@ const candidate = (code) =>
 	});
 const importTest =
 	'import { test } from "node:test";\nimport assert from "node:assert/strict";\n';
-async function proofScenario(prove, code, run, extra = {}) {
+async function proofScenario(prove, code, run, extra = {}, first = []) {
 	await temporary((root) =>
 		withEmber(
 			root,
-			Array.from({ length: 4 }, () => candidate(code)),
+			[...first, ...Array.from({ length: 4 }, () => candidate(code))],
 			async ({ server, callEmber }) => {
 				const runDir = join(root, "run");
 				mkdirSync(runDir);
@@ -102,6 +102,26 @@ function accepted(result, runDir) {
 	assert.equal(result.rerun_without_ember.bug.exitCode, 1);
 	assert.equal(result.rerun_without_ember.fixed.exitCode, 0);
 }
+
+// S6 live: a reply that is not a JSON object is a failed round, not the end.
+test("TC-R07-1/malformed-round", { timeout: 120000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			accepted(result, runDir);
+			assert.equal(result.attempts[0].reason, "malformed_candidate");
+		},
+		{},
+		[
+			{
+				mode: "invalid_output",
+				usage: { prompt_tokens: 10, completion_tokens: 20 },
+			},
+		],
+	);
+});
 
 test("TC-R07-1", { timeout: 120000 }, async () => {
 	const prove = await product("src/prove.mjs", "prove");
