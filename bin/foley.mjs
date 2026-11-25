@@ -4,11 +4,22 @@
 // (bad argument or missing prerequisite, before any model call); 3 error.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { backlog } from "../src/backlog.mjs";
 import { recordBaseline } from "../src/ember.mjs";
+import {
+	budget,
+	CEILING,
+	envelope,
+	evaluate,
+	HELD_OUT,
+	heldOutIds,
+	mergeReport,
+	perIssueBudget,
+	readOptional,
+} from "../src/eval.mjs";
 import { startLive } from "../src/live.mjs";
 import {
 	insideCwd,
@@ -21,7 +32,6 @@ import {
 	stages,
 } from "../src/run.mjs";
 import { writeSpendSummary } from "../src/run-schema.mjs";
-import { score } from "../src/score.mjs";
 
 const HELP = `usage: foley <command> [options]
 
@@ -29,9 +39,11 @@ const HELP = `usage: foley <command> [options]
       --app-origin URL --runner node-test|vitest --case-budget MICRO_USD
       [--fixed-target DIR] [--probe FILE] [--fixture] [--live] [--dry-run]
   backlog <census.json> --target DIR --app-origin URL --runner NAME
-      --case-budget MICRO_USD [--fixed-target DIR] [--probe FILE]
-      [--media-dir DIR] [--max-issues N] [--dry-run]
-  eval [--labels FILE] [--dry-run]
+      [--per-issue-usd USD | --case-budget MICRO_USD] [--budget-usd USD]
+      [--fixed-target DIR] [--probe FILE] [--media-dir DIR] [--max-issues N]
+      [--dry-run]
+  eval [--labels FILE] [--budget-usd USD] [--max-issues N] [--dry-run]
+      [--target DIR --app-origin URL --runner NAME and the backlog options]
   spend [--dry-run]
   baseline <micro-usd>
   --version | help
@@ -55,6 +67,8 @@ const OPTIONS = {
 	"media-dir": { type: "string" },
 	"max-issues": { type: "string" },
 	labels: { type: "string" },
+	"budget-usd": { type: "string" },
+	"per-issue-usd": { type: "string" },
 	version: { type: "boolean" },
 };
 const MEDIA_EXT = {
@@ -150,16 +164,39 @@ function cachedMedia(candidate, dir) {
 	return path;
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: linear sequence of census checks, media checks, lock and backlog call
+// Envelopes are checked before anything else, including dry runs.
+function envelopes(v, ceiling) {
+	return {
+		total: budget(v["budget-usd"], ceiling, "--budget-usd"),
+		perIssue: perIssueBudget(v),
+	};
+}
+
 async function runBacklog([censusPath, ...extra], v) {
 	if (!censusPath || extra.length)
 		throw new Refusal("bad_argument", "backlog takes one census file");
+	const limits = envelopes(v, CEILING.backlog);
 	const census = await readJson(insideCwd(censusPath, "census"));
+	const population = (census.candidates ?? []).map((c) => c.issue);
+	const result = await processCensus(census, v, { ...limits, population });
+	if (result === null) return 0;
+	console.log(
+		`backlog ${result.status}: ${result.report.length} issues (out/backlog-report.json)`,
+	);
+	return result.status === "ok" ? 0 : 1;
+}
+
+// Runs the census through the stages under the run lock. Each issue's case budget
+// is its per-issue limit capped by what the envelope has left for the population.
+// Returns null for a dry run.
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: linear sequence of media checks, lock and backlog call
+async function processCensus(census, v, { total, perIssue, population }) {
 	const mediaDir = insideCwd(v["media-dir"] ?? "media/cache", "--media-dir");
 	const maxIssues =
 		v["max-issues"] === undefined ? undefined : integer(v["max-issues"]);
 	const base = preflight({
 		...common(v),
+		caseBudget: perIssue,
 		revision: census.target_revision,
 		issue: 1,
 	});
@@ -172,8 +209,9 @@ async function runBacklog([censusPath, ...extra], v) {
 		console.log(
 			`dry run: ${eligible.length} eligible issues ready; no model call made`,
 		);
-		return 0;
+		return null;
 	}
+	const caseBudget = envelope({ outDir: OUT(), population, total, perIssue });
 	const unlock = await lockRun();
 	const contexts = new Map();
 	const contextFor = async (c) => {
@@ -183,6 +221,7 @@ async function runBacklog([censusPath, ...extra], v) {
 				stages(
 					await openRun({
 						...base,
+						caseBudget: await caseBudget(c.issue),
 						issue: c.issue,
 						issueUrl: c.url,
 						recording: cachedMedia(c, mediaDir),
@@ -206,52 +245,46 @@ async function runBacklog([censusPath, ...extra], v) {
 				"bad_census",
 				"census or saved backlog state is invalid",
 			);
-		console.log(
-			`backlog ${result.status}: ${result.report.length} issues (out/backlog-report.json)`,
-		);
-		return result.status === "ok" ? 0 : 1;
+		return result;
 	} finally {
 		await unlock();
 	}
 }
 
+// Evaluation subject: exactly the frozen held-out issues. New attempts run only
+// with --target and a non-zero --max-issues, on held-out census rows only.
 async function runEval(_, v) {
-	const labels = await readJson(
-		insideCwd(v.labels ?? "fixtures/eval/held-out.json", "--labels"),
+	const limits = envelopes(v, CEILING.eval);
+	const { ids, labels } = await heldOutIds(
+		insideCwd(v.labels ?? HELD_OUT, "--labels"),
+		process.cwd(),
 	);
-	let rows;
-	try {
-		rows = await readJson(join(OUT(), "backlog-report.json"));
-	} catch {
-		if (v["dry-run"]) {
-			console.log("dry run: no backlog report yet; nothing to score");
-			return 0;
-		}
-		throw new Refusal("missing_report", "run `foley backlog` first");
-	}
-	const results = [];
-	for (const row of rows) {
-		let saved = {};
-		try {
-			saved = await readJson(
-				join(OUT(), "runs", String(row.issue), "run.json"),
-			);
-		} catch {}
-		results.push({
-			...row,
-			anchors: saved.anchors ?? [],
-			elapsed_ms: saved.elapsed_ms ?? 0,
+	const attempt = v.target !== undefined && v["max-issues"] !== "0";
+	if (attempt) {
+		const census = await readJson(insideCwd(labels.census, "census"));
+		const held = new Set(ids);
+		const selected = {
+			...census,
+			candidates: (census.candidates ?? []).filter((c) => held.has(c.issue)),
+		};
+		const before = await readOptional(join(OUT(), "backlog-report.json"), []);
+		const result = await processCensus(selected, v, {
+			...limits,
+			population: ids,
 		});
+		if (result) await mergeReport(OUT(), before, result.report);
 	}
-	const summary = score(results, labels);
+	const report = await evaluate({
+		outDir: OUT(),
+		ids,
+		labels,
+		write: !v["dry-run"],
+	});
 	if (v["dry-run"]) {
+		const { results: _rows, ...summary } = report;
 		console.log(JSON.stringify(summary));
 		return 0;
 	}
-	await writeFile(
-		join(OUT(), "eval-report.json"),
-		`${JSON.stringify(summary, null, 2)}\n`,
-	);
 	console.log("eval written to out/eval-report.json");
 	return 0;
 }
