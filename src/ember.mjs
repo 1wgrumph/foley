@@ -360,6 +360,8 @@ async function transaction(p, fn) {
 	}
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one locked read-replay-apply-write transaction; recovery tracing must stay inside the lock
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: same transaction as above
 async function locked(p, fn) {
 	const ledger = await readLedger(p);
 	const journal = ledger?.journal ?? { seq: 0, pending: [] };
@@ -588,6 +590,7 @@ async function refuse(p, status) {
 	return { status: value };
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one validated reserve-send-settle sequence with its single retry
 async function call({
 	messages,
 	max_output_tokens,

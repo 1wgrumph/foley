@@ -203,7 +203,19 @@ async function publishCensus(runRoot, census, states) {
 			await writeJson(join(runRoot, String(issue), "census.json"), rows);
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one ordered scheduler: validate every journal, then run issues serially
+// Every existing journal is read and checked before any stage runs.
+async function readStates(census, runRoot, identity) {
+	const states = new Map();
+	for (const c of census.candidates) {
+		const state = await readState(runRoot, c.issue);
+		if (state === INVALID) return { status: "refused_input" };
+		if (state && !sameIdentity(state, identity?.(c)))
+			return { status: "resume_mismatch" };
+		states.set(c.issue, state);
+	}
+	return states;
+}
+
 export async function backlog(
 	census,
 	{
@@ -221,15 +233,8 @@ export async function backlog(
 		!(maxIssues === Number.POSITIVE_INFINITY || isCount(maxIssues))
 	)
 		return refused;
-	// Every existing journal is read and checked before any stage runs.
-	const states = new Map();
-	for (const c of census.candidates) {
-		const state = await readState(runRoot, c.issue);
-		if (state === INVALID) return refused;
-		if (state && !sameIdentity(state, identity?.(c)))
-			return { status: "resume_mismatch", report: [] };
-		states.set(c.issue, state);
-	}
+	const states = await readStates(census, runRoot, identity);
+	if (states.status) return { status: states.status, report: [] };
 	const publish = () => publishCensus(runRoot, census, states);
 	const report = [];
 	const row = (c, status, cost = 0) =>

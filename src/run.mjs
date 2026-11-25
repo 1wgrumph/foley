@@ -191,6 +191,8 @@ function tool(name) {
  * Every check that needs no model call. Returns normalised options; throws a
  * Refusal naming the first missing prerequisite.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a flat list of independent prerequisite checks, each refusing before any model call
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: same flat list of checks
 export function preflight(options) {
 	const o = { ...options };
 	if (!Number.isSafeInteger(o.issue) || o.issue <= 0)
@@ -494,6 +496,29 @@ const complete = async (runDir) =>
 	(await readJsonOptional(join(runDir, "completion.json")))?.schema ===
 	"foley.completion/1";
 
+// Rewrites the artifact trace as exactly one record per inventory file. Each stage
+// file must still match the digest its stage traced; report files are new here.
+async function compactTrace(runDir, inventory) {
+	const trace = join(runDir, "artifact-trace.jsonl");
+	const traced = new Map((await readLines(trace)).map((e) => [e.path, e]));
+	const artifacts = {};
+	const lines = [];
+	for (const path of inventory) {
+		const digest = sha256(await readFile(join(runDir, path)));
+		const prior = traced.get(path);
+		if (!FINAL_FILES.has(path) && prior?.sha256 !== digest)
+			throw new Error(`${path} changed after its stage recorded it`);
+		artifacts[path] = digest;
+		const stage = FINAL_FILES.has(path) ? "report" : prior.stage;
+		lines.push(
+			JSON.stringify({ type: "artifact", stage, path, sha256: digest }),
+		);
+	}
+	await writeFile(`${trace}.tmp`, `${lines.join("\n")}\n`);
+	await rename(`${trace}.tmp`, trace);
+	return artifacts;
+}
+
 /**
  * Final export, in commit order: report, final run document, static page, the
  * artifact trace compacted to exactly the inventory (each stage file must still
@@ -512,28 +537,10 @@ async function finish(ctx, verdict) {
 	await ctx.publish();
 	await renderReplay(runDir);
 	const replay = await readJsonOptional(join(runDir, "replay.json"));
-	const traced = new Map(
-		(await readLines(join(runDir, "artifact-trace.jsonl"))).map((e) => [
-			e.path,
-			e,
-		]),
+	const artifacts = await compactTrace(
+		runDir,
+		requiredArtifacts(run, run.stages, replay),
 	);
-	const artifacts = {};
-	const lines = [];
-	for (const path of requiredArtifacts(run, run.stages, replay)) {
-		const digest = sha256(await readFile(join(runDir, path)));
-		const prior = traced.get(path);
-		if (!FINAL_FILES.has(path) && prior?.sha256 !== digest)
-			throw new Error(`${path} changed after its stage recorded it`);
-		artifacts[path] = digest;
-		const stage = FINAL_FILES.has(path) ? "report" : prior.stage;
-		lines.push(
-			JSON.stringify({ type: "artifact", stage, path, sha256: digest }),
-		);
-	}
-	const trace = join(runDir, "artifact-trace.jsonl");
-	await writeFile(`${trace}.tmp`, `${lines.join("\n")}\n`);
-	await rename(`${trace}.tmp`, trace);
 	await writeJsonAtomic(join(runDir, "core-proof.json"), {
 		schema: "foley.core-proof/1",
 		issue_url: run.issue_url,
