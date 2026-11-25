@@ -6,6 +6,7 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { checkPredicate } from "./predicate.mjs";
+import { credentialShaped } from "./text-safety.mjs";
 
 const MAX_ATTEMPTS = 3;
 const MAX_STEPS = 25; // per attempt; each model turn counts at least one
@@ -16,14 +17,6 @@ const MAX_WAIT_MS = 2_000;
 const DEFAULT_OUTPUT_TOKENS = 4_096;
 const OBSERVATION_LIMIT = 1_024; // UTF-16 code units, inclusive
 const REASON_LIMIT = 512;
-// Credential-shaped values; explanation text that matches is refused, never kept.
-const CREDENTIAL_SHAPES = [
-	/-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-	/\b(?:sk-(?:proj-)?|ghp_|gho_|ghs_|github_pat_|xox[bp]-|GOCSPX-)[A-Za-z0-9_-]{20,}/,
-	/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/,
-	/\bAIza[0-9A-Za-z_-]{35}\b/,
-	/\b[A-Za-z0-9_]*(?:api[_-]?key|secret|token)\b["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}/i,
-];
 const VIEWPORT = { width: 1280, height: 720 }; // within the 1280 px frame bound
 
 const SYSTEM = [
@@ -44,7 +37,7 @@ const explanation = (value, limit) =>
 	value === undefined ||
 	(typeof value === "string" &&
 		value.length <= limit &&
-		!CREDENTIAL_SHAPES.some((shape) => shape.test(value)));
+		!credentialShaped(value));
 
 // The whole turn is checked before any of its actions runs.
 const validTurn = (output) =>
@@ -98,6 +91,8 @@ async function capture(run, page, action) {
 	const path = `screenshots/${String(run.screenshots.length + 1).padStart(3, "0")}.png`;
 	const png = await page.screenshot({ path: join(run.runDir, path) });
 	run.screenshots.push({ path, t_s: run.t_s(), action });
+	// Live viewers see each recorded action and frame as it happens.
+	await run.onProgress?.({ events: run.events, screenshots: run.screenshots });
 	return png;
 }
 
@@ -276,6 +271,7 @@ export async function repro(
 		callEmber,
 		scripted = false,
 		maxOutputTokens = DEFAULT_OUTPUT_TOKENS,
+		onProgress,
 	},
 ) {
 	const origin = new URL(appOrigin).origin;
@@ -293,6 +289,7 @@ export async function repro(
 		caseBudget,
 		callEmber,
 		maxOutputTokens,
+		onProgress,
 		t_s: () => Math.round(Date.now() - started) / 1000,
 		events: [],
 		screenshots: [],
