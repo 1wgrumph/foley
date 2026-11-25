@@ -111,6 +111,32 @@ function cliRun(root, args, env = localEnv()) {
 	).done;
 }
 
+// W4-07: an issue's evaluation cost is its latest run's own cost; what its
+// case spent over every run is reported beside it, never averaged as a run.
+test("TC-R10-1/eval-run-cost", async () => {
+	await temporary((root) => {
+		evalCorpus(root);
+		writeJson(join(root, "out/backlog-report.json"), [
+			{ issue: ids[0], status: "attempted_miss", cost_micro_usd: 900 },
+		]);
+		const dir = join(root, "out/runs", String(ids[0]));
+		mkdirSync(dir);
+		writeJson(join(dir, "run.json"), {
+			anchors: [],
+			elapsed_ms: 12,
+			cost_micro_usd: 100,
+			case_cost_micro_usd: 900,
+		});
+		return cliRun(root, ["eval", "--max-issues", "0"]).then((result) => {
+			assert.equal(result.code, 0, result.stderr);
+			const report = readJson(join(root, "out/eval-report.json"));
+			assert.equal(report.cost_per_attempt_micro_usd, 100);
+			assert.equal(report.results[0].cost_micro_usd, 100);
+			assert.equal(report.results[0].case_cost_micro_usd, 900);
+		});
+	});
+});
+
 test("TC-R10-1/eval-population", async () => {
 	await temporary((root) => {
 		evalCorpus(root);

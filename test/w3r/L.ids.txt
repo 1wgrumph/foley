@@ -8,3 +8,4 @@ TC-R10-3/envelope-ceilings
 TC-R11-1/return-metadata
 TC-R13-1/node-minimum
 TC-R13-1/node-preflight
+TC-R10-1/eval-run-cost
