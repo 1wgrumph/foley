@@ -90,9 +90,18 @@ function checkAnchors(document, targetDir, commit) {
 		throw new Error("locate: adapter returned an invalid anchors document");
 	}
 	const root = realpathSync(targetDir);
+	// Untracked files (such as a built page beside the source) are not part of
+	// the pinned revision, so they are never reported as anchors.
+	const tracked = new Set(
+		git(targetDir, "ls-tree", "-r", "--name-only", "-z", commit)
+			.split("\0")
+			.filter(Boolean),
+	);
+	const anchors = document.anchors.filter(({ file }) =>
+		tracked.has(insideTarget(root, file)),
+	);
 	const sources = new Map();
-	for (const { file, line, term } of document.anchors) {
-		insideTarget(root, file);
+	for (const { file, line, term } of anchors) {
 		if (!sources.has(file)) {
 			sources.set(
 				file,
@@ -112,8 +121,8 @@ function checkAnchors(document, targetDir, commit) {
 	}
 	return {
 		schema: document.schema,
-		status: document.status,
-		anchors: document.anchors.map(({ file, line, term }) => ({
+		status: anchors.length ? "ok" : "miss",
+		anchors: anchors.map(({ file, line, term }) => ({
 			file,
 			line,
 			term,
