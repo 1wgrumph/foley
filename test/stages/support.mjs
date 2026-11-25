@@ -63,8 +63,8 @@ export async function temporary(run) {
 	}
 }
 
-export function cleanEnv(extra = {}) {
-	// No inherited credential or routing configuration reaches a test child.
+export function localEnv(extra = {}) {
+	// Non-model tools and browsers must not inherit either key.
 	return {
 		PATH: process.env.PATH,
 		HOME: process.env.HOME,
@@ -72,16 +72,53 @@ export function cleanEnv(extra = {}) {
 			PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH,
 		}),
 		FOLEY_OFFLINE: "1",
-		MODEL_API_KEY: syntheticKey,
 		...extra,
 	};
+}
+
+export function cleanEnv(extra = {}) {
+	return localEnv({ FOLEY_TEST_API_KEY: syntheticKey, ...extra });
+}
+
+// The repaired contract prices the normalized wire JSON, not raw prompt text.
+export function wirePrice(body) {
+	let frames = 0;
+	const messages = body.messages.map((message) => ({
+		...message,
+		content: Array.isArray(message.content)
+			? message.content.map((part) => {
+					if (part.type !== "image_url") return part;
+					frames++;
+					return { ...part, image_url: { ...part.image_url, url: "" } };
+				})
+			: message.content,
+	}));
+	const bytes = Buffer.byteLength(JSON.stringify({ ...body, messages }));
+	return Math.ceil(
+		((bytes + frames * 1600) * 100 + body.max_completion_tokens * 500) / 1000,
+	);
+}
+
+export function boundedPng(url) {
+	assert.match(url, /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/);
+	const png = Buffer.from(url.split(",")[1], "base64");
+	assert.ok(png.length >= 24);
+	assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+	assert.equal(png.toString("latin1", 12, 16), "IHDR");
+	for (const dimension of [png.readUInt32BE(16), png.readUInt32BE(20)]) {
+		assert.ok(
+			dimension >= 1 && dimension <= 1280,
+			"Frame dimension exceeds bound",
+		);
+	}
+	return png;
 }
 
 export function runCommand(command, args, options = {}) {
 	return execFileSync(command, args, {
 		encoding: "utf8",
 		timeout: 60000,
-		env: cleanEnv(),
+		env: localEnv(),
 		...options,
 	});
 }
@@ -92,13 +129,17 @@ export async function withEmber(root, script, run) {
 	const cwd = process.cwd();
 	const nativeFetch = globalThis.fetch;
 	const attempted = [];
+	const redirectViolations = [];
 	process.chdir(root);
 	process.env.FOLEY_OFFLINE = "1";
-	process.env.MODEL_API_KEY = syntheticKey;
+	delete process.env.MODEL_API_KEY;
+	process.env.FOLEY_TEST_API_KEY = syntheticKey;
 	process.env.FOLEY_EMBER_BASE_URL = server.baseUrl;
 	delete process.env.FOLEY_EMBER_MODEL;
 	globalThis.fetch = (input, init) => {
 		const url = new URL(input.url ?? input);
+		if ((init?.redirect ?? input.redirect) !== "error")
+			redirectViolations.push(url.pathname);
 		if (url.origin !== new URL(server.baseUrl).origin) {
 			attempted.push(url.origin);
 			throw new Error("Unexpected network destination");
@@ -119,25 +160,67 @@ export async function withEmber(root, script, run) {
 			async protocolCall(request) {
 				const reply = await fetch(`${server.baseUrl}/chat/completions`, {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ ...request, model: "muse-ember-1.0" }),
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${syntheticKey}`,
+					},
+					body: JSON.stringify({
+						model: "muse-ember-1.0",
+						messages: request.messages,
+						max_completion_tokens: request.max_output_tokens,
+					}),
+					redirect: "error",
 					signal: AbortSignal.timeout(15000),
 				});
 				if (reply.status === 400) return { status: "refused_input" };
 				if (!reply.ok) return { status: "api_error" };
 				try {
-					return {
-						status: "ok",
-						output: JSON.parse((await reply.json()).choices[0].message.content),
-					};
+					const content = (await reply.json()).choices[0].message.content;
+					if (typeof content !== "string")
+						return { status: "malformed_output" };
+					const output = JSON.parse(content);
+					if (
+						output === null ||
+						Array.isArray(output) ||
+						typeof output !== "object"
+					)
+						return { status: "malformed_output" };
+					return { status: "ok", output };
 				} catch {
 					return { status: "malformed_output" };
 				}
 			},
 		});
 		assert.deepEqual(attempted, [], "Unexpected model destination");
+		assert.deepEqual(
+			redirectViolations,
+			[],
+			"Model caller omitted redirect error policy",
+		);
+		for (const request of server.requests) {
+			assert.deepEqual(Object.keys(request.body).sort(), [
+				"max_completion_tokens",
+				"messages",
+				"model",
+			]);
+			assert.equal(request.body.model, "muse-ember-1.0");
+			assert.equal(request.headers.authorization, `Bearer ${syntheticKey}`);
+			assert.ok(
+				Number.isSafeInteger(request.body.max_completion_tokens) &&
+					request.body.max_completion_tokens > 0,
+			);
+			for (const message of request.body.messages) {
+				for (const part of Array.isArray(message.content)
+					? message.content
+					: []) {
+					if (part.type === "image_url") boundedPng(part.image_url.url);
+				}
+			}
+		}
 	} finally {
 		globalThis.fetch = nativeFetch;
+		delete process.env.FOLEY_TEST_API_KEY;
+		delete process.env.FOLEY_EMBER_BASE_URL;
 		process.chdir(cwd);
 		await server.close();
 	}
@@ -165,7 +248,7 @@ export async function withApps(root, run) {
 export function pinFixture(root, variant = "app") {
 	const target = join(root, variant);
 	cpSync(fixture(variant), target, { recursive: true });
-	const env = cleanEnv({
+	const env = localEnv({
 		GIT_CONFIG_NOSYSTEM: "1",
 		GIT_CONFIG_GLOBAL: "/dev/null",
 		GIT_AUTHOR_NAME: "Fixture",

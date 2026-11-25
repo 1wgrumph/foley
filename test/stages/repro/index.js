@@ -7,7 +7,9 @@ import {
 	modelReply,
 	product,
 	readJson,
+	sha256,
 	temporary,
+	wirePrice,
 	withApps,
 	withEmber,
 } from "../support.mjs";
@@ -155,7 +157,7 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 			withEmber(
 				root,
 				[modelReply(first, { hold: true }), modelReply(second, { hold: true })],
-				async ({ server, callEmber, ledger }) => {
+				async ({ server, callEmber, ledger, trace }) => {
 					const opts = options(root, "retry", { callEmber });
 					const running = repro(
 						archive.steps,
@@ -170,6 +172,10 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 						const current = ledger();
 						assert.equal(current.open.length, 1);
 						assert.equal(current.open[0].caseId, opts.caseId);
+						assert.equal(
+							current.open[0].upperBound,
+							wirePrice(server.requests[i].body),
+						);
 						ids.push(current.open[0].callId);
 						server.release(i);
 					}
@@ -183,11 +189,21 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 					assert.equal(replay.attempts[0].observed, false);
 					assert.equal(replay.attempts.at(-1).observed, true);
 					assert.equal(ledger().open.length, 0);
+					for (const [index, id] of ids.entries()) {
+						const event = trace().find(
+							(entry) => entry.type === "request" && entry.callId === id,
+						);
+						assert.equal(
+							event?.request_digest,
+							sha256(server.requests[index].raw),
+						);
+						assert.notEqual(event?.bound_violated, true);
+					}
 				},
 			),
 		),
 	);
-	// One full 6,000-output-token charge leaves less than a second output bound.
+	// Allow wire framing and screenshot input while leaving less than a second output bound after settlement.
 	await temporary((root) =>
 		withApps(root, ({ bug }) =>
 			withEmber(
@@ -197,10 +213,10 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 						usage: { prompt_tokens: 10, completion_tokens: 6000 },
 					}),
 				],
-				async ({ server, callEmber, ledger }) => {
+				async ({ server, callEmber, ledger, trace }) => {
 					const opts = options(root, "single-attempt-budget", {
 						callEmber,
-						caseBudget: 4000,
+						caseBudget: 5500,
 						maxOutputTokens: 6000,
 					});
 					const replay = evidence(
@@ -209,11 +225,16 @@ test("TC-R06-5", { timeout: 120000 }, async () => {
 						false,
 					);
 					assert.equal(server.requests.length, 1);
+					assert.equal(server.requests[0].body.max_completion_tokens, 6000);
+					assert.ok(wirePrice(server.requests[0].body) <= opts.caseBudget);
+					assert.equal(ledger().settled, 3001);
+					assert.ok(ledger().settled + 3000 > opts.caseBudget);
+					assert.ok(!trace().some((event) => event.bound_violated === true));
 					assert.ok(replay.attempts.length <= 2);
 					assert.ok(
 						ledger().settled +
 							ledger().open.reduce((sum, item) => sum + item.upperBound, 0) <=
-							4000,
+							opts.caseBudget,
 					);
 				},
 			),

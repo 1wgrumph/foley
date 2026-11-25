@@ -9,6 +9,7 @@ import {
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+	boundedPng,
 	clip,
 	fixture,
 	modelReply,
@@ -115,10 +116,7 @@ test("TC-R04-1", { timeout: 120000 }, async () => {
 					);
 					assert.ok(images.length <= 40);
 					for (const image of images) {
-						const bytes = Buffer.from(
-							image.image_url.url.split(",")[1],
-							"base64",
-						);
+						const bytes = boundedPng(image.image_url.url);
 						const probe = JSON.parse(
 							runCommand(
 								"ffprobe",

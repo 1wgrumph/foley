@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import {
 	archive,
+	localEnv,
 	modelReply,
 	product,
 	temporary,
@@ -19,6 +20,7 @@ test("TC-R06-4", { timeout: 120000 }, async () => {
 		withApps(root, async ({ bug, fixed }) => {
 			const browser = await chromium.launch({
 				args: ["--disable-background-networking"],
+				env: localEnv(),
 			});
 			try {
 				for (const [app, expected] of [

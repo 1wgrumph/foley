@@ -1,3 +1,4 @@
+import "./loopback-only.mjs";
 import { join } from "node:path";
 import { backlog } from "../../src/backlog.mjs";
 import { callEmber } from "../../src/ember.mjs";

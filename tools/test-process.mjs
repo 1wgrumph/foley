@@ -8,7 +8,7 @@ export async function runTest(args, label) {
 			PATH: process.env.PATH,
 			HOME: process.env.HOME,
 			FOLEY_OFFLINE: "1",
-			MODEL_API_KEY: "synthetic-repeat-only",
+			FOLEY_TEST_API_KEY: "synthetic-repeat-only",
 			...(process.env.PLAYWRIGHT_BROWSERS_PATH && {
 				PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH,
 			}),

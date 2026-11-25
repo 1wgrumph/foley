@@ -5,6 +5,27 @@ product groups. All prices and budgets use integer micro-dollars. Files
 named by a run document are relative to its run folder; absolute paths
 and paths outside that folder are not valid artifact references.
 
+The repaired Ember contract in [W2R-INTERFACE.md](W2R-INTERFACE.md)
+is authoritative for all five groups. Offline authentication uses
+only `FOLEY_TEST_API_KEY`; live mode uses only `MODEL_API_KEY`.
+The test endpoint is a literal loopback HTTP address ending in `/v1`.
+Do not forward either credential to browsers, non-model tools or
+generated test runners. The client must reject redirects.
+
+The caller still supplies `max_output_tokens`, but the normalized
+wire body is `{model, messages, max_completion_tokens}`. The upper
+bound includes all UTF-8 bytes of the serialized wire JSON, not only
+prompt text. For inline PNG frames, count the normalized body with
+each image URL replaced by an empty string, then add 1,600 input
+tokens per image. Both dimensions must be 1 to 1280 pixels. Price
+all bounded input at the uncached input rate and reserve the full
+output ceiling. The exact wire bytes determine `request_digest`;
+the prompt record retains text and decoded media digests only.
+Replies must contain a JSON string encoding a non-null object. If
+known usage exceeds its reservation, retain the full actual cost,
+record `bound_violated: true`, and honor the persisted budget stop:
+later calls refuse without network, even with global headroom.
+
 ## Group a: watch, report, backlog, score, schema and spend
 
 ### Watch
@@ -43,8 +64,11 @@ The probe object has `video` and `audio` entries, each containing
 `{accepted: boolean, tokensPerSecond?: number}`. Only accepted,
 bounded media can be tried. Send video via `video_url`; bounded video
 refusal falls back to `image_url` parts sampled at 1 fps, at most 40,
-at 1280 px maximum width. Audio, when present and accepted, uses
-`audio_url`. Each media part contains a matching field `{url}`.
+inline PNG at most 1280 pixels on either axis. Audio, when present
+and accepted, uses `audio_url`. Each media part contains a matching
+field `{url}`. The current actual client cannot price video or audio,
+so it refuses those parts before sending; use the frames path until
+measured bounds are implemented.
 Write `runDir/watch.trace.jsonl` with an event whose `path` is
 `video` or `frames`. Invalid type, size above 50 MB, duration
 above 120 seconds or unreadable media returns `refused_input`
@@ -55,7 +79,9 @@ Tests inject an Ember-compatible async function. It takes
 returns the existing Ember result `{status, output?, message?}`.
 The frame path uses real Ember against the local fake server. The
 bounded-video transport control uses a test-only HTTP adapter because
-the current governor refuses video and audio before sending.
+the current governor refuses video and audio before sending. The
+adapter sends the same wire shape and synthetic offline bearer token
+to the fake server and rejects redirects; it is not governor coverage.
 
 ### Report
 
@@ -183,7 +209,9 @@ events carry a `callId` but no stage name: accept optional
 `stage-spend.jsonl` entries `{callId, stage}` to attribute them.
 Unattributed costs must still appear in the total; do not fabricate
 stage attribution. Reject a ledger/trace mismatch before writing a
-new summary.
+new summary. Journal or recovery metadata from W2R is permitted;
+sum known actual costs in full even when `bound_violated` records
+a stop.
 
 `async checkCoreProof(runDir)` returns `{status}` with `ok`
 for intact proof and `digest_mismatch` for an edited artifact.
@@ -261,7 +289,13 @@ Otherwise use the observe-act loop with injected `callEmber`, which
 takes the S2 arguments above. Pass the case ID and budget to each
 call. When supplied, `maxOutputTokens` is the explicit
 `max_output_tokens` for model calls, enabling the one-attempt budget
-control. Model output shape:
+control. Model requests with screenshots use bounded inline PNG.
+The one-attempt test supplies 6,000 output tokens and 5,500
+micro-dollars: the first charge is 3,001, and the remaining 2,499
+cannot cover another 3,000-output reservation even before input.
+The test checks each actual reservation against the captured framed
+wire body and its settled digest, and distinguishes a case-budget
+refusal from a bound-violation stop. Model output shape:
 
 ```js
 { actions: [/* declared actions with target/selector/value */],
@@ -335,7 +369,9 @@ and reruns the same test without another model call. The public
 `rerun_without_ember` contains `{bug:{exitCode}, fixed:{exitCode}}`.
 Synthetic file/network probes target only owned temporary sentinels
 and a decoy loopback server. The generated test must not receive
-the parent synthetic credential or sentinel. Do not propagate
+the parent synthetic offline credential or sentinel. Both
+`FOLEY_TEST_API_KEY` and `MODEL_API_KEY` must be absent.
+Do not propagate
 untrusted code output containing credentials.
 
 ## Group u: replay page and live server
@@ -399,7 +435,9 @@ stages in sequence. The test records a real owned two-frame clip
 from the seeded app; the fake server supplies corresponding watch,
 repro and proof outputs. Environment for offline model calls:
 `FOLEY_OFFLINE=1`, `FOLEY_EMBER_BASE_URL` points at the local fake
-base ending in `/v1`, `MODEL_API_KEY` is synthetic. The actual
+base ending in `/v1` with a literal loopback address,
+`FOLEY_TEST_API_KEY` is synthetic; do not supply
+`MODEL_API_KEY` in offline mode. The actual
 Ember ledger and trace are under `out/` relative to cwd. Never
 call a real model endpoint from this run.
 

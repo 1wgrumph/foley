@@ -5,7 +5,9 @@ import { pathToFileURL } from "node:url";
 import {
 	anchor,
 	archive,
+	boundedPng,
 	clip,
+	localEnv,
 	proofCode,
 	writeJson,
 } from "../stages/support.mjs";
@@ -17,7 +19,7 @@ export function fixtureRun(runDir, state = "finished", patch = {}) {
 	copyFileSync(clip, join(runDir, "recording.mp4"));
 	writeFileSync(
 		join(runDir, "screenshots", "step-1.png"),
-		Buffer.from(pixel, "base64"),
+		boundedPng(`data:image/png;base64,${pixel}`),
 	);
 	writeFileSync(join(runDir, "regression.test.mjs"), proofCode);
 	const document = {
@@ -65,6 +67,7 @@ export async function withBrowser(run) {
 	const { chromium } = await import("playwright");
 	const browser = await chromium.launch({
 		args: ["--disable-background-networking"],
+		env: localEnv(),
 	});
 	try {
 		await run(browser);

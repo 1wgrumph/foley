@@ -159,7 +159,7 @@ test("TC-R07-3", { timeout: 240000 }, async () => {
 			withApps(root, async ({ decoy, outside }) => {
 				const cases = [
 					[
-						`${importTest}test("no credential", () => { console.log(JSON.stringify(Object.keys(process.env))); assert.equal(process.env.MODEL_API_KEY, undefined); assert.equal(process.env.FOLEY_PARENT_SENTINEL, undefined); });`,
+						`${importTest}test("no credential", () => { console.log(JSON.stringify(Object.keys(process.env))); assert.equal(process.env.MODEL_API_KEY, undefined); assert.equal(process.env.FOLEY_TEST_API_KEY, undefined); assert.equal(process.env.FOLEY_PARENT_SENTINEL, undefined); });`,
 						"wrong_predicate",
 					],
 					[
