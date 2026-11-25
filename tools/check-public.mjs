@@ -199,7 +199,8 @@ export function checkTree(rootArg) {
 		const text = buf.toString("utf8");
 		const lines = text.split("\n");
 
-		lines.forEach((line, i) => checkLine(f, line, `${f}:${i + 1}`, add));
+		for (const [i, line] of lines.entries())
+			checkLine(f, line, `${f}:${i + 1}`, add);
 
 		if (f.startsWith("trace/") && f.endsWith(".jsonl")) {
 			lines.forEach((line, i) => {
