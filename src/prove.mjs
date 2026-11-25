@@ -2,15 +2,18 @@
 // only through tools/isolate.sh with the target's own runner, over a read-only
 // view of the target, with an empty environment, no network, a confined file
 // view and time and memory limits. Without that isolation prove refuses before
-// asking for code. Acceptance needs an independent control: red on the bug
-// build on an assertion and green on the fixed build. Model-chosen assertion
-// labels and code text are never evidence.
+// asking for code. Acceptance needs an independent control: on the bug build an
+// assertion fails with the target producing the predicate's observed value
+// where the predicate's expected value is required (values as the runner
+// reports them), and the fixed build passes. Model-chosen assertion labels and
+// code text are never evidence.
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validPredicate } from "./run-schema.mjs";
 
 const ISOLATE = fileURLToPath(new URL("../tools/isolate.sh", import.meta.url));
 const FILENAME = "regression.test.mjs";
@@ -176,6 +179,36 @@ function classifyBug(run) {
 	return asserted && failureMessages(run.output).length ? "red" : "test_error";
 }
 
+// One reported actual/expected value, unquoted (node:test YAML, Vitest JSON).
+function reported(raw) {
+	const value = raw?.trim();
+	if (value?.startsWith('"'))
+		try {
+			return String(JSON.parse(value));
+		} catch {
+			return value;
+		}
+	if (value?.startsWith("'") && value.endsWith("'"))
+		return value.slice(1, -1).replaceAll("''", "'");
+	return value;
+}
+
+// Whether a failing assertion on the bug build compares the target's value,
+// equal to the predicate's observed value, with its expected value. The values
+// come from the runner's report of the run, not from the candidate's code.
+function showsPredicate(run, predicate) {
+	const same = (text, value) =>
+		text !== undefined && text.trim() === String(value).trim();
+	return run.output.split(/^(?=\s*(?:not )?ok \d)/m).some((block) => {
+		const field = (name) =>
+			reported(block.match(new RegExp(`^\\s*${name}: (.+)$`, "m"))?.[1]);
+		return (
+			same(field("actual"), predicate.observed) &&
+			same(field("expected"), predicate.expected)
+		);
+	});
+}
+
 // Red on both builds: the test does not tell them apart.
 const bothRed = (run) =>
 	failureMessages(run.output).every((message) => GENERATED.test(message))
@@ -223,7 +256,10 @@ function excerpts(targetDir, anchors) {
 
 // One candidate, run over each build; its disposable folder holds only the
 // candidate file and is removed before return.
-async function attempt(candidate, { targetDir, fixedTargetDir, ...limits }) {
+async function attempt(
+	candidate,
+	{ targetDir, fixedTargetDir, predicate, ...limits },
+) {
 	const sandboxPath = mkdtempSync(join(tmpdir(), "foley-proof-"));
 	try {
 		const candidateDir = join(sandboxPath, "candidate");
@@ -243,8 +279,13 @@ async function attempt(candidate, { targetDir, fixedTargetDir, ...limits }) {
 		}
 		const fixed = await runIsolated(fixedTargetDir, candidateDir, limits);
 		record.fixed = { exitCode: fixed.exitCode, output: fixed.output };
-		if (fixed.exitCode === 0) record.reason = "verified";
-		else record.reason = fixed.timedOut ? "timeout" : bothRed(fixed);
+		if (fixed.exitCode !== 0)
+			record.reason = fixed.timedOut ? "timeout" : bothRed(fixed);
+		// The builds differ, but only a change in the predicate's value counts.
+		else
+			record.reason = showsPredicate(bug, predicate)
+				? "verified"
+				: "wrong_predicate";
 		return record;
 	} finally {
 		rmSync(sandboxPath, { recursive: true, force: true });
@@ -285,7 +326,20 @@ export async function prove(
 			attempts: [],
 			reason: "unsupported_runner",
 		});
-	const dirs = { targetDir, fixedTargetDir, runner, timeoutMs, memoryMiB };
+	if (!validPredicate(predicate))
+		return finish({
+			status: "not_verified",
+			attempts: [],
+			reason: predicate === null ? "no_predicate" : "malformed_output",
+		});
+	const dirs = {
+		targetDir,
+		fixedTargetDir,
+		predicate,
+		runner,
+		timeoutMs,
+		memoryMiB,
+	};
 	const attempts = [];
 	let feedback = null;
 	let stopReason;
