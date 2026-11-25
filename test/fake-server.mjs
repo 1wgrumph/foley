@@ -39,6 +39,7 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 			url: req.url,
 			headers: req.headers,
 			body,
+			raw,
 			receivedAt: startedAt,
 			startedOrder,
 		});
@@ -58,8 +59,10 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 				return;
 			}
 			const usage = reply.usage ?? sampleUsage;
-			const answer =
-				reply.text ?? JSON.stringify(reply.output ?? defaultAnswer);
+			// Explicit content preserves even malformed types for the W2 regressions.
+			const answer = Object.hasOwn(reply, "content")
+				? reply.content
+				: (reply.text ?? JSON.stringify(reply.output ?? defaultAnswer));
 			const output =
 				req.url === "/v1/responses"
 					? {
