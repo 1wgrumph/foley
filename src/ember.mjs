@@ -105,6 +105,24 @@ function boundedFrame(url) {
 	return bounded ? png : null;
 }
 
+// One content part as its wire, priced and kept views, or a refusal status.
+function copyPart(part) {
+	if (part?.type === "text") {
+		if (typeof part.text !== "string") return { status: "refused_input" };
+		const copy = { type: "text", text: part.text };
+		return { wire: copy, priced: copy, kept: copy };
+	}
+	const url = part?.type === "image_url" && part.image_url?.url;
+	const frame = boundedFrame(url);
+	if (!frame) return { status: "budget_refused" };
+	return {
+		frame: true,
+		wire: { type: "image_url", image_url: { url } },
+		priced: { type: "image_url", image_url: { url: "" } },
+		kept: { type: "image_url", sha256: sha256(frame) },
+	};
+}
+
 // Validates the caller's messages once into an owned snapshot: the exact wire body
 // as a string (later caller mutation cannot change what is sent or retried), its
 // digest, its priced upper bound and the prompt record kept on disk.
@@ -114,44 +132,27 @@ function boundedFrame(url) {
 function prepare(messages, maxOutput, key) {
 	if (!Array.isArray(messages) || messages.length === 0)
 		return { status: "refused_input" };
-	const wire = [];
-	const priced = [];
-	const kept = [];
+	const lists = { wire: [], priced: [], kept: [] };
 	let frames = 0;
 	for (const message of messages) {
 		if (!ROLES.has(message?.role)) return { status: "refused_input" };
-		const role = message.role;
-		if (typeof message.content === "string") {
-			const copy = { role, content: message.content };
-			wire.push(copy);
-			priced.push(copy);
-			kept.push(copy);
+		const { role, content } = message;
+		if (typeof content === "string") {
+			for (const list of Object.values(lists)) list.push({ role, content });
 			continue;
 		}
-		if (!Array.isArray(message.content) || message.content.length === 0)
+		if (!Array.isArray(content) || content.length === 0)
 			return { status: "refused_input" };
-		const parts = { wire: [], priced: [], kept: [] };
-		for (const part of message.content) {
-			if (part?.type === "text") {
-				if (typeof part.text !== "string") return { status: "refused_input" };
-				const copy = { type: "text", text: part.text };
-				parts.wire.push(copy);
-				parts.priced.push(copy);
-				parts.kept.push(copy);
-				continue;
-			}
-			const url = part?.type === "image_url" && part.image_url?.url;
-			const frame = boundedFrame(url);
-			if (!frame) return { status: "budget_refused" };
-			frames++;
-			parts.wire.push({ type: "image_url", image_url: { url } });
-			parts.priced.push({ type: "image_url", image_url: { url: "" } });
-			parts.kept.push({ type: "image_url", sha256: sha256(frame) });
-		}
-		wire.push({ role, content: parts.wire });
-		priced.push({ role, content: parts.priced });
-		kept.push({ role, content: parts.kept });
+		const parts = content.map(copyPart);
+		const refused = parts.find((part) => part.status);
+		if (refused) return refused;
+		frames += parts.filter((part) => part.frame).length;
+		for (const [view, list] of Object.entries(lists))
+			list.push({ role, content: parts.map((part) => part[view]) });
 	}
+	const wire = lists.wire;
+	const priced = lists.priced;
+	const kept = lists.kept;
 	if (!Number.isSafeInteger(maxOutput) || maxOutput <= 0)
 		return { status: "budget_refused" };
 	const body = (list) =>
