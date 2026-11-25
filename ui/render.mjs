@@ -11,6 +11,7 @@ import {
 } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
 import { insideRun, STATUSES, validateRun } from "../src/run-schema.mjs";
+import { credentialShaped } from "../src/text-safety.mjs";
 
 const media = new Map(
 	Object.entries({
@@ -100,14 +101,7 @@ async function censusRows(root, document, run, inline) {
 	return result;
 }
 
-// Run folders may also come from disk, independently of model-turn validation.
-const CREDENTIAL_SHAPES = [
-	/-----BEGIN [A-Z ]*PRIVATE KEY-----/,
-	/\b(?:sk-(?:proj-)?|ghp_|gho_|ghs_|github_pat_|xox[bp]-|GOCSPX-)[A-Za-z0-9_-]{20,}/,
-	/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/,
-	/\bAIza[0-9A-Za-z_-]{35}\b/,
-	/\b[A-Za-z0-9_]*(?:api[_-]?key|secret|token)\b["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}/i,
-];
+// Run folders may also come from disk, so the display boundary checks again.
 
 export async function snapshot(root, inline) {
 	const run = JSON.parse(await readArtifact(root, "run.json"));
@@ -115,11 +109,7 @@ export async function snapshot(root, inline) {
 	for (const event of run.replay.events) {
 		if (
 			event.type === "action" &&
-			CREDENTIAL_SHAPES.some(
-				(pattern) =>
-					pattern.test(event.observation ?? "") ||
-					pattern.test(event.reason ?? ""),
-			)
+			(credentialShaped(event.observation) || credentialShaped(event.reason))
 		)
 			throw new Error("Invalid action explanation");
 	}
