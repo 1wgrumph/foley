@@ -150,6 +150,7 @@ function cachedMedia(candidate, dir) {
 	return path;
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: linear sequence of census checks, media checks, lock and backlog call
 async function runBacklog([censusPath, ...extra], v) {
 	if (!censusPath || extra.length)
 		throw new Refusal("bad_argument", "backlog takes one census file");

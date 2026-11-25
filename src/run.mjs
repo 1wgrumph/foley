@@ -227,6 +227,55 @@ function emptyRun(o) {
 	};
 }
 
+async function traceArtifacts(runDir, stage, paths) {
+	const lines = [];
+	for (const path of paths) {
+		const digest = sha256(await readFile(join(runDir, path)));
+		lines.push(
+			JSON.stringify({ type: "artifact", stage, path, sha256: digest }),
+		);
+	}
+	if (lines.length)
+		await appendFile(
+			join(runDir, "artifact-trace.jsonl"),
+			`${lines.join("\n")}\n`,
+		);
+}
+
+// Sums the usage fields of the trace events one call added.
+function usageSum(call, events) {
+	for (const event of events)
+		for (const field of USAGE)
+			if (Number.isSafeInteger(event[field]))
+				call[field] = (call[field] ?? 0) + event[field];
+	return call;
+}
+
+// Attributes every trace request event a call adds; runs are serial (lockRun).
+async function attributedCall(ctx, stage, args) {
+	const trace = join(out(), "trace.jsonl");
+	const before = (await readLines(trace)).length;
+	const reply = await callEmber(args);
+	const added = (await readLines(trace))
+		.slice(before)
+		.filter((e) => e.type === "request" && e.callId);
+	const callIds = added.map((e) => e.callId);
+	const call = usageSum({ stage, status: reply.status, callIds }, added);
+	if (added.length)
+		await appendFile(
+			join(out(), "stage-spend.jsonl"),
+			callIds
+				.map((callId) => `${JSON.stringify({ callId, stage })}\n`)
+				.join(""),
+		);
+	if (stage === "repro" && typeof reply.output?.verdict === "string")
+		call.verdict = reply.output.verdict;
+	ctx.run.model_calls.push(call);
+	ctx.run.cost_micro_usd += call.cost_micro_usd ?? 0;
+	await ctx.publish();
+	return reply;
+}
+
 /**
  * The per-issue context shared by the stages. A run.json left by an earlier
  * interrupted run is reloaded, so the backlog resumes from the run folder.
@@ -247,49 +296,8 @@ export async function openRun(o) {
 		run.elapsed_ms = elapsed + Date.now() - opened;
 		await writeJsonAtomic(join(runDir, "run.json"), run);
 	};
-	ctx.artifacts = async (stage, paths) => {
-		const lines = [];
-		for (const path of paths) {
-			const digest = sha256(await readFile(join(runDir, path)));
-			lines.push(
-				JSON.stringify({ type: "artifact", stage, path, sha256: digest }),
-			);
-		}
-		if (lines.length)
-			await appendFile(
-				join(runDir, "artifact-trace.jsonl"),
-				`${lines.join("\n")}\n`,
-			);
-	};
-	// Attributes every trace request event a call adds; runs are serial (lockRun).
-	ctx.ember = (stage) => async (args) => {
-		const trace = join(out(), "trace.jsonl");
-		const before = (await readLines(trace)).length;
-		const reply = await callEmber(args);
-		const added = (await readLines(trace))
-			.slice(before)
-			.filter((e) => e.type === "request" && e.callId);
-		const call = { stage, status: reply.status, callIds: [] };
-		for (const event of added) {
-			call.callIds.push(event.callId);
-			for (const field of USAGE)
-				if (Number.isSafeInteger(event[field]))
-					call[field] = (call[field] ?? 0) + event[field];
-		}
-		if (added.length)
-			await appendFile(
-				join(out(), "stage-spend.jsonl"),
-				added
-					.map((e) => `${JSON.stringify({ callId: e.callId, stage })}\n`)
-					.join(""),
-			);
-		if (stage === "repro" && typeof reply.output?.verdict === "string")
-			call.verdict = reply.output.verdict;
-		run.model_calls.push(call);
-		run.cost_micro_usd += call.cost_micro_usd ?? 0;
-		await ctx.publish();
-		return reply;
-	};
+	ctx.artifacts = (stage, paths) => traceArtifacts(runDir, stage, paths);
+	ctx.ember = (stage) => (args) => attributedCall(ctx, stage, args);
 	await ctx.publish();
 	return ctx;
 }
@@ -401,6 +409,7 @@ async function finish(ctx, verdict) {
 }
 
 /** Stage functions over the run folder; each returns {status, cost_micro_usd}. */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one table of the five short stage functions sharing the run context
 export function stages(ctx) {
 	const { o, runDir, run } = ctx;
 	const done = async (name, status, from, verdict) => {

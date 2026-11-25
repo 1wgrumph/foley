@@ -78,6 +78,7 @@ async function record(origin) {
 
 const cli = join(repo, "bin", "foley.mjs");
 const guard = ["--import", fixture("stages", "loopback-only.mjs")];
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one linear demonstration script
 await withApps(root, ({ bug }) =>
 	withEmber(root, replies, async ({ env }) => {
 		const { target, revision } = pinFixture(root);
