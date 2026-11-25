@@ -1,0 +1,30 @@
+{
+  "status": "green",
+  "date": "2026-11-24",
+  "node": "v22.23.4",
+  "full_suite": {
+    "command": "FOLEY_OFFLINE=1 node --test test/ember/ > logs/green-all.log",
+    "tests": 50,
+    "pass": 50,
+    "log": "green-all.log",
+    "log_sha256": "3c5e8a2f721cbeefb50dcc8e6bc0aa7e566e72a9aac34ac1c7e50a55fa1442ed"
+  },
+  "checks": [
+    {
+      "red_receipt": "red-s2.receipt.json",
+      "red_log_sha256": "4c8e2c7cf1840eefaa4b87aff0f87050c4d6e3b5b8cd0fdd743d475d48d56e44",
+      "command": "FOLEY_OFFLINE=1 node --test --test-name-pattern=\"^(<ids in test/ember/ids.txt>)$\" test/ember/ > logs/green-s2.log && node tools/red-receipt.mjs --green logs/green-s2.log --same-ids logs/red-s2.receipt.json",
+      "log": "green-s2.log",
+      "log_sha256": "233d96bd8eb932e4f3bf1da337414bb9a56fc79a6ccc14800c7e4f10b6b3c47f",
+      "ids": 16
+    },
+    {
+      "red_receipt": "W2R-red.receipt.json",
+      "red_log_sha256": "6d85088aeeef4083d7737ea4bc807a3c254d0740625f1d456f2733d91420e263",
+      "command": "FOLEY_OFFLINE=1 node --test test/ember/repair.js > logs/green-w2r.log && node tools/red-receipt.mjs --green logs/green-w2r.log --same-ids logs/W2R-red.receipt.json",
+      "log": "green-w2r.log",
+      "log_sha256": "2b9941f1c47d4a75261ee2d78122ef4fc61cfe0ad4a3a09b9da1e1a76f150560",
+      "ids": 34
+    }
+  ]
+}
