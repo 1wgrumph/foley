@@ -200,6 +200,36 @@ function steps(output, mediaPath) {
 	return validateSteps(document) ? document : null;
 }
 
+// The frames path as message parts: a time label before each frame, or null when
+// no frame can be sampled.
+async function framesContent(path, duration) {
+	let frames;
+	try {
+		frames = await sampleFrames(path, duration);
+	} catch {
+		return null;
+	}
+	if (frames.length === 0) return null;
+	return frames.flatMap((f) => [
+		{ type: "text", text: `Frame at ${f.t_s} s:` },
+		{ type: "image_url", image_url: { url: dataUrl("image/png", f.png) } },
+	]);
+}
+
+// Narration is sent only when the clip has audio and the probe bounds audio.
+async function audioParts(path, media, limits) {
+	if (!media.audio || !bounded(limits.audio)) return [];
+	const url = dataUrl("audio/wav", await extractAudio(path));
+	return [{ type: "audio_url", audio_url: { url } }];
+}
+
+async function saveSteps(runDir, document) {
+	const file = join(runDir, "steps.json");
+	await writeFile(`${file}.tmp`, `${JSON.stringify(document, null, 2)}\n`);
+	await rename(`${file}.tmp`, file);
+}
+
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one ordered pipeline (check media, try bounded video, fall back to frames, validate, save) reads best whole
 export async function watch(
 	recordingPath,
 	{ runDir, callEmber, probe, caseId, caseBudget },
@@ -218,15 +248,7 @@ export async function watch(
 		type: "text",
 		text: `Recording of ${media.duration.toFixed(1)} s.`,
 	};
-	const audio =
-		media.audio && bounded(limits.audio)
-			? [
-					{
-						type: "audio_url",
-						audio_url: { url: dataUrl("audio/wav", await extractAudio(path)) },
-					},
-				]
-			: [];
+	const audio = await audioParts(path, media, limits);
 	const attempt = async (mediaPath, content) => {
 		const result = await callEmber({
 			messages: [
@@ -258,24 +280,13 @@ export async function watch(
 		result.status === "budget_refused"
 	) {
 		mediaPath = "frames";
-		let frames;
-		try {
-			frames = await sampleFrames(path, media.duration);
-		} catch {
+		const content = await framesContent(path, media.duration);
+		if (!content)
 			return {
 				status: "refused_input",
 				message: "frames could not be sampled",
 			};
-		}
-		if (frames.length === 0)
-			return { status: "refused_input", message: "no frames sampled" };
-		result = await attempt(
-			"frames",
-			frames.flatMap((f) => [
-				{ type: "text", text: `Frame at ${f.t_s} s:` },
-				{ type: "image_url", image_url: { url: dataUrl("image/png", f.png) } },
-			]),
-		);
+		result = await attempt("frames", content);
 	}
 	if (result.status !== "ok") return { status: result.status };
 	const document = steps(result.output, mediaPath);
@@ -284,8 +295,6 @@ export async function watch(
 			status: "malformed_output",
 			message: "reply is not a valid steps document",
 		};
-	const file = join(runDir, "steps.json");
-	await writeFile(`${file}.tmp`, `${JSON.stringify(document, null, 2)}\n`);
-	await rename(`${file}.tmp`, file);
+	await saveSteps(runDir, document);
 	return { status: "ok", document };
 }

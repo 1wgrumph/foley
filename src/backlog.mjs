@@ -126,6 +126,15 @@ async function runIssue(
 	return false;
 }
 
+// An issue runs when it is eligible, not finished, and either resumes or fits
+// under the new-issue limit. Otherwise its row reports what is already known.
+const runnable = (c, state, full) =>
+	c.status === "eligible_not_attempted" && !state?.status && (state || !full);
+const settled = (c, state) =>
+	c.status === "eligible_not_attempted"
+		? [state?.status ?? "eligible_not_attempted", state?.cost_micro_usd ?? 0]
+		: [c.status, 0];
+
 export async function backlog(
 	census,
 	{ runRoot, stages, stopAfter, maxIssues = Number.POSITIVE_INFINITY },
@@ -150,15 +159,8 @@ export async function backlog(
 	let interrupted = false;
 	for (const c of census.candidates) {
 		let state = states.get(c.issue);
-		const resumable = c.status === "eligible_not_attempted" && !state?.status;
-		if (!resumable || interrupted || (!state && started >= maxIssues)) {
-			if (c.status !== "eligible_not_attempted") row(c, c.status);
-			else
-				row(
-					c,
-					state?.status ?? "eligible_not_attempted",
-					state?.cost_micro_usd ?? 0,
-				);
+		if (interrupted || !runnable(c, state, started >= maxIssues)) {
+			row(c, ...settled(c, state));
 			continue;
 		}
 		if (!state) {
