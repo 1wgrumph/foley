@@ -109,7 +109,8 @@ export async function snapshot(root, inline) {
 	for (const event of run.replay.events) {
 		if (
 			event.type === "action" &&
-			(hasCredentialShape(event.observation) || hasCredentialShape(event.reason))
+			(hasCredentialShape(event.observation) ||
+				hasCredentialShape(event.reason))
 		)
 			throw new Error("Invalid action explanation");
 	}
