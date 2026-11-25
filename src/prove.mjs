@@ -275,7 +275,7 @@ const TYPES = {
 };
 
 // Serves one build's files read-only on loopback; paths outside it are 404.
-async function serveBuild(root) {
+export async function serveBuild(root) {
 	const base = realpathSync(root);
 	const server = createServer(async (req, res) => {
 		try {

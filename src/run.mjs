@@ -21,7 +21,7 @@ import {
 	rm,
 	writeFile,
 } from "node:fs/promises";
-import { extname, isAbsolute, join, relative } from "node:path";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { renderReplay } from "../ui/render.mjs";
 import { runOne } from "./backlog.mjs";
 import { callEmber } from "./ember.mjs";
@@ -174,6 +174,7 @@ export const identityOf = (o) => ({
 	recording_sha256: o.recordingSha256,
 	runner: o.runner,
 	fixture: Boolean(o.fixture),
+	...(o.pair && { pair: o.pair }),
 });
 
 // Only presence is checked: a spawn error means the tool is absent.
@@ -185,6 +186,21 @@ function tool(name) {
 	});
 	if (error?.code === "ENOENT")
 		throw new Refusal("tool_absent", `${name} is not available on PATH`);
+}
+
+function loopbackOrigin(text) {
+	let origin;
+	try {
+		origin = new URL(text);
+	} catch {
+		throw new Refusal("bad_argument", "--app-origin must be a URL");
+	}
+	if (origin.protocol !== "http:" || !LOOPBACK.has(origin.hostname))
+		throw new Refusal(
+			"bad_argument",
+			"--app-origin must be a loopback http origin",
+		);
+	return origin.origin;
 }
 
 /**
@@ -207,18 +223,8 @@ export function preflight(options) {
 			"unsupported_runner",
 			`--runner must be one of ${Object.keys(RUNNERS).join(", ")}`,
 		);
-	let origin;
-	try {
-		origin = new URL(o.appOrigin);
-	} catch {
-		throw new Refusal("bad_argument", "--app-origin must be a URL");
-	}
-	if (origin.protocol !== "http:" || !LOOPBACK.has(origin.hostname))
-		throw new Refusal(
-			"bad_argument",
-			"--app-origin must be a loopback http origin",
-		);
-	o.appOrigin = origin.origin;
+	// A pair run serves its own bug page; the origin is set when it starts.
+	if (!o.pair) o.appOrigin = loopbackOrigin(o.appOrigin);
 	for (const name of TOOLS) tool(name);
 	if (!existsSync(UI_PAGE))
 		throw new Refusal("ui_not_built", "run `npm run build:ui` first");
@@ -252,6 +258,140 @@ export function preflight(options) {
 		}
 	}
 	return o;
+}
+
+const PAIRS = "fixtures/pairs/pairs.json";
+const SHA1 = /^[0-9a-f]{40}$/;
+const SHA256 = /^[0-9a-f]{64}$/;
+
+function readPairJson(path, missing) {
+	let text;
+	try {
+		text = readFileSync(path, "utf8");
+	} catch {
+		throw new Refusal(missing, `${path} is missing`);
+	}
+	try {
+		return JSON.parse(text);
+	} catch {
+		throw new Refusal("pair_invalid", `${path} is not JSON`);
+	}
+}
+
+// A real path inside `root` (after symlinks), or a refusal: absent is
+// pair_build_missing, outside is pair_invalid.
+function within(root, path, name) {
+	let real;
+	try {
+		real = realpathSync(path);
+	} catch {
+		throw new Refusal("pair_build_missing", `${name} is missing`);
+	}
+	const rel = relative(root, real);
+	if (rel === ".." || rel.startsWith("../") || isAbsolute(rel))
+		throw new Refusal("pair_invalid", `${name} is outside the pair folder`);
+	return real;
+}
+
+// The issue URL is shown and linked, never fetched.
+const httpsUrl = (text) => {
+	try {
+		return text.length <= 2048 && new URL(text).protocol === "https:";
+	} catch {
+		return false;
+	}
+};
+
+const headOf = (dir) => {
+	try {
+		return git(dir, "rev-parse", "--verify", "HEAD");
+	} catch {
+		return null;
+	}
+};
+
+/**
+ * Resolves `foley run --pair <issue>` from fixtures/pairs/pairs.json and the
+ * pair's build receipt under out/pairs/<issue>/. Pair fields are data: commits
+ * and digests are checked by pattern, paths must stay inside the pair folder,
+ * and nothing is fetched or built. Returns the run options a pair fixes.
+ */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a flat list of independent pair checks, each refusing before any model call
+export function pairOptions(issue) {
+	if (!Number.isSafeInteger(issue) || issue <= 0)
+		throw new Refusal("bad_argument", "--pair must be a positive integer");
+	const manifest = readPairJson(PAIRS, "pair_missing");
+	if (manifest?.schema !== "foley.pairs/1" || !Array.isArray(manifest.pairs))
+		throw new Refusal("pair_invalid", `${PAIRS} is not foley.pairs/1`);
+	const pair = manifest.pairs.find((p) => p?.issue === issue);
+	if (!pair) throw new Refusal("pair_missing", `issue ${issue} is not a pair`);
+	const runner = pair.runner ?? "vitest";
+	const memory = pair.memory_mib;
+	const valid =
+		httpsUrl(pair.url) &&
+		SHA1.test(pair.bug_commit ?? "") &&
+		SHA1.test(pair.fix_commit ?? "") &&
+		SHA256.test(pair.recording?.sha256 ?? "") &&
+		Object.hasOwn(RUNNERS, runner) &&
+		(memory === undefined ||
+			(Number.isSafeInteger(memory) && memory >= 256 && memory <= 8192));
+	if (!valid) throw new Refusal("pair_invalid", `pair ${issue} is malformed`);
+	const root = join(out(), "pairs", String(issue));
+	if (!existsSync(root))
+		throw new Refusal("pair_build_missing", `${root} is missing`);
+	const folder = realpathSync(root);
+	const receipt = readPairJson(
+		join(root, "receipt.json"),
+		"pair_build_missing",
+	);
+	const builds = Array.isArray(receipt?.builds) ? receipt.builds : [];
+	const sides = { bug: pair.bug_commit, fixed: pair.fix_commit };
+	if (receipt?.issue !== issue || receipt.scan_verdict !== "PASS")
+		throw new Refusal(
+			"pair_invalid",
+			"receipt is for another issue or its scan did not pass",
+		);
+	const resolved = {};
+	for (const [side, commit] of Object.entries(sides)) {
+		const build = builds.filter((b) => b?.side === side);
+		if (
+			build.length !== 1 ||
+			typeof build[0].page !== "string" ||
+			!SHA1.test(build[0].commit ?? "")
+		)
+			throw new Refusal(
+				"pair_invalid",
+				`receipt has no single valid ${side} build`,
+			);
+		if (build[0].commit !== commit)
+			throw new Refusal(
+				"pair_commit_mismatch",
+				`receipt ${side} commit differs from the manifest`,
+			);
+		const checkout = within(folder, join(root, side), `${side} checkout`);
+		if (headOf(checkout) !== commit)
+			throw new Refusal(
+				"pair_commit_mismatch",
+				`${side} checkout is not at ${commit}`,
+			);
+		clean(checkout, `${side} checkout`);
+		const page = within(checkout, resolve(build[0].page), `${side} page`);
+		if (!existsSync(join(page, "index.html")))
+			throw new Refusal("pair_build_missing", `${side} page has no index.html`);
+		resolved[side] = { checkout, page };
+	}
+	return {
+		issue,
+		issueUrl: pair.url,
+		revision: pair.bug_commit,
+		runner,
+		target: resolved.bug.checkout,
+		fixedTarget: resolved.fixed.checkout,
+		pageDirs: [resolved.bug.page, resolved.fixed.page],
+		...(memory && { memoryMiB: memory }),
+		recordingSha256: pair.recording.sha256,
+		pair: { issue, bug_commit: pair.bug_commit, fix_commit: pair.fix_commit },
+	};
 }
 
 /**
@@ -324,6 +464,7 @@ function emptyRun(o) {
 		verdict: null,
 		cost_micro_usd: 0,
 		case_budget_micro_usd: o.caseBudget,
+		...(o.pair && { pair: o.pair }),
 		error: null,
 		stages: {},
 		model_calls: [],
@@ -546,6 +687,7 @@ async function finish(ctx, verdict) {
 		issue_url: run.issue_url,
 		target_revision: run.target_revision,
 		fixture: run.fixture,
+		...(run.pair && { pair: run.pair }),
 		stages: run.stages,
 		rerun_without_ember: replay
 			? ((await readJsonOptional(join(runDir, "proof.json")))
@@ -646,6 +788,8 @@ const STAGE_FNS = {
 			runDir,
 			targetDir: o.target,
 			fixedTargetDir: o.fixedTarget,
+			...(o.pageDirs && { pageDirs: o.pageDirs }),
+			...(o.memoryMiB && { memoryMiB: o.memoryMiB }),
 			runner: o.runner,
 			callEmber: ctx.ember("prove"),
 			caseId: ctx.caseId,

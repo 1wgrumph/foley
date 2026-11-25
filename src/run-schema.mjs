@@ -372,6 +372,17 @@ export async function checkCoreProof(runDir) {
 		: [];
 	if (proof?.schema !== "foley.core-proof/1" || entries.length === 0)
 		return { status: "invalid" };
+	// A pair run binds its bug and fix commits in both the run and the manifest.
+	let runDoc;
+	try {
+		runDoc = JSON.parse(await readFile(join(runDir, "run.json"), "utf8"));
+	} catch {
+		return { status: "invalid" };
+	}
+	if (
+		JSON.stringify(proof.pair ?? null) !== JSON.stringify(runDoc?.pair ?? null)
+	)
+		return { status: "invalid" };
 	const root = await realpath(runDir);
 	const traced = new Map(events.map((e) => [e.path, e.sha256]));
 	for (const [path, digest] of entries) {
