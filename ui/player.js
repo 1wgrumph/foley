@@ -27,6 +27,15 @@ let moments = [];
 let selected = 0;
 let video;
 
+const CLAIMS_FAILURE = [
+	"reproduced",
+	"proof_verified",
+	"failure_observed",
+	"failing_test_no_control",
+];
+const FIXED_BUILD_CONFLICT =
+	"The fixed build shows the same failure, so this is not counted as a reproduction";
+
 function status(state, notice = "") {
 	const run = snapshot?.run;
 	byId("state").textContent = state;
@@ -57,22 +66,12 @@ function status(state, notice = "") {
 	if (observed === false || reproduction === "not_reproduced")
 		detail = "Not reproduced";
 	if (refused) detail = human(refused);
-	if (
-		observed === false &&
-		[
-			"reproduced",
-			"proof_verified",
-			"failure_observed",
-			"failing_test_no_control",
-		].includes(verdict)
-	)
+	// A verdict that claims the failure without the browser having seen it, or a
+	// failure the fixed build shows too: the steps do not isolate the bug.
+	const conflict = reproduction === "fixed_build_conflict";
+	if (conflict || (observed === false && CLAIMS_FAILURE.includes(verdict)))
 		badge = "Conflicting evidence";
-	// The fixed build showed the same failure: the steps do not isolate the bug.
-	if (reproduction === "fixed_build_conflict") {
-		badge = "Conflicting evidence";
-		detail =
-			"The fixed build shows the same failure, so this is not counted as a reproduction";
-	}
+	if (conflict) detail = FIXED_BUILD_CONFLICT;
 	if (state === "error" || state === "loading") badge = state;
 	byId("badge").textContent = badge;
 	byId("badge").dataset.tone =

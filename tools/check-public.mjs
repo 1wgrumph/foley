@@ -225,6 +225,11 @@ function checkTraceLines(f, lines, add) {
 	});
 }
 
+function checkTrace(f, text, lines, add) {
+	if (f.endsWith(".json")) checkTraceJson(f, text, add);
+	if (f.endsWith(".jsonl")) checkTraceLines(f, lines, add);
+}
+
 export function checkTree(rootArg) {
 	const root = realpathSync(rootArg);
 	const findings = [];
@@ -253,10 +258,7 @@ export function checkTree(rootArg) {
 		for (const [i, line] of lines.entries())
 			checkLine(f, line, `${f}:${i + 1}`, add);
 
-		if (f.startsWith("trace/") && f.endsWith(".json"))
-			checkTraceJson(f, text, add);
-		if (f.startsWith("trace/") && f.endsWith(".jsonl"))
-			checkTraceLines(f, lines, add);
+		if (f.startsWith("trace/")) checkTrace(f, text, lines, add);
 
 		if (RUNTIME_DIRS.some((d) => f.startsWith(d))) {
 			for (const m of text.matchAll(
