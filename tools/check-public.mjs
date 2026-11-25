@@ -78,6 +78,13 @@ const TRACE_FIELDS = new Set([
 ]);
 
 // Runtime source may name the Meta endpoint and loopback only; other model providers fail.
+// Assignment metadata in committed return files: a harness, model, worktree, route
+// or session field, or a role line naming a "<harness> / <model>" route.
+const RETURN_FILE = /(?:^|\/)[^/]*RETURN[^/]*\.md$/i;
+const ASSIGNMENT_LINE = [
+	/^[\s>*-]*(?:harness|model|worktree|route|(?:role )?session)\**\s*:/i,
+	/^[\s>*-]*(?:(?:light |test |product )?implementer|reviewer|orchestrator|author)\**\s*:[^\n]*\S \/ \S/i,
+];
 const RUNTIME_DIRS = ["src/", "bin/"];
 const META_HOSTS = new Set(["api.meta.ai"]);
 const MODEL_PROVIDER_HOST =
@@ -181,6 +188,8 @@ export function checkTree(rootArg) {
 				if (!PLACEHOLDER_USERS.has(m[1]))
 					add("home-path", at, "home-directory path");
 			}
+			if (RETURN_FILE.test(f) && ASSIGNMENT_LINE.some((re) => re.test(line)))
+				add("assignment-metadata", at, "assignment field in a return file");
 			if (KEY_SHAPES.some((re) => re.test(line)))
 				add("key-shaped", at, "key-shaped string (value not printed)");
 			for (const tok of line.split(/[^A-Za-z0-9_.-]+/)) {

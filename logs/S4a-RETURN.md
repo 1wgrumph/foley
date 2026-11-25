@@ -1,7 +1,6 @@
 # S4a stage group a: return
 
-Implementer: Claude Code / Claude Opus 5.5. Dates: 2026-11-24 to 2026-11-25. Worktree `foley-wave-3`,
-branch `wave-3`. Planned slice, not a defect fix.
+Author: the S4a Implementer. Dates: 2026-11-24 to 2026-11-25. Branch `wave-3`. Planned slice, not a defect fix.
 
 ## Outcome: PASS
 
