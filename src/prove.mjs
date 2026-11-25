@@ -8,11 +8,20 @@
 // reports them), and the fixed build passes. Model-chosen assertion labels and
 // code text are never evidence.
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { once } from "node:events";
+import {
+	existsSync,
+	mkdtempSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from "node:fs";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { repro } from "./repro.mjs";
 import { validPredicate } from "./run-schema.mjs";
 
 const ISOLATE = fileURLToPath(new URL("../tools/isolate.sh", import.meta.url));
@@ -254,11 +263,88 @@ function excerpts(targetDir, anchors) {
 		});
 }
 
+const TYPES = {
+	".html": "text/html; charset=utf-8",
+	".js": "text/javascript",
+	".mjs": "text/javascript",
+	".css": "text/css",
+	".json": "application/json",
+	".svg": "image/svg+xml",
+	".png": "image/png",
+};
+
+// Serves one build's files read-only on loopback; paths outside it are 404.
+async function serveBuild(root) {
+	const base = realpathSync(root);
+	const server = createServer(async (req, res) => {
+		try {
+			const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+			const file = realpathSync(
+				resolve(base, path === "/" ? "index.html" : `.${path}`),
+			);
+			const rel = relative(base, file);
+			if (req.method !== "GET" || rel.startsWith("..") || isAbsolute(rel))
+				throw new Error("outside build");
+			res.setHeader(
+				"content-type",
+				TYPES[extname(file)] ?? "application/octet-stream",
+			);
+			res.end(await readFile(file));
+		} catch {
+			res.writeHead(404).end();
+		}
+	});
+	server.listen(0, "127.0.0.1");
+	await once(server, "listening");
+	return {
+		origin: `http://127.0.0.1:${server.address().port}`,
+		close: () => {
+			server.closeAllConnections();
+			return new Promise((done) => server.close(done));
+		},
+	};
+}
+
+// The independent control: the recorded steps, run by the scripted browser
+// driver on each build's own page, show the predicate on the bug build and not
+// on the fixed build. "unavailable" when a build has no page to serve.
+async function predicateControl(steps, predicate, builds) {
+	if (!builds.every((dir) => existsSync(join(dir, "index.html"))))
+		return "unavailable";
+	const scratch = mkdtempSync(join(tmpdir(), "foley-control-"));
+	try {
+		const seen = [];
+		for (const [index, dir] of builds.entries()) {
+			const server = await serveBuild(dir);
+			try {
+				const runDir = join(scratch, String(index));
+				await mkdir(runDir);
+				const replay = await repro(steps, predicate, server.origin, {
+					runDir,
+					caseId: "proof-control",
+					scripted: true,
+				});
+				seen.push(replay.observed);
+			} finally {
+				await server.close();
+			}
+		}
+		return seen[0] && !seen[1] ? "ok" : "unchanged";
+	} finally {
+		rmSync(scratch, { recursive: true, force: true });
+	}
+}
+const CONTROL_REASON = {
+	ok: "verified",
+	unavailable: "inconclusive",
+	unchanged: "wrong_predicate",
+};
+
 // One candidate, run over each build; its disposable folder holds only the
 // candidate file and is removed before return.
 async function attempt(
 	candidate,
-	{ targetDir, fixedTargetDir, predicate, ...limits },
+	{ targetDir, fixedTargetDir, predicate, control, ...limits },
 ) {
 	const sandboxPath = mkdtempSync(join(tmpdir(), "foley-proof-"));
 	try {
@@ -281,11 +367,10 @@ async function attempt(
 		record.fixed = { exitCode: fixed.exitCode, output: fixed.output };
 		if (fixed.exitCode !== 0)
 			record.reason = fixed.timedOut ? "timeout" : bothRed(fixed);
-		// The builds differ, but only a change in the predicate's value counts.
-		else
-			record.reason = showsPredicate(bug, predicate)
-				? "verified"
-				: "wrong_predicate";
+		// The builds differ, but only a change in the predicate's value counts,
+		// and only when the builds' own pages show that change.
+		else if (!showsPredicate(bug, predicate)) record.reason = "wrong_predicate";
+		else record.reason = CONTROL_REASON[await control()];
 		return record;
 	} finally {
 		rmSync(sandboxPath, { recursive: true, force: true });
@@ -332,10 +417,18 @@ export async function prove(
 			attempts: [],
 			reason: predicate === null ? "no_predicate" : "malformed_output",
 		});
+	let controlled;
 	const dirs = {
 		targetDir,
 		fixedTargetDir,
 		predicate,
+		control: () => {
+			controlled ??= predicateControl(steps, predicate, [
+				targetDir,
+				fixedTargetDir,
+			]);
+			return controlled;
+		},
 		runner,
 		timeoutMs,
 		memoryMiB,
