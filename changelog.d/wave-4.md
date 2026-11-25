@@ -71,3 +71,11 @@
   one of 50 issues a status (36 attempted, 5 failures observed). The client
   now accepts a JSON reply after leading prose, and proof keeps going after a
   malformed reply. A redacted token trace of the verified run is in `trace/9852/`.
+- Census yield (S6b). Reproduction types into the focused element when a
+  `type` has no selector, drops a free-text verdict on an unfinished turn, and
+  accepts a drag missing one end coordinate or a pointer action with only a
+  selector. With no fixed build, a red test that shows the predicate's values
+  is kept with its failing output under the new verdict
+  `failing_test_no_control`. A Watch round drops a predicate the bug build
+  contradicted. Rerun: census failures observed 5 to 11 of 36, invalid turns
+  21 to 0, held-out 1 to 2 of 8, 9852 verified 5 of 5.
