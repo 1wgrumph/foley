@@ -12,6 +12,8 @@ import {
 import { join } from "node:path";
 import { test } from "node:test";
 import {
+	archive,
+	modelReply,
 	product,
 	readJson,
 	readLines,
@@ -512,4 +514,31 @@ test("TC-INT-1/resume-input-identity", settings, async () => {
 		assert.deepEqual(readFileSync(join(ctx.runDir, "run.json")), original);
 		assert.equal(ctx.server.requests.length, 1);
 	});
+});
+
+// S5 live: a predicate that already holds on the fresh page sends Watch one
+// more bounded round with what reproduction saw; the new steps reach proof.
+test("TC-R06-7/watch-round", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const holdsBefore = modelReply({
+		...archive,
+		predicate: { ...archive.predicate, observed: "Ready" },
+	});
+	await scenario(
+		[holdsBefore, watchReply, reproReply, proveReply],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			const run = ctx.readRun();
+			assert.deepEqual(
+				run.model_calls.map((call) => call.stage),
+				["watch", "watch", "repro", "prove"],
+			);
+			const feedback = ctx.server.requests[1].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.match(feedback.text, /"predicate_held_before":true/);
+			assert.equal(run.predicate.observed, archive.predicate.observed);
+		},
+	);
 });

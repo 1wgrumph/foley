@@ -724,6 +724,61 @@ async function committed(ctx, name, status) {
 	return { status };
 }
 
+const WATCH_ROUNDS = 2;
+// Reproduction outcomes that point at Watch's steps or predicate. A refused,
+// failed or over-budget model call is not retried with a new Watch round.
+const WATCH_MISSES = new Set(["predicate_holds_before", "no_predicate"]);
+const watchMissed = (replay) =>
+	replay.events
+		.filter((e) => e.type === "stopped")
+		.every((e) => WATCH_MISSES.has(e.reason));
+
+// What an earlier reproduction saw, as data for Watch's next round.
+function reproductionFeedback(run, replay) {
+	const last = replay.events.findLast((e) => e.observation)?.observation;
+	return {
+		earlier_steps: run.steps,
+		earlier_predicate: run.predicate,
+		reproduction: {
+			status: replay.status,
+			predicate_held_before: replay.attempts.some((a) => a.observed_before),
+			attempts: replay.attempts.map((a) => ({
+				observed: a.observed,
+				model_verdict: a.model_verdict,
+				actions: a.actions,
+			})),
+			...(last && { last_observation: last }),
+		},
+	};
+}
+
+// One more Watch round with reproduction's feedback; false when it fails.
+async function watchAgain(ctx, replay) {
+	const { o, runDir, run } = ctx;
+	const result = await watch(join(runDir, run.recording), {
+		runDir,
+		callEmber: ctx.ember("watch"),
+		probe: o.probe,
+		caseId: ctx.caseId,
+		caseBudget: o.caseBudget,
+		reportTitle: o.reportTitle,
+		feedback: reproductionFeedback(run, replay),
+	});
+	if (result.status !== "ok") return false;
+	run.steps = result.document.steps;
+	run.predicate = result.document.predicate;
+	await ctx.artifacts("watch", ["steps.json"]);
+	const located = await locate(join(runDir, "steps.json"), {
+		targetDir: o.target,
+		targetRevision: o.revision,
+		runDir,
+	});
+	run.anchors = located.anchors;
+	await ctx.artifacts("locate", ["anchors.json"]);
+	await ctx.publish();
+	return true;
+}
+
 // The five stages over one issue's run folder. Each returns {status}; the journal
 // decides what comes next and when the issue is finished.
 const STAGE_FNS = {
@@ -775,18 +830,32 @@ const STAGE_FNS = {
 		run.repro_calls_from = run.model_calls.filter(
 			(c) => c.stage === "repro",
 		).length;
-		const replay = await repro(run.steps, run.predicate, o.appOrigin, {
-			runDir,
-			caseId: ctx.caseId,
-			caseBudget: o.caseBudget,
-			callEmber: ctx.ember("repro"),
-			...(o.reportTitle && { reportTitle: o.reportTitle }),
-			// Live viewers see each recorded action and frame as it happens.
-			async onProgress(progress) {
-				ctx.replay = progress;
-				await ctx.publish();
-			},
-		});
+		const once = () =>
+			repro(run.steps, run.predicate, o.appOrigin, {
+				runDir,
+				caseId: ctx.caseId,
+				caseBudget: o.caseBudget,
+				callEmber: ctx.ember("repro"),
+				...(o.reportTitle && { reportTitle: o.reportTitle }),
+				// Live viewers see each recorded action and frame as it happens.
+				async onProgress(progress) {
+					ctx.replay = progress;
+					await ctx.publish();
+				},
+			});
+		let replay = await once();
+		// Bounded extra Watch rounds (FOL-R06): Watch is asked again with what
+		// reproduction saw, then locate and reproduction run on its new steps.
+		for (
+			let round = 1;
+			replay.status !== "reproduced" &&
+			watchMissed(replay) &&
+			round <= WATCH_ROUNDS;
+			round++
+		) {
+			if (!(await watchAgain(ctx, replay))) break;
+			replay = await once();
+		}
 		ctx.replay = replay;
 		await ctx.artifacts("repro", [
 			"replay.json",
@@ -796,7 +865,12 @@ const STAGE_FNS = {
 	},
 	async prove(ctx) {
 		const { o, runDir, run } = ctx;
-		const result = await prove(run.steps, run.anchors, run.predicate, {
+		// The actions that reproduced the failure, when there are any.
+		const replayed = await readFile(join(runDir, "replay.json"), "utf8")
+			.then((text) => JSON.parse(text).reproduced_steps)
+			.catch(() => undefined);
+		const steps = Array.isArray(replayed) ? replayed : run.steps;
+		const result = await prove(steps, run.anchors, run.predicate, {
 			runDir,
 			targetDir: o.target,
 			fixedTargetDir: o.fixedTarget,

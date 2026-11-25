@@ -71,7 +71,7 @@ export function insideRun(path) {
 		.every((part) => part !== "" && part !== "." && part !== "..");
 }
 
-function validStep(s, index) {
+export function validStep(s, index) {
 	return (
 		isObject(s) &&
 		s.order === index + 1 &&

@@ -61,9 +61,40 @@ test("TC-R06-1", { timeout: 120000 }, async () => {
 					app.origin,
 					opts,
 				);
-				evidence(result, opts.runDir, reproduced);
+				const replay = evidence(result, opts.runDir, reproduced);
 				assert.ok(app.requests.includes("/"));
+				// The actions that showed the failure become steps for the proof.
+				assert.deepEqual(
+					replay.reproduced_steps,
+					reproduced
+						? [
+								{
+									order: 1,
+									t_s: 0,
+									action: "click",
+									target: "Archive",
+									selector: "#archive",
+								},
+							]
+						: undefined,
+				);
 			}
+			// A predicate that holds on the freshly loaded page shows nothing the
+			// steps cause: no step runs and the run reports why.
+			const opts = options(root, "holds-before", { scripted: true });
+			const result = await repro(
+				archive.steps,
+				{ ...archive.predicate, expected: "Archived", observed: "Ready" },
+				bug.origin,
+				opts,
+			);
+			assert.equal(result.status, "not_reproduced");
+			assert.deepEqual(
+				result.events
+					.filter((e) => e.type !== "blocked")
+					.map((e) => (e.type === "stopped" ? e.reason : e.type)),
+				["predicate_holds_before"],
+			);
 		}),
 	);
 });

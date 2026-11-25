@@ -228,34 +228,39 @@ function cachedCorpus(root, origin) {
 test("TC-R10-3/eval-execution", { timeout: 240000 }, async () => {
 	await temporary((root) =>
 		withApps(root, ({ bug }) =>
-			withEmber(root, [modelReply({})], async ({ env, server }) => {
-				const options = cachedCorpus(root, bug.origin);
-				const result = await cliRun(
-					root,
-					["eval", "--max-issues", "1", ...options],
-					env,
-				);
-				assert.equal(result.code, 0, result.stderr);
-				assert.equal(
-					server.requests.length,
-					1,
-					"Evaluation must attempt a held-out issue",
-				);
-				const report = readJson(join(root, "out/eval-report.json"));
-				assert.deepEqual(
-					report.results.map((r) => r.issue),
-					ids,
-				);
-				assert.equal(
-					report.results.filter((r) => r.status === "attempted_miss").length,
-					1,
-				);
-				assert.equal(
-					report.results.filter((r) => r.status === "eligible_not_attempted")
-						.length,
-					7,
-				);
-			}),
+			// An invalid steps reply gets one re-ask with its validation error.
+			withEmber(
+				root,
+				[modelReply({}), modelReply({})],
+				async ({ env, server }) => {
+					const options = cachedCorpus(root, bug.origin);
+					const result = await cliRun(
+						root,
+						["eval", "--max-issues", "1", ...options],
+						env,
+					);
+					assert.equal(result.code, 0, result.stderr);
+					assert.equal(
+						server.requests.length,
+						2,
+						"Evaluation must attempt a held-out issue",
+					);
+					const report = readJson(join(root, "out/eval-report.json"));
+					assert.deepEqual(
+						report.results.map((r) => r.issue),
+						ids,
+					);
+					assert.equal(
+						report.results.filter((r) => r.status === "attempted_miss").length,
+						1,
+					);
+					assert.equal(
+						report.results.filter((r) => r.status === "eligible_not_attempted")
+							.length,
+						7,
+					);
+				},
+			),
 		),
 	);
 });

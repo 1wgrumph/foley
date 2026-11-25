@@ -605,12 +605,13 @@ test("TC-R04-1/unsupported-watch-predicate", { timeout: 120000 }, async () => {
 	await temporary((root) =>
 		withEmber(
 			root,
-			[
+			// The one re-ask (validation error as feedback) is refused the same way.
+			Array.from({ length: 2 }, () =>
 				modelReply({
 					...archive,
 					predicate: { ...archive.predicate, kind: "unknown" },
 				}),
-			],
+			),
 			async ({ callEmber, server }) => {
 				const runDir = join(root, "run");
 				const result = await watch(clip, {
@@ -620,7 +621,7 @@ test("TC-R04-1/unsupported-watch-predicate", { timeout: 120000 }, async () => {
 					caseId: "watch",
 					caseBudget: 100000,
 				});
-				assert.equal(server.requests.length, 1);
+				assert.equal(server.requests.length, 2);
 				assert.equal(result.status, "malformed_output");
 				assert.equal(existsSync(join(runDir, "steps.json")), false);
 			},

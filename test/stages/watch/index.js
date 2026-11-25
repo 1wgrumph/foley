@@ -139,28 +139,34 @@ test("TC-R04-1", { timeout: 120000 }, async () => {
 			),
 		);
 	}
-	// Structurally valid JSON, but not valid steps.
-	await temporary((root) =>
-		withEmber(
-			root,
-			[modelReply({ steps: "not-an-array" })],
-			async ({ callEmber }) => {
-				const runDir = join(root, "run");
-				mkdirSync(runDir);
-				assert.equal(
-					(
-						await watch(clip, {
-							runDir,
-							callEmber,
-							probe: frameProbe,
-							caseId: "watch-invalid",
-						})
-					).status,
-					"malformed_output",
-				);
-			},
-		),
-	);
+	// Structurally valid JSON, but not valid steps: one re-ask carries the
+	// validation error; a second invalid reply is malformed_output, and a valid
+	// one is accepted.
+	for (const second of [{ steps: "not-an-array" }, document])
+		await temporary((root) =>
+			withEmber(
+				root,
+				[modelReply({ steps: "not-an-array" }), modelReply(second)],
+				async ({ callEmber, server }) => {
+					const runDir = join(root, "run");
+					mkdirSync(runDir);
+					const result = await watch(clip, {
+						runDir,
+						callEmber,
+						probe: frameProbe,
+						caseId: "watch-invalid",
+					});
+					assert.equal(
+						result.status,
+						second === document ? "ok" : "malformed_output",
+					);
+					assert.equal(server.requests.length, 2);
+					const reask = server.requests[1].body.messages.at(-1);
+					assert.equal(reask.role, "user");
+					assert.match(reask.content, /failed validation: .*steps/);
+				},
+			),
+		);
 });
 
 test("TC-R04-2", { timeout: 120000 }, async () => {

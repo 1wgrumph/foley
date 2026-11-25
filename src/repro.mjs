@@ -6,7 +6,12 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { checkPredicate } from "./predicate.mjs";
-import { VIEWPORT, validPointer, validPredicate } from "./run-schema.mjs";
+import {
+	VIEWPORT,
+	validateSteps,
+	validPointer,
+	validPredicate,
+} from "./run-schema.mjs";
 import { hasCredentialShape } from "./text-safety.mjs";
 
 const MAX_ATTEMPTS = 3;
@@ -302,23 +307,45 @@ async function ask(run, page) {
 	return null;
 }
 
+// The fields of an action that a recorded step keeps; numbers become strings
+// where a step's value is text.
+const STEP_FIELDS = ["selector", "to_selector", "x", "y", "to_x", "to_y"];
+function asStep(action, index) {
+	const step = {
+		order: index + 1,
+		t_s: index,
+		action: action.action,
+		target: String(action.target ?? action.selector ?? action.action),
+	};
+	for (const field of STEP_FIELDS)
+		if (action[field] !== undefined) step[field] = action[field];
+	if (action.value !== undefined) step.value = String(action.value);
+	return step;
+}
+
 // Observe-act turns until the model is done, the step limit or a stop.
 async function modelTurns(run, page) {
 	const executed = [];
+	const taken = [];
 	let verdict;
 	for (let used = 0; used < MAX_STEPS; ) {
 		const output = await ask(run, page);
-		if (!output) return { executed, verdict, stopped: true };
+		if (!output) return { executed, taken, verdict, stopped: true };
 		const actions = output.actions;
 		for (const action of actions.slice(0, MAX_STEPS - used)) {
 			await execute(run, page, action, output.observation);
 			executed.push(String(action?.action));
+			if (
+				action.action !== "screenshot" &&
+				Object.hasOwn(REQUIRED, action.action)
+			)
+				taken.push(action);
 		}
 		used += Math.max(actions.length, 1);
 		verdict = output.verdict;
 		if (output.done === true) break;
 	}
-	return { executed, verdict, stopped: false };
+	return { executed, taken, verdict, stopped: false };
 }
 
 // Blocks every request and socket outside the app origin, and every download.
@@ -356,7 +383,15 @@ async function attempt(run, browser, contextId, scripted) {
 				consoleErrors.push(message.text());
 		});
 		await page.goto(run.origin);
-		let turns = { executed: [], stopped: false };
+		// A predicate that already holds on the fresh page shows no failure the
+		// steps cause; the run stops and the predicate is reported back.
+		await page.waitForTimeout(SETTLE_MS);
+		if (await checkPredicate(page, run.predicate, { consoleErrors })) {
+			record(run, { type: "stopped", reason: "predicate_holds_before" });
+			run.attempts.push({ contextId, observed: false, observed_before: true });
+			return true;
+		}
+		let turns = { executed: [], taken: run.steps, stopped: false };
 		if (scripted) for (const step of run.steps) await execute(run, page, step);
 		else turns = await modelTurns(run, page);
 		if (turns.stopped && !turns.executed.length) return true;
@@ -370,6 +405,7 @@ async function attempt(run, browser, contextId, scripted) {
 			observed,
 			model_verdict: turns.verdict,
 			actions: turns.executed,
+			...(observed && { steps: turns.taken.map(asStep) }),
 		});
 		return observed || turns.stopped;
 	} finally {
@@ -439,9 +475,18 @@ export async function repro(
 
 async function finishReplay(run) {
 	const observed = run.attempts.some((item) => item.observed);
+	// The actions that made the page show the failure, as recorded steps, so the
+	// proof and its page control replay what reproduced it.
+	const shown = run.attempts.find((item) => item.observed)?.steps;
+	const steps = shown && {
+		schema: "foley.steps/1",
+		steps: shown,
+		predicate: run.predicate,
+	};
 	const replay = {
 		status: observed ? "reproduced" : "not_reproduced",
 		observed,
+		...(steps && validateSteps(steps) && { reproduced_steps: shown }),
 		attempts: run.attempts,
 		screenshots: run.screenshots,
 		events: run.events,
