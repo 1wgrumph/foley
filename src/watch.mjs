@@ -54,7 +54,7 @@ async function loadProbe() {
 
 // Type, size and duration are checked before any request. Returns null when the
 // recording is refused.
-async function inspect(path) {
+export async function inspect(path) {
 	const type = TYPES[extname(path).toLowerCase()];
 	if (!type) return null;
 	try {
