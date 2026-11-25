@@ -276,7 +276,15 @@ export async function watch(
 		type: "text",
 		text: `Recording of ${media.duration.toFixed(1)} s.`,
 	};
-	const audio = await audioParts(path, media, limits);
+	let audio;
+	try {
+		audio = await audioParts(path, media, limits);
+	} catch {
+		return {
+			status: "refused_input",
+			message: "audio track could not be extracted",
+		};
+	}
 	const attempt = async (mediaPath, content) => {
 		const result = await callEmber({
 			messages: [
