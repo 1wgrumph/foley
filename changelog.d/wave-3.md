@@ -20,3 +20,14 @@
   frames, action costs, code anchors, and regression-test results. The read-only
   loopback viewer follows new run records and keeps the last received frames
   available after disconnect.
+- Stage group c (S4c). `src/repro.mjs` drives Chromium through Playwright
+  from scripted steps or model-chosen actions, at most three attempts, each in
+  a fresh context locked to the app origin. Other origins, file URLs, downloads
+  and undeclared actions are blocked or dropped and recorded in `replay.json`.
+  `src/predicate.mjs` decides the result from the page alone; the model's
+  verdict never counts. `src/prove.mjs` asks for a regression test, at most
+  four rounds, and runs each candidate through `tools/isolate.sh`: new user,
+  mount, PID and network namespaces, an empty environment, a tmpfs copy of the
+  target, the Node permission model and time and memory limits. A test is
+  accepted only when it fails on the bug build on its named assertion, passes
+  on the fixed build and repeats that result without another model call.
