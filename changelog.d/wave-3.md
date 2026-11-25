@@ -114,3 +114,5 @@
   keeps bounded, timestamped `uncertainty` and `narration_evidence` through the
   run, comment and replay. One credential-shape predicate
   (`src/text-safety.mjs`) serves the input and display boundaries.
+
+Pull request: [#3](https://github.com/1wgrumph/foley/pull/3)
