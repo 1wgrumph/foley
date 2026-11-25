@@ -1,0 +1,1480 @@
+{
+  "schema": "foley.census/1",
+  "generated_on": "2026-11-24",
+  "repository": "excalidraw/excalidraw",
+  "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+  "query": {
+    "endpoint": "GET /repos/excalidraw/excalidraw/issues",
+    "params": {
+      "state": "open",
+      "per_page": 100,
+      "pages": "1-20"
+    },
+    "read_only": true,
+    "window": "2000 most recent open items (868 issues, created 2025-01-04 to 2026-11-24; pull requests dropped)",
+    "media_filter": "issue body links a GitHub-hosted video (user-attachments asset or legacy githubusercontent .mp4/.mov/.webm/.gif) that is not embedded as an image; 71 links on 68 issues, all video/mp4, video/quicktime or video/webm",
+    "widened": false
+  },
+  "status_set": {
+    "no_usable_media": "media missing, unreachable, unreadable, or outside 50 MB / 120 s",
+    "unsupported_device": "needs a device, input method or browser Foley does not drive (mobile, tablet, pen, touchpad gesture, IME, Firefox-only, macOS-only)",
+    "excluded_sensitive_or_security": "security report, or the recording shows personal data",
+    "eligible_not_attempted": "ordinary desktop UI bug with usable media; not yet run",
+    "attempted_miss": "run by Foley; failure not observed or proof not reached",
+    "failure_observed": "run by Foley; failure predicate observed on the target build",
+    "proof_verified": "run by Foley; failing test verified"
+  },
+  "scope_exclusions": {
+    "note": "Issues with video that are not bug reports on the open-source app are left out of the census rows.",
+    "feature_request": [
+      12061,
+      11751,
+      11283,
+      10983,
+      10917,
+      10502,
+      10003,
+      9968,
+      9648,
+      9611,
+      9283
+    ],
+    "excalidraw_plus_or_hosted_service": [
+      12044,
+      11376,
+      11084
+    ],
+    "package_api_or_integration": [
+      10027,
+      9761,
+      9180
+    ],
+    "design_discussion": [
+      9581
+    ]
+  },
+  "media_review": "Three frames (15%, 50%, 85%) of every census clip were inspected on 2026-11-24 for personal data and security content.",
+  "counts": {
+    "eligible_not_attempted": 36,
+    "unsupported_device": 12,
+    "excluded_sensitive_or_security": 2
+  },
+  "candidates": [
+    {
+      "issue": 12720,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12720",
+      "title": "Minimap can be opened with the keyboard but cannot be operated without a pointer",
+      "state": "open",
+      "created_at": "2026-11-24",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/d73ec1a2-fc3f-4897-a572-d73fbcc62c53",
+          "media_type": "video/quicktime",
+          "duration_s": 9.9,
+          "width": 658,
+          "height": 472,
+          "audio_track": false,
+          "size_bytes": 179008,
+          "sha256": "8739e488cd454f27081c3a9f6d29ac300394a93aa3ec72cb7b1d994ef1282918"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "keyboard-only use of the minimap; desktop",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 12650,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12650",
+      "title": "Canvas randomly blanking out when trying to edit arrows",
+      "state": "open",
+      "created_at": "2026-11-17",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/2373f72b-fc87-46f5-b31b-9cd6f33db49b",
+          "media_type": "video/webm",
+          "duration_s": 44.1,
+          "width": 1716,
+          "height": 1357,
+          "audio_track": false,
+          "size_bytes": 2002233,
+          "sha256": "d9a8c921f1477136720e4400682364b0e074425d75e2262419127e26c78fe512"
+        }
+      ],
+      "platform_stated": "Firefox 160, Wayland, Fedora 45",
+      "status": "unsupported_device",
+      "status_reason": "Firefox on Wayland only; Foley drives Chromium",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 12405,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12405",
+      "title": "Keyboard shortcut conflict between color selection and Bucket Fill tool when using the \"Draw\" tool",
+      "state": "open",
+      "created_at": "2026-10-21",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/48601f52-479c-4b13-8ba6-679c81c42286",
+          "media_type": "video/webm",
+          "duration_s": 22.0,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": false,
+          "size_bytes": 829720,
+          "sha256": "b3e54cf447f61284bdbf20702483d2ce6028de173f46262b4094a18c30eecde1"
+        }
+      ],
+      "platform_stated": "Chrome or Firefox, Windows or macOS",
+      "status": "eligible_not_attempted",
+      "status_reason": "S then B in the draw tool switches to bucket fill",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_reproduced: B picks red in the open picker and the tool stays freedraw",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 12300,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12300",
+      "title": "Axis lock shifts the element vertically",
+      "state": "open",
+      "created_at": "2026-10-15",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/6d461f11-c069-4f55-b6a7-c19a0e7cd4da",
+          "media_type": "video/mp4",
+          "duration_s": 31.4,
+          "width": 1040,
+          "height": 866,
+          "audio_track": false,
+          "size_bytes": 466620,
+          "sha256": "f8ff1807f2630b86b2820d98ed8b69ab4bd4499035d81be40924c92457483288"
+        }
+      ],
+      "platform_stated": "Brave, Linux Mint",
+      "status": "eligible_not_attempted",
+      "status_reason": "Alt-drag copy then Shift axis lock shifts the copy",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11842,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11842",
+      "title": "[Bug] Deselecting a group under multi-group selection transforms groups to individually selected elements",
+      "state": "open",
+      "created_at": "2026-08-06",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/6e89a64b-e0e3-4cb1-9dec-2c9f3d5b0306",
+          "media_type": "video/mp4",
+          "duration_s": 27.3,
+          "width": 2038,
+          "height": 990,
+          "audio_track": false,
+          "size_bytes": 426248,
+          "sha256": "730c9628edeb7f9f6462cb4eec2c4fc37f091669a4866caf4ca875a06529659f"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "shift-click to deselect one group from a multi-group selection",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11798,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11798",
+      "title": "Library symbol text labels are not visible when moved to canvas",
+      "state": "open",
+      "created_at": "2026-07-31",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/68106e2d-4772-4b89-8a53-411aedc9e4b4",
+          "media_type": "video/webm",
+          "duration_s": 23.9,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": false,
+          "size_bytes": 447246,
+          "sha256": "dfca6a80aeb7c7ea8557fcc08de2162db366847480a60bbb41cc36fc1800740b"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs a library item with a text label",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11796,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11796",
+      "title": "Library symbol turns opaque when resized/expanded",
+      "state": "open",
+      "created_at": "2026-07-31",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/e6198d88-ca6c-4dba-9bea-86722e6f4eea",
+          "media_type": "video/webm",
+          "duration_s": 18.4,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": false,
+          "size_bytes": 3141815,
+          "sha256": "790ddd2e7e640e3d3fb98193f084113615007ae1ef214d79a2ab7bcc675b0163"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs a library item; dark mode",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11795,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11795",
+      "title": "Inserting texts inside grouped rectangles resize the individual box",
+      "state": "open",
+      "created_at": "2026-07-31",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/3a00355e-02f7-4e7a-8660-72b578d35cd1",
+          "media_type": "video/quicktime",
+          "duration_s": 17.8,
+          "width": 2652,
+          "height": 1774,
+          "audio_track": false,
+          "size_bytes": 3990667,
+          "sha256": "2716de5cf5fd951009c97c0346973b9e8c99d5b2aa4a03d272c63ccabd33903b"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "excluded_sensitive_or_security",
+      "status_reason": "recording shows the reporter's name in an Excalidraw+ workspace sidebar",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11401,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11401",
+      "title": "Can’t use Excalidraw context menu after native context menu using touchpad tap",
+      "state": "open",
+      "created_at": "2026-05-25",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/dc040978-6fdc-4b19-bf92-6af3b89dc7f0",
+          "media_type": "video/quicktime",
+          "duration_s": 36.8,
+          "width": 1148,
+          "height": 1376,
+          "audio_track": false,
+          "size_bytes": 4582785,
+          "sha256": "33e0236d9a291ba61df7a876ed5228279bae12ae8e78231efba9e4f9cee2d9df"
+        }
+      ],
+      "platform_stated": "macOS, trackpad tap-to-click",
+      "status": "unsupported_device",
+      "status_reason": "touchpad tap gestures",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11223,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11223",
+      "title": "Snap to angle broken when pointer is over another element",
+      "state": "open",
+      "created_at": "2026-04-21",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/a9aff6bf-16ea-49e9-ac08-50d61a2a5358",
+          "media_type": "video/quicktime",
+          "duration_s": 21.4,
+          "width": 3024,
+          "height": 1826,
+          "audio_track": false,
+          "size_bytes": 3165418,
+          "sha256": "2a38b2dada4e160720806b2313800d6878d5661b8dd7519fb5455eb725dc45e9"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "Shift angle snap lost on release over another element",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11173,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11173",
+      "title": "BUG: Multi point creation with pen broken",
+      "state": "open",
+      "created_at": "2026-04-14",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/02d890e4-156a-4f3b-abf8-0d2d0eb3a65d",
+          "media_type": "video/mp4",
+          "duration_s": 46.1,
+          "width": 1280,
+          "height": 720,
+          "audio_track": true,
+          "size_bytes": 1529282,
+          "sha256": "a7c7a4f5e571f364617876c208a5bc6d8f2fc5b1e15e5ceac26820dd6f86ddb7"
+        }
+      ],
+      "platform_stated": "Windows 10, Wacom pen tablet",
+      "status": "unsupported_device",
+      "status_reason": "pen tablet input",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11111,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11111",
+      "title": "Mobile: Preferences submenu cannot be closed by tapping again",
+      "state": "open",
+      "created_at": "2026-04-05",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/f07c19a9-8008-4b4b-86ad-ea8ad531862f",
+          "media_type": "video/mp4",
+          "duration_s": 12.7,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": true,
+          "size_bytes": 777755,
+          "sha256": "43b97d5c3fc80bd0279a3cb44b3270f7754bfc4925015b126c9a0956cd152e24"
+        }
+      ],
+      "platform_stated": "Android 15, OnePlus 10 Pro",
+      "status": "unsupported_device",
+      "status_reason": "mobile only",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 11042,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11042",
+      "title": "Bug: Text before `/q` command disappears when preceded by Korean (IME) input",
+      "state": "open",
+      "created_at": "2026-03-26",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/3acbce20-f13d-42d6-8bd6-4f17c8a2fcb8",
+          "media_type": "video/quicktime",
+          "duration_s": 17.1,
+          "width": 3834,
+          "height": 2110,
+          "audio_track": false,
+          "size_bytes": 4289232,
+          "sha256": "320e8d74807b2443d53a7f2609370a54a5e16439b2c523af881041e6228a8f4f"
+        }
+      ],
+      "platform_stated": "@excalidraw/excalidraw 0.18.0, Korean IME",
+      "status": "unsupported_device",
+      "status_reason": "IME composition input",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10928,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10928",
+      "title": "Bug | Rotated lines are scaling incorrectly",
+      "state": "open",
+      "created_at": "2026-03-09",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/7d022eaf-cfa5-4b28-8e54-3a6da768e02d",
+          "media_type": "video/quicktime",
+          "duration_s": 26.9,
+          "width": 2182,
+          "height": 1282,
+          "audio_track": false,
+          "size_bytes": 4450083,
+          "sha256": "4f78cb8419244fd64a1d601521b278be685fb3d34b0fce0b8f92452256d4e32a"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "rotated lines scale as if grouped",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10898,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10898",
+      "title": "bug - inverted scaling",
+      "state": "open",
+      "created_at": "2026-03-06",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/c99a6245-f272-42cc-b8d1-dd573c06b9fe",
+          "media_type": "video/webm",
+          "duration_s": 17.8,
+          "width": 1920,
+          "height": 880,
+          "audio_track": false,
+          "size_bytes": 473230,
+          "sha256": "5ebddcb2bc473ec546e25fdfdba5dd18e2f8059b0132c5bf954f3bd6944ffa07"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "Shift+scroll while drawing inverts scaling",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10863,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10863",
+      "title": "[Bug] Hex code popover overlaps and obscures sidebar menu items",
+      "state": "open",
+      "created_at": "2026-02-28",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/e0ec9e90-aabc-48db-a3f0-c2db708e184c",
+          "media_type": "video/quicktime",
+          "duration_s": 11.4,
+          "width": 1940,
+          "height": 1054,
+          "audio_track": false,
+          "size_bytes": 1279679,
+          "sha256": "f878c1386b8db3d1c19e6c84fa2ccae15120dace5e01d7509af47eaa6dbef668"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "hex popover overlaps the Preferences submenu",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "inconclusive: the main menu layout differs from the recording; check not completed",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10855,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10855",
+      "title": "Bug - Tool flickering while holding H key",
+      "state": "open",
+      "created_at": "2026-02-27",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/48fa4173-f193-45fe-849b-ba87dcbf5903",
+          "media_type": "video/quicktime",
+          "duration_s": 32.6,
+          "width": 1682,
+          "height": 834,
+          "audio_track": false,
+          "size_bytes": 1802000,
+          "sha256": "5d29803f79009604bba6f030ac24da79d9e2ec8fcc6bc7520b96480e71cd8351"
+        }
+      ],
+      "platform_stated": "Chrome 145, macOS 15.6",
+      "status": "eligible_not_attempted",
+      "status_reason": "holding H flickers between tools; needs key auto-repeat",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10688,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10688",
+      "title": "bug(ui): side panel spacing wrong in stroke and background",
+      "state": "open",
+      "created_at": "2026-01-22",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/1283ee9f-399b-4938-8e69-cc3cc9449f83",
+          "media_type": "video/mp4",
+          "duration_s": 48.1,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": true,
+          "size_bytes": 1832581,
+          "sha256": "bbb2f98e9874576f906b668b5a0a9cdb0245a5458087dc906dbdc22026077f8c"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "colour swatch spacing wrong for multi-selection of rectangle, diamond and line",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10661,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10661",
+      "title": "Arrow is not making curve inside a closed figure but outside it's working correctly",
+      "state": "open",
+      "created_at": "2026-01-16",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/5200b285-3edd-4bd0-ae85-38a08921d742",
+          "media_type": "video/quicktime",
+          "duration_s": 22.6,
+          "width": 2940,
+          "height": 1614,
+          "audio_track": false,
+          "size_bytes": 2843110,
+          "sha256": "5df374f69803acb13a3fb06b7e2189ae4d870aa3b15f11e8a51c4b9f13657b9b"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "curved arrow does not curve inside a closed shape",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10568,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10568",
+      "title": "BUG: line tool breaks when \"keep selected tool active after drawing\" is enabled (Repost)",
+      "state": "open",
+      "created_at": "2025-12-23",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/30a4b79a-2abf-4d71-8d20-98c1188f8b72",
+          "media_type": "video/mp4",
+          "duration_s": 32.2,
+          "width": 1096,
+          "height": 616,
+          "audio_track": true,
+          "size_bytes": 2113528,
+          "sha256": "ce611104729005f9ee050f01474c8f8d44206ba083a1d212593e326edf88f8d1"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "line tool snapping with keep-tool-active enabled",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10480,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10480",
+      "title": "frame snapping with non existing objects",
+      "state": "open",
+      "created_at": "2025-12-08",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/a4fbb12b-d4f6-47e4-8d78-6821f7fabf19",
+          "media_type": "video/mp4",
+          "duration_s": 36.0,
+          "width": 1348,
+          "height": 602,
+          "audio_track": false,
+          "size_bytes": 1046319,
+          "sha256": "49e97bab51841c006f62e406799c0bccb01d8b02b5727d73758edb0533a08e9e"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "frame snaps to points with no element",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10407,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10407",
+      "title": "New snapping behavior breaks existing diagrams",
+      "state": "open",
+      "created_at": "2025-11-26",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/4a122e5f-77b1-41d4-9c26-c9cfc24a6dac",
+          "media_type": "video/mp4",
+          "duration_s": 17.0,
+          "width": 1920,
+          "height": 988,
+          "audio_track": false,
+          "size_bytes": 885642,
+          "sha256": "5622449ae42767cc687b25fe762a3bf59341fde2132848bde01632b06d8dc4af"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs an existing diagram with bound arrows",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10128,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10128",
+      "title": "Scaling multi-selected items sometimes scales dimensionally, sometimes aspect-ratio",
+      "state": "open",
+      "created_at": "2025-10-09",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/766eb6fb-f704-4a24-8915-2b2a587cc9b8",
+          "media_type": "video/mp4",
+          "duration_s": 12.9,
+          "width": 1238,
+          "height": 1430,
+          "audio_track": false,
+          "size_bytes": 7730961,
+          "sha256": "69a9e53685df8e48e3482725b8d4d74c2617d4e312e95bbe63e2fa330f40462d"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs the reporter's shared repro scene",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10015,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10015",
+      "title": "Text to Diagram text in the action panel does not update properly on language change",
+      "state": "open",
+      "created_at": "2025-09-23",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/0a9b48f2-e774-4d4c-a179-a566321769e1",
+          "media_type": "video/quicktime",
+          "duration_s": 33.0,
+          "width": 2940,
+          "height": 1752,
+          "audio_track": false,
+          "size_bytes": 10069749,
+          "sha256": "666d078bfb8027c312bc9713cf83ad321cc8bcd505cc95973f797cf57a046e15"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "Text to Diagram label does not follow a language change",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 10000,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10000",
+      "title": "connection relationship will be invalid when use hot key  ctrl + shift  to select multi element",
+      "state": "open",
+      "created_at": "2025-09-20",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/3acf8a90-d609-4bd5-a594-81ee52a069bc",
+          "media_type": "video/mp4",
+          "duration_s": 50.0,
+          "width": 1320,
+          "height": 1028,
+          "audio_track": true,
+          "size_bytes": 2574663,
+          "sha256": "086ec3355e7c27ff091bd9005ca1fb858d248b60535296547c1fd5315271fd00"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "Ctrl+Shift multi-select inside a group breaks arrow bindings",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9980,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9980",
+      "title": "Issue with fixed anchor points on both sides of the arrow",
+      "state": "open",
+      "created_at": "2025-09-15",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/96a6404e-c134-4ec7-b377-1bfd4cbb6692",
+          "media_type": "video/mp4",
+          "duration_s": 21.8,
+          "width": 720,
+          "height": 1600,
+          "audio_track": true,
+          "size_bytes": 3876784,
+          "sha256": "315f6c4f02445af6f25c38a6bec37034d0cbf711772c43102c3402507972439f"
+        }
+      ],
+      "platform_stated": "mobile",
+      "status": "unsupported_device",
+      "status_reason": "mobile only",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9960,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9960",
+      "title": "group items zindex bug",
+      "state": "open",
+      "created_at": "2025-09-10",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/26076ddc-fcbe-4e7f-8366-0e7cefefdb94",
+          "media_type": "video/mp4",
+          "duration_s": 25.0,
+          "width": 1352,
+          "height": 600,
+          "audio_track": false,
+          "size_bytes": 605692,
+          "sha256": "d0d0316c165416adeeb5f32f9bff71618af5dd8e2cc9f9b8cc0e9a3173202b41"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "grouping reorders z-index",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9938,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9938",
+      "title": "Container does not match individual text colors when wrapping multiple text elements (with different colors)",
+      "state": "open",
+      "created_at": "2025-09-03",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/9bb78cb6-8e73-4014-89e1-622951b08794",
+          "media_type": "video/mp4",
+          "duration_s": 22.3,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": true,
+          "size_bytes": 1417721,
+          "sha256": "b706e2864c8eea169618972eab70ecc995fcb2fd81edc967b923e3df035d06f6"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "wrap multiple coloured texts in containers",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_reproduced: each container takes its own text colour",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9871,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9871",
+      "title": "Changing dark mode also changes my emoji skin color from yellow to... dark skin.",
+      "state": "open",
+      "created_at": "2025-08-14",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/61f293d1-0be0-4c41-9de8-73359b14fa5f",
+          "media_type": "video/webm",
+          "duration_s": 24.8,
+          "width": 799,
+          "height": 785,
+          "audio_track": false,
+          "size_bytes": 499141,
+          "sha256": "548935bc3fbd158c9e3a5f42bf7ed61f41566959cdd25be0bb6fdec4c20a09b7"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "dark mode inverts emoji colour",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9864,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9864",
+      "title": "Eraser behaving weirdly with pictures",
+      "state": "open",
+      "created_at": "2025-08-13",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/83d50639-11c1-4165-ba6f-677175bfce53",
+          "media_type": "video/mp4",
+          "duration_s": 13.5,
+          "width": 1898,
+          "height": 808,
+          "audio_track": true,
+          "size_bytes": 10363703,
+          "sha256": "088c462755a3f767829f0d602fa2092f7c9b31f5a060962b8698d5ad332f4cdc"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "eraser hits a moved image at its old position; needs an image paste",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9815,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9815",
+      "title": "Conver element type floating menu glitch",
+      "state": "open",
+      "created_at": "2025-08-01",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/8dab3fa7-1925-421a-b072-2937890b856d",
+          "media_type": "video/quicktime",
+          "duration_s": 6.5,
+          "width": 3090,
+          "height": 1708,
+          "audio_track": false,
+          "size_bytes": 782989,
+          "sha256": "127641cc0f7e06e80cb344fd8c723069cbcd567e279b3393b28325936ead2e2d"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "convert-type menu flashes top-left for a moment",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9812,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9812",
+      "title": "Head of L-shaped arrow disappears",
+      "state": "open",
+      "created_at": "2025-07-31",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/b2ba6dfb-30a0-4fad-8da5-e7f387771600",
+          "media_type": "video/webm",
+          "duration_s": 3.4,
+          "width": 675,
+          "height": 337,
+          "audio_track": false,
+          "size_bytes": 33255,
+          "sha256": "997f63c4c63fc89d61888120c83e72efd7830e10c7eacd209a77e8f4ed781fb3"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "elbow arrow head shrinks in an L shape",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9782,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9782",
+      "title": "[Bug] Inconsistency in focus management inside Dialog and didn't comply with ARIA standards",
+      "state": "open",
+      "created_at": "2025-07-24",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/46ecbaf6-4a21-4442-82a1-4d0a5ed9168c",
+          "media_type": "video/quicktime",
+          "duration_s": 18.9,
+          "width": 2938,
+          "height": 1436,
+          "audio_track": false,
+          "size_bytes": 3977128,
+          "sha256": "0e285b6eceec32eb7235b6f9266c9a6f06e5d592d572f93defd0c5101d4ae61c"
+        },
+        {
+          "url": "https://github.com/user-attachments/assets/8b18c907-c618-4b19-81fb-19a143e434a9",
+          "media_type": "video/quicktime",
+          "duration_s": 9.9,
+          "width": 2938,
+          "height": 1436,
+          "audio_track": false,
+          "size_bytes": 1471168,
+          "sha256": "e5963b83e7563ecd221cfb68fd56ba21fce86cb434639494469e2b405b8253e4"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "dialog initial focus lands on the second element",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9755,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9755",
+      "title": "Bug: Trying to move another linear element while a line editor is open leads to a weird state",
+      "state": "open",
+      "created_at": "2025-07-16",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/b7c60a52-2438-414f-9cb2-692e46fd76ae",
+          "media_type": "video/mp4",
+          "duration_s": 21.1,
+          "width": 2560,
+          "height": 1440,
+          "audio_track": true,
+          "size_bytes": 7053065,
+          "sha256": "d0aab77c3b1d9df379a56413dc3ed3a70506634f9252b8d8fc9e8527b589c7fa"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "moving another line while a line editor is open",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9710,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9710",
+      "title": "element transparency option bar is not compatible with RTL",
+      "state": "open",
+      "created_at": "2025-06-30",
+      "labels": [
+        "bug"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/ffc14e40-0e0c-4ff7-a079-eb77b32de4b9",
+          "media_type": "video/mp4",
+          "duration_s": 15.2,
+          "width": 1920,
+          "height": 1080,
+          "audio_track": false,
+          "size_bytes": 235650,
+          "sha256": "8bc0707a3c2987b5e2df19e100c19ad1295bc8a567e66740a495e13295065df6"
+        }
+      ],
+      "platform_stated": "macOS Safari and Chrome",
+      "status": "eligible_not_attempted",
+      "status_reason": "opacity slider not mirrored in RTL languages",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9663,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9663",
+      "title": "bug：Click on \"Upload Picture\", but an error occurs",
+      "state": "open",
+      "created_at": "2025-06-17",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/5ed56a91-f221-453e-8b5e-1b602907141c",
+          "media_type": "video/quicktime",
+          "duration_s": 16.4,
+          "width": 3012,
+          "height": 894,
+          "audio_track": false,
+          "size_bytes": 8535651,
+          "sha256": "9702294482390ee4b8e43ebea6295149879c5ef28876645517b672da785b9d15"
+        }
+      ],
+      "platform_stated": "Excalidraw 0.17.6",
+      "status": "excluded_sensitive_or_security",
+      "status_reason": "recording shows the reporter's local folder and file names in a file picker",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9517,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9517",
+      "title": "Invoking context menu with multiple elements selected changes selection to single element",
+      "state": "open",
+      "created_at": "2025-05-13",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/a7f2fd16-d0ce-435f-b063-b76d9424bf89",
+          "media_type": "video/quicktime",
+          "duration_s": 19.5,
+          "width": 886,
+          "height": 1746,
+          "audio_track": true,
+          "size_bytes": 8006253,
+          "sha256": "11f27560139ce577ae98eba7f1f211c7dc6a6c9143a239baaea37de9295dde9b"
+        }
+      ],
+      "platform_stated": "iOS 18.3, Obsidian plugin",
+      "status": "unsupported_device",
+      "status_reason": "iOS long-press",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9510,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9510",
+      "title": "line editor active point highlight cache issue",
+      "state": "open",
+      "created_at": "2025-05-12",
+      "labels": [
+        "bug",
+        "linear elements"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/cf5e30b7-87af-4adb-a115-2585308fb008",
+          "media_type": "video/quicktime",
+          "duration_s": 6.4,
+          "width": 798,
+          "height": 590,
+          "audio_track": false,
+          "size_bytes": 404301,
+          "sha256": "775f5702979f7e6d4f6a271ed97560e32292edb009060830ddce99d58f5c8855"
+        }
+      ],
+      "platform_stated": "macOS only",
+      "status": "unsupported_device",
+      "status_reason": "reported as macOS-only",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9509,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9509",
+      "title": "Ȳ ȳ is not rendered in canvas, but it is in wysiwyg",
+      "state": "open",
+      "created_at": "2025-05-12",
+      "labels": [
+        "bug",
+        "font"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/6be81365-dc5c-4fe2-b86c-5c372788fde6",
+          "media_type": "video/quicktime",
+          "duration_s": 3.6,
+          "width": 1216,
+          "height": 898,
+          "audio_track": false,
+          "size_bytes": 178966,
+          "sha256": "cbecc8106775f517fd9f9c3e2667f2677f87a240072173a88dce86a60719c945"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "text with Ȳ ȳ not rendered on canvas",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_reproduced: Ȳ and ȳ render on the canvas after editing",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9464,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9464",
+      "title": "File import Bug",
+      "state": "open",
+      "created_at": "2025-05-01",
+      "labels": [
+        "bug"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/6b80cfa5-bc5b-43d9-a662-9ca1c69920a4",
+          "media_type": "video/mp4",
+          "duration_s": 23.0,
+          "width": 2160,
+          "height": 1440,
+          "audio_track": false,
+          "size_bytes": 4653825,
+          "sha256": "c09901067cafad452e797d05a4897663c2cdafc56875e5828ed05e9079de7c14"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs the reporter's generated JSON file",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9441,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9441",
+      "title": "pad上画笔画不太出来",
+      "state": "open",
+      "created_at": "2025-04-27",
+      "labels": [
+        "bug",
+        "freedraw",
+        "tablet"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/3a1b0ec2-2839-4312-ba08-bf2b13330278",
+          "media_type": "video/mp4",
+          "duration_s": 18.6,
+          "width": 720,
+          "height": 1280,
+          "audio_track": true,
+          "size_bytes": 2488133,
+          "sha256": "628a02c74df359dea312631fe40567b577886ca6aa441470fc15ce744f3eebd8"
+        }
+      ],
+      "platform_stated": "Android 10 tablet",
+      "status": "unsupported_device",
+      "status_reason": "tablet pen input",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9410,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9410",
+      "title": "[Bug][Enhancement] Shortcut for Changing Stroke Color (S + I) Inconsistently Edits HEX Instead of Picking Color",
+      "state": "open",
+      "created_at": "2025-04-17",
+      "labels": [
+        "bug"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/b5176bd6-2de8-4d74-91d3-fb2588690912",
+          "media_type": "video/mp4",
+          "duration_s": 25.7,
+          "width": 1178,
+          "height": 720,
+          "audio_track": false,
+          "size_bytes": 2839039,
+          "sha256": "a86282fdfd30393b6c3bfcf115efdc44bd0fb6a0ee034a8cee85c2693ec126b7"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "S then I shortcut sometimes opens hex edit",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9257,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9257",
+      "title": "Arrow tool breaks if switching to selection tool while drawing arrow.",
+      "state": "open",
+      "created_at": "2025-03-12",
+      "labels": [
+        "bug"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/60c55a16-0098-4e93-8228-7bccf2904531",
+          "media_type": "video/quicktime",
+          "duration_s": 8.6,
+          "width": 2844,
+          "height": 1636,
+          "audio_track": false,
+          "size_bytes": 709084,
+          "sha256": "78b5723484bef695167f583c5e33451f484ae0f261e3b9cba016c7be47c2e7a8"
+        },
+        {
+          "url": "https://github.com/user-attachments/assets/cdc7bd75-92c0-45a9-abc0-36b2ce0a4943",
+          "media_type": "video/quicktime",
+          "duration_s": 6.2,
+          "width": 2844,
+          "height": 1636,
+          "audio_track": false,
+          "size_bytes": 590127,
+          "sha256": "db346a1a26603e9d635e002faabc1249574a3731f97b9794540be4f71e2ef6b3"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "switching tool while drawing an arrow",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "partly_reproduced: clicking the selection tool mid-draw commits the arrow instead of cancelling it",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9240,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9240",
+      "title": "No longer possible to bind by moving non-arrow object, but it's still handeled in the code.",
+      "state": "open",
+      "created_at": "2025-03-10",
+      "labels": [
+        "UX/UI",
+        "Arrow Binding"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/09bc2b9f-e9ed-4b2f-a51f-0157020baf11",
+          "media_type": "video/quicktime",
+          "duration_s": 6.8,
+          "width": 2844,
+          "height": 1636,
+          "audio_track": false,
+          "size_bytes": 802006,
+          "sha256": "d4a8025512653f6a5df6c0802b7b55922a49cd9fcfc9e018aa6c6c8897b33d95"
+        },
+        {
+          "url": "https://github.com/user-attachments/assets/1f525e7e-a9ad-47b0-8b19-da6353a38f7b",
+          "media_type": "video/quicktime",
+          "duration_s": 6.1,
+          "width": 2844,
+          "height": 1636,
+          "audio_track": false,
+          "size_bytes": 409106,
+          "sha256": "2f7bb9bebd8c63244da449890be5280163dbb1a7313c794a92240ed0f49e0c85"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "binding by moving a non-arrow element; regression discussion",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9170,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9170",
+      "title": "When hovering the cursor on the name of the Frame Navigation Tachpad does not work",
+      "state": "open",
+      "created_at": "2025-02-21",
+      "labels": [
+        "bug",
+        "UX/UI"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/97e831a3-a6d1-402d-ad3d-85271c2fadb7",
+          "media_type": "video/mp4",
+          "duration_s": 34.2,
+          "width": 582,
+          "height": 504,
+          "audio_track": false,
+          "size_bytes": 579376,
+          "sha256": "18eb761a8b3cb9e2e9f8c0efff1babac1c7a6b0ed86e555cdeb11c2b9b3c0346"
+        }
+      ],
+      "platform_stated": "Chrome, Windows 10, touchpad",
+      "status": "unsupported_device",
+      "status_reason": "touchpad gestures over a frame name",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9141,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9141",
+      "title": "Adjusting elbow arrows on phone flickers screen",
+      "state": "open",
+      "created_at": "2025-02-13",
+      "labels": [],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/e331bd00-754c-4d9d-8656-9a9e6e153265",
+          "media_type": "video/mp4",
+          "duration_s": 10.9,
+          "width": 1080,
+          "height": 2768,
+          "audio_track": false,
+          "size_bytes": 3251326,
+          "sha256": "c684fe1e009b66924421e1e8831fdb22d42e19d3dfa50306deb41df5319f112d"
+        }
+      ],
+      "platform_stated": "iOS and Android phones",
+      "status": "unsupported_device",
+      "status_reason": "phone only; reporter says not on desktop",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9115,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9115",
+      "title": "Arrow bindings error when i drag element or use undo, redo feature",
+      "state": "open",
+      "created_at": "2025-02-10",
+      "labels": [
+        "bug",
+        "history"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/34316b0e-51f5-41b9-aa49-2917295245a9",
+          "media_type": "video/quicktime",
+          "duration_s": 9.7,
+          "width": 3024,
+          "height": 1964,
+          "audio_track": false,
+          "size_bytes": 6721039,
+          "sha256": "d90c95e57f98947beebabc557aa40ba6df53d5b8ec83826fcf88416d3e599236"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "needs the reporter's old template",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9049,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9049",
+      "title": "Eraser is slow.",
+      "state": "open",
+      "created_at": "2025-01-25",
+      "labels": [
+        "bug",
+        "performance ⚡️",
+        "Eraser tool"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/2df60fcc-c6e7-4ea5-9df8-ca4305891142",
+          "media_type": "video/mp4",
+          "duration_s": 17.4,
+          "width": 1920,
+          "height": 998,
+          "audio_track": true,
+          "size_bytes": 16817496,
+          "sha256": "ccdca26f400f313e3709a5cad69f02cd3d8796f0518376301cb65372efb17bd7"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "eraser is slow; performance, no visible predicate",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 9032,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9032",
+      "title": "Continuous Line Doesn't Add the Last Line When Using a Stylus on iPad",
+      "state": "open",
+      "created_at": "2025-01-21",
+      "labels": [
+        "bug",
+        "tablet"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/587d0eff-fd5d-412f-8953-3afb82de9eb7",
+          "media_type": "video/mp4",
+          "duration_s": 10.2,
+          "width": 1080,
+          "height": 1920,
+          "audio_track": true,
+          "size_bytes": 3080442,
+          "sha256": "2d4c6b5fbcaf5b8dedfb05ff72db9bc74fb398b837487989334a5d8ea8ba89ae"
+        }
+      ],
+      "platform_stated": "iPad Safari, stylus",
+      "status": "unsupported_device",
+      "status_reason": "stylus on iPad",
+      "desktop_browser_plausible": false,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    },
+    {
+      "issue": 8989,
+      "url": "https://github.com/excalidraw/excalidraw/issues/8989",
+      "title": "Arrow does not stay in place when moving around in group",
+      "state": "open",
+      "created_at": "2025-01-07",
+      "labels": [
+        "bug"
+      ],
+      "media": [
+        {
+          "url": "https://github.com/user-attachments/assets/95b23aa2-54ac-4b3c-99e0-e23d2bf56155",
+          "media_type": "video/mp4",
+          "duration_s": 27.2,
+          "width": 1246,
+          "height": 720,
+          "audio_track": true,
+          "size_bytes": 5435927,
+          "sha256": "a7323ce9efa44b3dfc8be2f9755c48fbee86059bb994d684392259b20ad531c2"
+        }
+      ],
+      "platform_stated": "not stated",
+      "status": "eligible_not_attempted",
+      "status_reason": "arrows detach when a group is moved",
+      "desktop_browser_plausible": true,
+      "pin_spot_check": "not_run",
+      "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "media_provenance": "third-party, attached by the reporter to a public GitHub issue; not redistributed; see media/PROVENANCE.json external"
+    }
+  ]
+}

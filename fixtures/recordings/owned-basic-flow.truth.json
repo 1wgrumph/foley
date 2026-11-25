@@ -1,0 +1,29 @@
+{
+  "schema": "foley.ground-truth/1",
+  "clip": "fixtures/recordings/owned-basic-flow.mp4",
+  "clip_sha256": "8d259128022faa9cda2935fd268b6fc9b7507942cc22670afb435d851e73e14d",
+  "recorded_on": "2026-11-24",
+  "recorded_with": "fixtures/recordings/record-owned-clip.mjs (Playwright 1.65.1 Chromium video, ffmpeg H.264)",
+  "target": { "repository": "excalidraw/excalidraw", "commit": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1" },
+  "viewport": { "width": 1280, "height": 720 },
+  "duration_s": 16.56,
+  "narration": false,
+  "steps": [
+    { "order": 1, "t_s": 2.8, "action": "key_press", "value": "r", "target": "rectangle tool", "required": true },
+    { "order": 2, "t_s": 3.5, "action": "drag", "target": "canvas, from (400,250) to (700,450)", "element": "rectangle", "required": true },
+    { "order": 3, "t_s": 5.3, "action": "key_press", "value": "t", "target": "text tool", "required": true },
+    { "order": 4, "t_s": 5.9, "action": "click", "target": "canvas below the rectangle at (420,520)", "required": true },
+    { "order": 5, "t_s": 6.5, "action": "type", "value": "Hello Foley", "element": "text", "required": true },
+    { "order": 6, "t_s": 8.5, "action": "key_press", "value": "Escape", "target": "finish text editing", "required": false },
+    { "order": 7, "t_s": 9.7, "action": "click", "target": "rectangle left edge at (400,350), selects the rectangle", "required": true },
+    { "order": 8, "t_s": 10.7, "action": "key_press", "value": "Control+d", "target": "duplicate the selected rectangle", "required": true },
+    { "order": 9, "t_s": 12.5, "action": "key_press", "value": "Control+z", "target": "undo the duplicate", "required": true }
+  ],
+  "expected_visible_result": "One rectangle and one text element reading \"Hello Foley\" below it; the duplicated rectangle, visible from about 10.7 s to 12.5 s, is gone after undo.",
+  "expected_final_scene": [
+    { "type": "rectangle" },
+    { "type": "text", "text": "Hello Foley" }
+  ],
+  "failure_predicate": null,
+  "note": "A correct-behaviour clip: it has no bug. Watch must recover the required steps in order; the final scene was read from the app's own localStorage save at the end of the recording."
+}

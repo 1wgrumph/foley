@@ -1,0 +1,108 @@
+{
+  "schema": "foley.labels/1",
+  "census": "fixtures/census/census.json",
+  "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+  "labelled_on": "2026-11-24",
+  "source": "Expected outcomes written by hand from each issue's text and recording.",
+  "split": "held-out",
+  "fixed": true,
+  "frozen_on": "2026-11-24",
+  "rule": "SEEDED FAILURE for tools/check-fixtures.mjs: issue 9257 is also in tuning.json.",
+  "entries": [
+    {
+      "issue": 11223,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11223",
+      "bug": "Shift angle snapping is lost when an arrow is released over another element",
+      "steps": [
+        "Draw a rectangle",
+        "Select the arrow tool",
+        "Start an arrow on the rectangle and drag while holding Shift",
+        "Release the mouse button while still holding Shift"
+      ],
+      "wrong_result": "On release the arrow end jumps to the pointer and the snapped angle is lost",
+      "expected_result": "The arrow keeps the snapped angle on release, as it does on an empty canvas"
+    },
+    {
+      "issue": 10928,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10928",
+      "bug": "Rotated lines scale incorrectly",
+      "steps": [
+        "Draw several lines",
+        "Rotate them",
+        "Select them and drag a resize handle"
+      ],
+      "wrong_result": "During scaling the rotated lines are transformed as if they were one group",
+      "expected_result": "Each line scales consistently with its own rotation"
+    },
+    {
+      "issue": 10898,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10898",
+      "bug": "Scaling direction inverts while drawing",
+      "steps": [
+        "Select the draw tool",
+        "Press the left button to start drawing",
+        "Hold Shift and scroll down, then scroll down again",
+        "Release the left button"
+      ],
+      "wrong_result": "The stroke scales in the inverted direction",
+      "expected_result": "Scrolling during drawing behaves consistently and does not invert the stroke"
+    },
+    {
+      "issue": 10000,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10000",
+      "bug": "Arrow bindings become invalid after Ctrl+Shift multi-selection inside a group",
+      "steps": [
+        "Create a group of shapes connected by arrows",
+        "Select several elements including arrows with Ctrl+Shift",
+        "Move the selection"
+      ],
+      "wrong_result": "The arrows lose their connection to the elements",
+      "expected_result": "Arrows stay bound to their elements, as when selecting one by one with Shift"
+    },
+    {
+      "issue": 9960,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9960",
+      "bug": "Grouping changes the z-order of the grouped items",
+      "steps": [
+        "Create overlapping shapes with a chosen layer order",
+        "Select them and group with Ctrl+G"
+      ],
+      "wrong_result": "The grouped items are re-sorted in z-index and the design changes",
+      "expected_result": "Grouping keeps each item's layer order"
+    },
+    {
+      "issue": 9812,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9812",
+      "bug": "The head of an L-shaped elbow arrow shrinks and disappears",
+      "steps": [
+        "Draw an elbow arrow",
+        "Drag its segment to bend it into an L shape with the head pointing up"
+      ],
+      "wrong_result": "The arrowhead shrinks as the L forms and finally disappears",
+      "expected_result": "The arrowhead stays visible at its normal size"
+    },
+    {
+      "issue": 8989,
+      "url": "https://github.com/excalidraw/excalidraw/issues/8989",
+      "bug": "Arrows detach when a group is moved",
+      "steps": [
+        "Create a group of shapes with arrows bound between them",
+        "Move the group around, especially when zoomed out"
+      ],
+      "wrong_result": "Some arrows detach and reattach to nothing; it gets worse further zoomed out",
+      "expected_result": "Bound arrows move with the group and stay attached"
+    },
+    {
+      "issue": 9257,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9257",
+      "bug": "Switching tool while drawing an arrow places the arrow instead of cancelling it",
+      "steps": [
+        "Select the arrow tool",
+        "Click a start point and a second point",
+        "Switch to the selection tool or another tool before finishing"
+      ],
+      "wrong_result": "The arrow tool breaks; the unfinished arrow is placed down",
+      "expected_result": "Switching tool cancels or cleanly finishes the arrow"
+    }
+  ]
+}

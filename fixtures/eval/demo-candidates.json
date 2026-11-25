@@ -1,0 +1,31 @@
+{
+  "schema": "foley.demo-candidates/1",
+  "chosen_on": "2026-11-24",
+  "criteria": "clear clip, few steps, desktop browser, visible wrong result; drawn from the tuning set so the held-out set stays unseen",
+  "candidates": [
+    {
+      "rank": 1,
+      "issue": 9257,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9257",
+      "why": "Only candidate partly reproduced at the pin: three clicks and a tool switch, and the committed arrow is visible at once in the short clips."
+    },
+    {
+      "rank": 2,
+      "issue": 11842,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11842",
+      "why": "Three steps on desktop; the wrong selection is visible and can be checked deterministically from the selection state."
+    },
+    {
+      "rank": 3,
+      "issue": 12300,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12300",
+      "why": "Alt-drag then Shift is a short, visual flow on a Chromium browser; the reporter says it happens only sometimes, so it may need retries."
+    },
+    {
+      "rank": 4,
+      "issue": 10688,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10688",
+      "why": "Purely visual panel bug after a three-shape multi-selection; a reserve candidate."
+    }
+  ]
+}
