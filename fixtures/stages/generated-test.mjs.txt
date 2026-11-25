@@ -1,0 +1,6 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { archiveItem } from "./logic.mjs";
+test("archive status", () => {
+  assert.equal(archiveItem(), "Archived", "archive-status");
+});

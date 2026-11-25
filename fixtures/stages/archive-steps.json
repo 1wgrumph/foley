@@ -1,0 +1,18 @@
+{
+	"schema": "foley.steps/1",
+	"steps": [
+		{
+			"order": 1,
+			"t_s": 1,
+			"action": "click",
+			"target": "Archive",
+			"selector": "#archive"
+		}
+	],
+	"predicate": {
+		"kind": "visible_text",
+		"selector": "#status",
+		"expected": "Archived",
+		"observed": "Not archived"
+	}
+}
