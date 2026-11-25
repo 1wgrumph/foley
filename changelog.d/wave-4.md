@@ -84,4 +84,30 @@
   census of 50, total spend and the measured Ember facts, with a source for
   each number and a limits and disclosure section. `docs/SUBMISSION.md` holds
   the submission text and a three-minute demo script. `docs/evidence/` holds
-  small copies of the cited result files. Pull request: PR #4.
+  small copies of the cited result files.
+- Review repair (W4). The final review of this wave found 14 defects; each
+  repair has a regression test that failed before it.
+  - Proof: a generated test that uses a state-setting call the target's
+    configuration refuses is not run (`seeds_state`); the core-proof check
+    needs both runner exits and a kept test that obeys its recorded rule.
+  - A reproduction the fixed build also shows is `fixed_build_conflict`: no
+    proof is asked for, the issue is an `attempted_miss`, and the replay page
+    shows the conflict.
+  - A run document separates its own cost from the issue's spend over every
+    run and lists only its own calls; evaluation scores the run's cost.
+  - Anchor accuracy is scored only over file-labelled entries and is
+    unavailable when there are none.
+  - Model calls are recorded under their Watch round and bound to the frame
+    of their turn, so step usage is exact after a re-ask or a new round.
+  - Watch and reproduction share one re-ask builder: nothing with a
+    credential shape is kept or sent back, and no rejected value is quoted.
+  - The native computer-use call and the live probe need a case budget.
+  - `tools/check-public.mjs` checks JSON traces for home paths, keys and
+    inline media.
+  - New: `ui/census.mjs` and `tools/census-page.mjs` (an accessible census
+    index page) and `tools/export-trace.mjs` (the trace of one run).
+  - Results restated: 9852 repeat runs on the repaired code, the 9852 demo
+    run and trace replaced by one run, two stored 8418 rows rescored, the
+    held-out second run labelled a diagnostic rerun.
+
+Pull request: [PR #4](https://github.com/1wgrumph/foley/pull/4).

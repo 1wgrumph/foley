@@ -1,12 +1,12 @@
 {
   "baseline": 0,
-  "settled": 2576656,
+  "settled": 2711697,
   "booked": 0,
-  "total": 2576656,
+  "total": 2711697,
   "per_stage": {
     "probe": 5606,
-    "watch": 954813,
-    "repro": 1336714,
-    "prove": 265225
+    "watch": 1026130,
+    "repro": 1387781,
+    "prove": 277882
   }
 }

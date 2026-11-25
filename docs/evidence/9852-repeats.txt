@@ -11,3 +11,18 @@ run 16: exit 0 wall 76s issue 9852: proof_verified ledger_total 2559170 cost_mic
 run 17: exit 0 wall 59s issue 9852: proof_verified ledger_total 2566174 cost_micro_usd 7004
 run 18: exit 0 wall 66s issue 9852: proof_verified ledger_total 2571233 cost_micro_usd 5059
 run 19: exit 0 wall 66s issue 9852: proof_verified ledger_total 2576656 cost_micro_usd 5423
+#
+# After the review repair (W4), 2026-11-25. Source: out/runs.miss/9852-run20 to -run28 and out/runs/9852 (run 29):
+# run.json verdict, elapsed_ms and cost_micro_usd (the run's own calls); ledger total from `foley spend` after each run.
+# Runs 20-24 on head 2e1fece, runs 25-29 on head 1e1a018, which differs only in tools/export-trace.mjs.
+# pipeline = run.json elapsed_ms. Ledger total before run 20: 2576656.
+run 20: exit 0 pipeline 83s issue 9852: proof_verified ledger_total 2588458 cost_micro_usd 11802
+run 21: exit 0 pipeline 82s issue 9852: proof_verified ledger_total 2597908 cost_micro_usd 9450
+run 22: exit 1 pipeline 231s issue 9852: attempted_miss ledger_total 2633622 cost_micro_usd 35714 (Watch chose a condition the page cannot read)
+run 23: exit 1 pipeline 150s issue 9852: attempted_miss ledger_total 2659983 cost_micro_usd 26361 (Watch reversed expected and observed)
+run 24: exit 0 pipeline 68s issue 9852: proof_verified ledger_total 2667626 cost_micro_usd 7643 (demo run; trace/9852/)
+run 25: exit 1 pipeline 79s issue 9852: attempted_miss ledger_total 2682599 cost_micro_usd 14973 (fixed_build_conflict)
+run 26: exit 0 pipeline 107s issue 9852: proof_verified ledger_total 2688749 cost_micro_usd 6150
+run 27: exit 0 pipeline 65s issue 9852: proof_verified ledger_total 2692914 cost_micro_usd 4165
+run 28: exit 1 pipeline 71s issue 9852: attempted_miss ledger_total 2705942 cost_micro_usd 13028 (fixed_build_conflict)
+run 29: exit 0 pipeline 74s issue 9852: proof_verified ledger_total 2711697 cost_micro_usd 5755

@@ -1,0 +1,66 @@
+{
+  "schema": "foley.rescore/1",
+  "date": "2026-11-25",
+  "why": "The final review (W4-01, W4-02) changed two acceptance rules. Stored results were re-adjudicated under them; the stored run folders are unchanged.",
+  "fixed_build_conflict": {
+    "rule": "A reproduction that the fixed build also shows is not a reproduction (status fixed_build_conflict, issue status attempted_miss).",
+    "method": "Every stored replay.json (132) was read for fixed_build_shows_failure.",
+    "rescored": [
+      {
+        "run_dir": "out/runs.miss/8418-run4",
+        "recorded": "failure_observed",
+        "rescored": "attempted_miss"
+      },
+      {
+        "run_dir": "out/runs/8418",
+        "recorded": "failure_observed",
+        "rescored": "attempted_miss"
+      }
+    ],
+    "unchanged": "No census or held-out row: those issues have no fixed build, so the check never ran for them."
+  },
+  "state_seeding_tests": {
+    "rule": "A generated test that sets the failing state through the target's test API, instead of reaching it through input, is refused.",
+    "method": "The nine verified 9852 tests stored before the repair (runs 9 and 12 to 19) were read by the repair author.",
+    "drive_the_interaction_through_input_only": [
+      9,
+      13,
+      14,
+      15,
+      16,
+      17,
+      19
+    ],
+    "set_state_through_the_test_api": [
+      {
+        "run": 12,
+        "how": "calls API.setAppState with the line in progress and a text element being edited"
+      },
+      {
+        "run": 18,
+        "how": "falls back to API.setAppState when the two clicks leave no line in progress"
+      }
+    ],
+    "count": "7 of 9",
+    "note": "Runs 12 and 18 were recorded as proof_verified. Under the repaired rule their tests would not have run. The stored core-proof records predate the rule and carry no input rule, so checkCoreProof still reads them as consistent."
+  },
+  "after_repair": {
+    "runs": "20 to 29, unchanged product code",
+    "verified": [
+      20,
+      21,
+      24,
+      26,
+      27,
+      29
+    ],
+    "missed": {
+      "22": "Watch chose a condition the page cannot read",
+      "23": "Watch reversed expected and observed",
+      "25": "fixed_build_conflict",
+      "28": "fixed_build_conflict"
+    },
+    "count": "6 of 10",
+    "kept_tests": "All six were read: each uses only keyboard, pointer and toolbar input."
+  }
+}

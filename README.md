@@ -13,16 +13,16 @@ commits, with no human edit of its output.
 
 | | Value | Source |
 | --- | --- | --- |
-| In | The reporter's 23.4 s screen recording | `ffprobe` on `out/demo/9852/recording.mp4` |
-| Out | A Vitest test written by Ember. It fails on bug commit `4ce70b8` with `expected 'eraser' to be 'line'` and passes on fix commit `cce5001`. Rerun with no model: bug exit 1, fixed exit 0 | [`docs/evidence/9852-core-proof.json`](docs/evidence/9852-core-proof.json), `out/demo/9852/proof.json` |
-| Wall time | 66 s (pipeline 65 s) | [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt) run 18; `out/demo/9852/run.json` `elapsed_ms` 64,618 |
-| Cost | $0.005059 for 3 model calls (see note 1) | [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt) run 18 |
-| Repeat rate, unchanged code | 5 of 5 runs verified at commit `17791cf`; 3 of 5 at the earlier commit `00e38f7` | [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt) |
+| In | The reporter's 23.4 s screen recording | `ffprobe` on `out/demo/9852-repaired/recording.mp4` |
+| Out | A Vitest test written by Ember that reaches the failing state through pointer and keyboard input only. It fails on bug commit `4ce70b8` with `expected 'eraser' to be 'line'` and passes on fix commit `cce5001`. Rerun with no model: bug exit 1, fixed exit 0 | [`docs/evidence/9852-core-proof.json`](docs/evidence/9852-core-proof.json), [`trace/9852/replies.json`](trace/9852/replies.json) (the test and both runner outputs) |
+| Pipeline time | 68 s | `out/demo/9852-repaired/run.json` `elapsed_ms` 67,714; [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt) run 24 |
+| Cost | $0.007643 for 3 model calls: Watch $0.004248, reproduction $0.000976, proof $0.002419 | [`trace/9852/calls.json`](trace/9852/calls.json) |
+| Repeat rate, unchanged code | 6 of 10 runs verified after the review repair. Before it: 5 of 5 at commit `17791cf` and 3 of 5 at `00e38f7`, under looser rules (see [Repeatability](#repeatability-of-9852)) | [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt), [`docs/evidence/w4-rescore.json`](docs/evidence/w4-rescore.json) |
 
-Note 1: in this run the Watch call reported 86 prompt tokens. A Watch call on
-this recording normally reports about 28,700. This is the unexplained
-repeated-request usage figure described under "Measured Ember facts". The five
-runs at `17791cf` cost $0.005059 to $0.007482 each.
+This is run 24 of issue 9852, made on 2026-11-25 after the final review's
+findings were repaired. The pair runs are target-assisted: a person wrote
+notes about Excalidraw that Foley sends with each request, and revised them
+after earlier misses. See [Limits and disclosure](#limits-and-disclosure).
 
 How Foley uses Muse Ember:
 
@@ -41,11 +41,11 @@ How Foley uses Muse Ember:
   Foley's screenshot-and-JSON loop. Foley keeps the loop; see
   [Results](#native-computer-use-against-the-loop).
 
-The replay page for this run is `out/demo/9852/replay.html`. It is written by
-the run and is not committed, because it embeds the reporter's recording. Its
-model-call list and cost cover every run of issue 9852 ($0.257391 in
-`out/demo/9852/run.json`), not only this run. The
-prompt and token trace of a verified 9852 run is in [`trace/9852/`](trace/9852/).
+The replay page for this run is `out/demo/9852-repaired/replay.html`. It is
+written by the run and is not committed, because it embeds the reporter's
+recording. It lists this run's 3 model calls and shows two amounts, each
+labelled: this run ($0.007643) and all runs of issue 9852 so far ($0.353784).
+The prompt and token trace in [`trace/9852/`](trace/9852/) is the same run.
 
 ## Results
 
@@ -59,24 +59,45 @@ that fixed it (`fixtures/pairs/pairs.json`).
 
 | Issue | Runs | Result | Spend (S5) | Cause |
 | --- | --- | --- | --- | --- |
-| 9852 | 19; first verified on run 9 | `proof_verified` | $0.125794 | Verified. Runs 1 to 8 missed while the product was being fixed; see Limits |
+| 9852 | 29; first verified on run 9 | `proof_verified` | $0.125794 | Verified. Runs 1 to 8 missed while the product was being fixed; see Limits. Runs 10 to 29 are the repeat runs below |
 | 10840 | 11 | not verified | $0.192960 | The failure needs Alt+R, K, Escape, Alt+R. Ember reached view mode and the laser but never pressed Escape, in 24 attempts over 8 runs. Key presses do not show in the recording |
-| 8418 | 5 | not verified | $0.039742 | The reporter asks for a label change. The fix instead turns the button green, adds an icon and disables it, and the label stays. No text condition from the report separates the two builds |
+| 8418 | 5 | not verified | $0.039742 | The reporter asks for a label change. The fix instead turns the button green, adds an icon and disables it, and the label stays. No text condition from the report separates the two builds. Runs 4 and 5 were recorded as `failure_observed` for steps that the fixed build also showed; under the repaired rule they are `attempted_miss` |
 
 Sources: [`docs/evidence/pairs-runs-summary.json`](docs/evidence/pairs-runs-summary.json)
-(run verdicts), `logs/S5-RETURN.md` (spend per pair and causes).
+(run verdicts as recorded), [`docs/evidence/w4-rescore.json`](docs/evidence/w4-rescore.json)
+(the two rescored 8418 rows), `logs/S5-RETURN.md` (spend per pair and causes).
 
 ### Repeatability of 9852
 
-| Code | Runs verified | Cost per run | Wall time per run |
-| --- | --- | --- | --- |
-| Commit `00e38f7` | 3 of 5 | $0.013285 to $0.031716 | 111 to 182 s |
-| Commit `17791cf` | 5 of 5 | $0.005059 to $0.007482 | 59 to 76 s |
+Each row is repeat runs of `foley run --pair 9852` on unchanged product code.
 
-At `00e38f7` both misses came from Watch choosing a wrong failure condition
-and Foley keeping it across Watch rounds. Commit `17791cf` drops a condition
-that the bug build contradicts. Source:
-[`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt).
+| Code | Runs verified | Cost per run | Pipeline time per run |
+| --- | --- | --- | --- |
+| After the review repair (`2e1fece`, `1e1a018`) | 6 of 10 | $0.004165 to $0.011802 verified; $0.013028 to $0.035714 missed | 65 to 107 s verified; 71 to 231 s missed |
+| Commit `17791cf`, before the repair | 5 of 5 as recorded | $0.005059 to $0.007482 | 59 to 76 s |
+| Commit `00e38f7`, before the repair | 3 of 5 as recorded | $0.013285 to $0.031716 | 111 to 182 s |
+
+- The first row is the current number. All six kept tests were read: each
+  uses only keyboard, pointer and toolbar input.
+- The four misses after the repair: in two, Watch chose a wrong failure
+  condition (one that the page cannot read, and one with expected and
+  observed reversed). In the other two, the reproducing steps showed the same
+  value on the fixed build, so Foley recorded `fixed_build_conflict` and asked
+  for no test. The code before the repair would have passed those two on to
+  proof.
+- The two earlier rows counted product verdicts under looser rules. Of the
+  nine tests verified before the repair (runs 9 and 12 to 19), seven drive
+  the interaction through input. Two (runs 12 and 18) set the line-in-progress
+  state through Excalidraw's test API; the repaired proof stage refuses such
+  a test before it runs.
+- These rates are not an untouched benchmark. The target notes were revised
+  after misses on this issue.
+- At `00e38f7` both misses came from Watch choosing a wrong failure condition
+  and Foley keeping it across Watch rounds. Commit `17791cf` drops a
+  condition that the bug build contradicts.
+
+Sources: [`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt),
+[`docs/evidence/w4-rescore.json`](docs/evidence/w4-rescore.json).
 
 ### Held-out evaluation, 8 issues
 
@@ -84,26 +105,34 @@ The 8 held-out issues (`fixtures/eval/held-out.json`) were chosen in the first
 slice and kept apart from the tuning set (`changelog.d/wave-1.md`). They
 have no fixed build, so the best result is `failure_observed`.
 
-| Run | Code | `failure_observed` | Proofs | Top-1 and top-5 code location | Cost per issue | Time |
+| Run | Code | `failure_observed` | Proofs | Top-1 and top-5 code location | Cost per issue, this run | Time |
 | --- | --- | --- | --- | --- | --- | --- |
-| First | `00e38f7`, frozen | 1 of 8 (9812) | 0 | 0 and 0 | $0.017187 | 715 s |
-| Second | `17791cf` | 2 of 8 (9812, 9710) | 0 | 0 and 0 | $0.034280 | 1,677 s |
+| Blind run | `00e38f7`, frozen | 1 of 8 (9812) | 0 | unavailable (0 of 8 labelled) | $0.017187 | 715 s |
+| Diagnostic rerun, not blind | `17791cf` | 2 of 8 (9812, 9710) | 0 | unavailable (0 of 8 labelled) | $0.034280 | 1,677 s |
 
-- The first run was made on frozen code. Its output showed one defect that
+- The held-out result is the blind run: 1 of 8.
+- The blind run was made on frozen code. Its output showed one defect that
   stopped 6 of the 7 misses: Ember often writes a sentence before its JSON
   object, and the client refused the whole reply. Commit `969faa0` fixed this
   after the freeze. The client now reads the JSON object that follows the
   text.
-- The second run came after that fix and after five fixes found on census
-  issues. It is not blind to the reply-format fix. No change was made in
-  response to held-out issue content.
-- The first run's result stands as the held-out number.
+- The rerun came after that fix and after five fixes found on census issues.
+  It is a diagnostic, not a held-out estimate. No one opened the held-out
+  issues or recordings, but the code changed in response to this set's
+  results.
+- The held-out set is now spent. A blind estimate for the current code needs
+  a new frozen set.
+- Code location accuracy is not measured. No held-out entry carries an
+  expected file, so top-1 and top-5 are unavailable. The two stored reports
+  print 0 for both; that 0 is a missing label, not a measured miss, and
+  `foley eval` now reports `null` with the label count.
 
 Sources: [`docs/evidence/heldout-run1-report.json`](docs/evidence/heldout-run1-report.json),
 [`docs/evidence/heldout-run2-report.json`](docs/evidence/heldout-run2-report.json),
-`logs/S6-RETURN.md` and `logs/S6b-RETURN.md`. The second run's cost per issue
-is its ledger spend ($0.274241) divided by 8. The report's own figure,
-$0.051467, adds the first run's spend.
+`logs/S6-RETURN.md` and `logs/S6b-RETURN.md`. The rerun's cost per issue is
+its own ledger spend ($0.274241) divided by 8. The stored rerun report prints
+$0.051467, which adds the blind run's spend for each issue; `foley eval` now
+scores each issue's latest run and reports the issue's total beside it.
 
 ### Census of 50 Excalidraw bug reports with video
 
@@ -136,7 +165,7 @@ Sources: [`docs/evidence/census-summary.json`](docs/evidence/census-summary.json
 
 ### Spend
 
-Total live spend: $2.576656 of the $10 event limit. Foley stops itself at
+Total live spend: $2.711697 of the $10 event limit. Foley stops itself at
 $9.00. The ledger baseline is 0. Source: `node bin/foley.mjs spend` on this
 repository's ledger, copied to
 [`docs/evidence/spend-summary.json`](docs/evidence/spend-summary.json).
@@ -149,11 +178,15 @@ repository's ledger, copied to
 | 9852 repeatability, 10 runs | $0.137020 |
 | Held-out evaluation, two runs | $0.411735 |
 | Census, first run and rerun of 28 issues | $1.649501 |
-| Total | $2.576656 |
+| 9852 repeat runs after the review repair, 10 runs | $0.135041 |
+| Total | $2.711697 |
 
 Item amounts are ledger differences recorded in `logs/S3-RETURN.md`,
-`logs/S3b-RETURN.md`, `logs/S5-RETURN.md`, `logs/S6-RETURN.md` and
-`logs/S6b-RETURN.md`. They add up to the ledger total.
+`logs/S3b-RETURN.md`, `logs/S5-RETURN.md`, `logs/S6-RETURN.md`,
+`logs/S6b-RETURN.md` and, for the last item,
+[`docs/evidence/9852-repeats.txt`](docs/evidence/9852-repeats.txt). They add
+up to the ledger total. The ledger is Foley's own record of the usage the API
+reported; it was not checked against the provider's billing page.
 
 ### Measured Ember facts
 
@@ -174,12 +207,16 @@ The protocol probe ran on the project's own 16.56 s clip,
   but Ember reported a 10 s 440 Hz tone as silence. Foley refuses audio.
 - Repeated identical requests: a request sent a second time with the same
   bytes reported 23 prompt tokens and 0 cached tokens, against 4,619 the first
-  time. The same happened in later runs, including the 9852 run above. Foley
-  records the figure the API reports. Whether Meta bills by that figure is not
-  visible to Foley.
+  time. Foley records the figure the API reports. Whether Meta bills by that
+  figure is not visible to Foley.
+- Prompt caching: some 9852 Watch calls report 86 uncached and 28,660 cached
+  input tokens instead of 28,746 uncached (`run.json` of runs 16, 18, 19, 26,
+  27 and 29). That is a cache hit, and those runs cost less. The demo run had
+  no cache hit.
 - Prices: on every probe call the ledger cost equals the reported usage at
   $0.10 per million input tokens and $0.50 per million output tokens. The
-  cached price is unmeasured.
+  ledger prices cached input tokens at $0.004 per million, the published
+  rate, which was not measured.
 
 ### Native computer use against the loop
 
@@ -202,22 +239,36 @@ and `logs/S3b-RETURN.md`.
 - Linux only. The sandbox needs unprivileged user namespaces.
 - Chromium only. One issue in the census is reported on Firefox only.
 - One target application: Excalidraw.
-- `app_notes` and `test_notes` in `fixtures/pairs/pairs.json` are written by a
-  person. They describe the target from Excalidraw's help dialog, shortcuts,
-  on-screen hints and test helpers, not any issue's answer. One general hint,
-  "click to start multiple points, drag for a single line", bears on 9852.
+- Pair runs are target-assisted and tuned. `app_notes` and `test_notes` in
+  `fixtures/pairs/pairs.json` are written by a person and sent with every
+  pair request. They describe the target from Excalidraw's help dialog,
+  shortcuts, on-screen hints and test helpers, not any issue's answer, and no
+  pair's known steps or condition is passed to a run. They were revised after
+  pair misses, including misses on 9852. One general hint, "click to start
+  multiple points, drag for a single line", bears on 9852. The repeat rates
+  are therefore not an untouched benchmark.
 - Eight runs of 9852 came before the first verified run, the ninth. Product
   fixes were made between those runs, using what each run showed.
-- The held-out second run is not blind to the reply-format fix.
-- The 9852 test has a fallback branch: if the two clicks do not leave a line
-  in progress, it sets one through Excalidraw's test API before pressing E.
-- Code location is weak. The held-out top-1 and top-5 location scores are 0
-  in both runs.
+- The held-out rerun is not blind, and the held-out set is spent.
+- Two of the nine 9852 tests verified before the review repair set state
+  through Excalidraw's test API (runs 12 and 18; run 18 was the earlier demo
+  run). The proof stage now refuses such a test. The refusal is a text match
+  on the calls listed in `refused_test_calls`: it stops the plain case and
+  does not prove that a test it lets through exercises the reported
+  interaction. Read the kept test.
+- Code location accuracy is not measured: the held-out set has no file
+  labels.
+- The spend bound for video and image parts rests on one probe measurement
+  with a chosen margin, not on a provider guarantee. See
+  [docs/SAFETY.md](docs/SAFETY.md).
+- The published trace carries each request's prompt as text, with frames as
+  digests.
 - No comment was posted on any upstream issue. Foley writes drafts
   (`comment.md`) only and has no GitHub write code.
 - Census issues have no fixed build, so no census result is a proof.
-- The repeated-request usage figure is unexplained, and some costs above are
-  low because of it.
+- The repeated-request usage figure from the probe is unexplained. Separately,
+  a cache hit on the Watch request lowers a run's cost.
+- The sandbox was not tested with attempts to break out of it.
 - Live updates of the replay page arrive per model call and per stage, not
   per browser action.
 
@@ -289,7 +340,7 @@ In the fresh clone it printed a zero total. On the project's own ledger, after
 every live run, it printed:
 
 ```text
-{"baseline":0,"settled":2576656,"booked":0,"total":2576656,"per_stage":{"probe":5606,"watch":954813,"repro":1336714,"prove":265225}}
+{"baseline":0,"settled":2711697,"booked":0,"total":2711697,"per_stage":{"probe":5606,"watch":1026130,"repro":1387781,"prove":277882}}
 ```
 
 `node bin/foley.mjs help` lists every command, including `backlog` for the
@@ -320,7 +371,9 @@ flowchart LR
 Text version: watch turns the recording into ordered steps and one failure
 condition. locate maps the steps to code lines. repro drives the local app in
 Chromium until Foley's page check sees the failure, and for a pair replays
-the same actions on the fixed build, where the failure must not show. prove
+the same actions on the fixed build, where the failure must not show. If it
+still shows there after the Watch rounds are used up, the run ends as a
+`fixed_build_conflict` miss with no test. prove
 asks for a regression test and runs it in a sandbox on both builds. report
 writes a draft comment, the replay page and a core-proof record. Every model
 call passes through the spend governor in `src/ember.mjs`.
@@ -331,8 +384,8 @@ call passes through the spend governor in `src/ember.mjs`.
 | --- | --- | --- |
 | watch (`src/watch.mjs`) | Reads up to 40 sampled frames and returns steps and a typed failure condition. One re-ask if the reply breaks the steps schema; up to 2 more Watch rounds if reproduction does not show the failure | Recording type, size (50 MB) and duration (120 s) are checked before any request. The reply must pass `validateSteps` |
 | locate (`src/locate.mjs`) | Nothing | Code lines come from the BRAN media-evidence adapter, a deterministic search of the target. No model call and no network socket |
-| repro (`src/repro.mjs`) | Looks at a screenshot and picks the next actions, including pointer actions at pixel coordinates. At most 25 steps per attempt and 3 attempts | Only declared actions run, and a turn with any invalid action runs none. The browser is locked to one local origin. `src/predicate.mjs` decides from the page. The model's own verdict is kept for display only |
-| prove (`src/prove.mjs`) | Writes a test in the target's own runner, at most 4 rounds with runner output fed back | The test runs inside `tools/isolate.sh`. It is accepted only if it fails on the bug build with the condition's observed and expected values, passes on the fixed build, and repeats both results with no model call |
+| repro (`src/repro.mjs`) | Looks at a screenshot and picks the next actions, including pointer actions at pixel coordinates. At most 25 steps per attempt and 3 attempts | Only declared actions run, and a turn with any invalid action runs none. The browser is locked to one local origin. `src/predicate.mjs` decides from the page. The model's own verdict is kept for display only. For a pair, a reproduction that the fixed build also shows does not count |
+| prove (`src/prove.mjs`) | Writes a test in the target's own runner, at most 4 rounds with runner output fed back | A test that uses a state-setting call the target's configuration refuses is not run. The test runs inside `tools/isolate.sh`. It is accepted only if it fails on the bug build with the condition's observed and expected values, passes on the fixed build, and repeats both results with no model call |
 | report (`src/report.mjs`) | Nothing | Writes a local draft. Foley has no code that posts to GitHub |
 
 `src/ember.mjs` is the only module that opens a network connection. It accepts
@@ -380,6 +433,9 @@ node --test test/ui/
 cargo test --offline --manifest-path foley-crates/bran-media-evidence/Cargo.toml
 node tools/check-public.mjs --tree .
 ```
+
+The tests that run generated code or the whole pipeline need Linux (see
+Requirements).
 
 ## More
 

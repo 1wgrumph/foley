@@ -22,9 +22,10 @@ implements it. Paths are relative to the repository root.
 | `src/backlog.mjs` | Runs a dated census one issue at a time and resumes after interruption |
 | `src/eval.mjs`, `src/score.mjs` | Held-out evaluation and its scores |
 | `src/run-schema.mjs` | Schemas for steps and run documents, the spend summary and the core-proof check |
-| `src/text-safety.mjs` | One credential-shape check used at the input and display boundaries |
+| `src/text-safety.mjs` | One policy for model text: the credential-shape check used at the input and display boundaries, the re-ask builder shared by watch and repro, and the refused-call match shared by prove and the core-proof check |
 | `src/live.mjs` | Read-only loopback server for `foley run --live` |
-| `ui/` | Replay page source. `ui/build.mjs` writes `ui/dist/replay.html`; `ui/render.mjs` fills it per run |
+| `ui/` | Replay page source. `ui/build.mjs` writes `ui/dist/replay.html`; `ui/render.mjs` fills it per run. `ui/census.mjs` renders the census index page |
+| `tools/census-page.mjs`, `tools/export-trace.mjs` | Write the census index from a rows file, and the publishable trace of one run from its own call records |
 | `tools/check-public.mjs` | Public-boundary check run before every push |
 | `vendor/bran/` | BRAN v0.4.0, prior work, unchanged |
 
@@ -74,14 +75,14 @@ demo writes the same files to `out/demo-offline/out/runs/1/`.
 | `watch.trace.jsonl` | `src/watch.mjs` | Media path used (`frames` or `video`) |
 | `steps.json` | `src/watch.mjs` | `foley.steps/1`: ordered steps and the predicate |
 | `anchors.json` | `src/locate.mjs` | `foley.anchors/1`: ranked file and line anchors, or a miss |
-| `replay.json` | `src/repro.mjs` | Attempts, executed, blocked and dropped actions, predicate result |
+| `replay.json` | `src/repro.mjs`, `src/run.mjs` | Attempts, executed, blocked and dropped actions, predicate result. Each `observe` frame lists the call records of its model turn. Status `reproduced`, `not_reproduced`, or for a pair run `fixed_build_conflict` when the fixed build shows the same failure |
 | `screenshots/` | `src/repro.mjs` | Browser frames |
-| `proof.json` | `src/prove.mjs` | Test rounds, bug and fixed build results, rerun without the model |
+| `proof.json` | `src/prove.mjs` | Test rounds, bug and fixed build results, rerun without the model, and the input rule an accepted test passed (`input_rule.refused_calls`) |
 | `regression.test.mjs` | `src/prove.mjs` | The accepted test, or the kept red test when there is no fixed build |
 | `regression.red.txt` | `src/prove.mjs` | Failing output of a kept red test (verdict `failing_test_no_control`) |
 | `fixed-check/` | `src/run.mjs` | Pair runs only: the reproducing actions replayed on the fixed build, with no model call |
 | `comment.md` | `src/report.mjs` | Draft comment: steps, anchors, test, verdict, cost |
-| `run.json` | `src/run.mjs` | `foley.run/1`: the whole run, including every model call with stage, tokens and cost |
+| `run.json` | `src/run.mjs` | `foley.run/1`: the whole run, including each of its own model calls with stage, round, tokens and cost. `cost_micro_usd` is this run's cost; `case_cost_micro_usd` is what the issue's case has spent over every run, which is what the case budget limits |
 | `replay.html` | `src/run.mjs`, `ui/render.mjs` | Self-contained replay page |
 | `artifact-trace.jsonl` | `src/run.mjs` | SHA-256 of each artifact |
 | `core-proof.json` | `src/run.mjs` | `foley.core-proof/1`: stage results, rerun result, artifact digests |
@@ -95,11 +96,12 @@ Shared files under `out/`:
 | --- | --- | --- |
 | `ledger.json` | `src/ember.mjs` | Cap, baseline, settled spend and open reservations, in integer micro-dollars |
 | `trace.jsonl` | `src/ember.mjs` | One event per baseline, request, refusal and recovery |
-| `prompts/` | `src/ember.mjs` | Prompt text by digest. Never published |
+| `prompts/` | `src/ember.mjs` | Each request as sent, by digest, with media replaced by digests. The folder is never committed; `tools/export-trace.mjs` copies one run's requests into `trace/<issue>/` |
 | `stage-spend.jsonl` | `src/run.mjs` | Call ID to stage |
 | `spend-summary.json` | `src/run-schema.mjs` via `foley spend` | Baseline, settled, booked, total and spend per stage |
 | `backlog-report.json` | `src/backlog.mjs` | One row per census issue |
-| `eval-report.json` | `src/eval.mjs` | Held-out scores |
+| `eval-report.json` | `src/eval.mjs` | Held-out scores. Cost per attempt uses each issue's latest run; `case_cost_micro_usd` is reported beside it. Top-1 and top-5 are `null` when no entry has a file label |
+| `backlog/index.html` | `tools/census-page.mjs`, `ui/census.mjs` | The census index page, written from a rows file |
 
 ## Trust boundaries
 
@@ -110,12 +112,12 @@ Recordings, model output and model-written test code are untrusted.
 | API key | Read from `MODEL_API_KEY` by `src/ember.mjs` only. Not logged, traced or passed to a child process | `src/ember.mjs`, `src/locate.mjs` (`childEnv`) |
 | Network | Only `src/ember.mjs` opens a connection, to one fixed host and model. Test mode accepts only literal loopback addresses | `src/ember.mjs` |
 | Recording | Type, size, duration and content checked before any copy or request | `src/watch.mjs`, `src/run.mjs` |
-| Model reply | Must be a JSON object that passes its schema. A whole repro turn is checked before any action runs | `src/run-schema.mjs`, `src/repro.mjs` |
+| Model reply | Must be a JSON object that passes its schema. A whole repro turn is checked before any action runs. No string with a credential shape is kept, shown or sent back, and a re-ask names the broken rule without quoting the rejected value | `src/run-schema.mjs`, `src/repro.mjs`, `src/watch.mjs`, `src/text-safety.mjs` |
 | Browser | One exact local origin; other origins, file URLs and downloads blocked and recorded | `src/repro.mjs` |
-| Model-written test | Runs only in the sandbox, with no network and an empty environment | `tools/isolate.sh`, `src/prove.mjs` |
+| Model-written test | Runs only in the sandbox, with no network and an empty environment. A test that uses a state-setting call the target's configuration refuses is not run | `tools/isolate.sh`, `src/prove.mjs` |
 | Command-line paths | Must stay inside the working directory | `src/run.mjs` (`insideCwd`) |
 | Replay page | Reads only its run folder. Run data is rendered as text. The live server is loopback and read-only | `ui/render.mjs`, `src/live.mjs` |
-| Publication | No keys, home paths, raw prompts, `out/` files or media without provenance | `tools/check-public.mjs` |
+| Publication | No keys, home paths, `out/` files (which include `out/prompts/`), inline media in a JSON trace, or media without provenance | `tools/check-public.mjs` |
 | Upstream | No code path writes to GitHub | `src/report.mjs` |
 
 ## Closed result sets
@@ -127,6 +129,7 @@ and an unknown value is refused.
 | --- | --- | --- |
 | Muse Ember call result | `ok`, `budget_refused`, `ledger_unreadable`, `api_error`, `rate_limited`, `timeout`, `malformed_output`, `refused_input` | `src/ember.mjs` |
 | Issue status | `no_usable_media`, `unsupported_device`, `excluded_sensitive_or_security`, `eligible_not_attempted`, `attempted_miss`, `failure_observed`, `failing_test_no_control`, `proof_verified` | `src/backlog.mjs`, `src/run-schema.mjs` |
+| Reproduction status | `reproduced`, `not_reproduced`, `fixed_build_conflict` (pair runs; not a reproduction, so the issue is an `attempted_miss`) | `src/repro.mjs`, `src/run.mjs` |
 | Predicate kind | `visible_text`, `element_count`, `console_error`, `canvas_state` | `src/predicate.mjs` |
 | Run state | `empty`, `running`, `error`, `disconnected`, `finished` | `src/run-schema.mjs` |
 | Browser action | `click`, `double_click`, `drag`, `move`, `scroll`, `type`, `key_press`, `wait`, `screenshot`; pointer actions `pointer_click`, `pointer_double_click`, `pointer_move`, `pointer_drag` (viewport x, y; drag also to_x, to_y) | `src/repro.mjs`, `src/run-schema.mjs` |

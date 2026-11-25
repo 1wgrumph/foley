@@ -24,6 +24,22 @@ Ember request passes through its governor.
   251 per second was measured), and the full output ceiling. If baseline plus settled spend plus open
   reservations plus this bound would pass the cap, or the case budget, the
   request is refused with `budget_refused` and nothing is sent.
+- **What the bound rests on.** The byte count is a safe ceiling for text,
+  because a token is at least one byte. The media allowances are not
+  provider guarantees. The video ceiling of 2,000 tokens per second is a
+  chosen margin over one measurement (251 per second on one 16.56 s clip),
+  and the frame allowance of 1,600 tokens is a margin over about 1,200
+  measured. The provider publishes no maximum for either. A request that
+  costs more than its reservation is recorded in full and stops every later
+  call, but it cannot be undone. No request has cost more than its
+  reservation in 2,231 recorded requests (ledger check on 2026-11-25).
+- **The ledger is the record.** Spend figures are the usage the API reports
+  at the published prices. They are not checked against the provider's
+  billing page.
+- **Case budget.** Every pipeline stage passes its issue's case budget with
+  each request. The native computer-use call (`callEmberComputer`, a pilot
+  interface that no stage uses) is refused without one, and each step of the
+  live probe (`test/probe.live.mjs`) names one.
 - **One price tier.** A request above 200,000 input tokens is refused.
 - **Settle from usage.** After the reply, the reservation is replaced by the
   cost computed from the reply's token counts. A reply with no usage keeps
@@ -70,8 +86,26 @@ code.
 
 A test counts as a proof only when it fails on the bug build with the
 predicate's observed and expected values, passes on the fixed build, and
-repeats both results with no model call. Model-chosen labels and test text
-are never evidence.
+repeats both results with no model call. `checkCoreProof` needs both exits on
+record: non-zero on the bug build and 0 on the fixed build. Model-chosen
+labels and test text are never evidence for a proof.
+
+Test text can only reject a candidate. A target's configuration lists the
+calls of its test API that set state directly (`refused_test_calls` in
+`fixtures/pairs/pairs.json`; for Excalidraw, the `helpers/api` module,
+`setAppState`, `updateScene`, `setState`, `h.app` and assignment to
+`h.elements`). A candidate that uses one is not run (`seeds_state`), the rule
+is fed back to the model, and an accepted test records the rule it passed.
+This is a text match after removing whitespace. It stops the plain case, where
+a test sets the failing state instead of reaching it through pointer and
+keyboard input. It does not prove that a test it lets through exercises the
+reported interaction: read the kept test.
+
+A reproduction that the fixed build also shows is not the reported bug. For a
+pair run, Foley replays the reproducing actions on the fixed build with no
+model call. If the failure shows there too after the Watch rounds are used up,
+the reproduction is recorded as `fixed_build_conflict`, no test is asked for
+and the issue is an `attempted_miss`.
 
 ## Browser origin lock
 
@@ -111,6 +145,12 @@ Foley grants itself no right to republish them.
   `fixtures/recordings/owned-basic-flow.mp4`, made by the project.
 - Run folders, which hold a copy of the recording, live under `out/`. The
   public-boundary check fails on any file under `out/`.
+- The published trace (`trace/<issue>/`) carries each request's prompt as
+  text and every frame as a SHA-256 digest. The prompts are this repository's
+  own source and the event asks for a prompt and token trace, so they are
+  published (decision of 2026-11-25; the first design excluded them). The
+  check reads each JSON trace's decoded strings and fails on a home path, a
+  key shape or an inline `data:` URL.
 - Security reports and recordings with personal or sensitive content are
   excluded at the census with the status `excluded_sensitive_or_security`.
 
@@ -126,7 +166,10 @@ Foley grants itself no right to republish them.
 | Accept a path outside the working directory (`outside_working_tree`) | `src/run.mjs` |
 | Start while another run holds the lock (`run_active`) | `src/run.mjs` |
 | Resume an issue with a different recording, revision, runner or fixture mode (`resume_mismatch`) | `bin/foley.mjs`, `src/backlog.mjs` |
-| Store a model explanation that is too long or looks like a credential (`malformed_output`) | `src/repro.mjs`, `src/text-safety.mjs` |
+| Keep, show or send back to the model any model text that looks like a credential, or quote a rejected value in a re-ask (`malformed_output`) | `src/run-schema.mjs`, `src/watch.mjs`, `src/repro.mjs`, `src/text-safety.mjs` |
+| Run a generated test that uses a refused state-setting call (`seeds_state`) | `src/prove.mjs` |
+| Count a reproduction that the fixed build also shows (`fixed_build_conflict`) | `src/run.mjs`, `src/run-schema.mjs` |
+| Make a native computer-use call without a case budget | `src/ember.mjs` |
 | Run model-written code outside the sandbox (`refused_isolation`) | `src/prove.mjs` |
 | Post anything to GitHub | No write client exists; `src/report.mjs` writes a local file |
 | Serve the live page on anything other than IPv4 loopback, or serve a file outside the run folder | `src/live.mjs` |
