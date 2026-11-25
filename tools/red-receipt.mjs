@@ -7,7 +7,7 @@ import { basename } from "node:path";
 function checkIds(ids) {
 	assert.ok(ids.length > 0, "No expected test ids");
 	assert.equal(new Set(ids).size, ids.length, "Duplicate expected test id");
-	for (const id of ids) assert.match(id, /^TC-[A-Z0-9-]+$/);
+	for (const id of ids) assert.match(id, /^TC-[A-Z0-9-]+(?:\/[a-z0-9-]+)?$/);
 	return [...ids].sort();
 }
 
@@ -16,7 +16,7 @@ function checkIds(ids) {
 function checkTap(log, ids, green) {
 	assert.match(log, /^TAP version 13\r?$/m);
 	const results = [
-		...log.matchAll(/^(not ok|ok) (\d+) - (TC-[A-Z0-9-]+)(?: [^\r\n]*)?\r?$/gm),
+		...log.matchAll(/^(not ok|ok) (\d+) - (TC-[A-Z0-9-]+(?:\/[a-z0-9-]+)?)(?: [^\r\n]*)?\r?$/gm),
 	];
 	const allResults = [...log.matchAll(/^(?:not ok|ok) \d+ - /gm)];
 	assert.equal(allResults.length, ids.length, "Unexpected test result count");

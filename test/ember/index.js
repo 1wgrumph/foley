@@ -1,388 +1,50 @@
-/*
- * Public contract selected where the design leaves names open:
- * callEmber({messages, max_output_tokens, caseId, caseBudget?, timeoutMs?})
- * -> Promise<{status: closed result, output?: parsed JSON, message?: string}>.
- * recordBaseline(microUsd) records the owner-supplied baseline.
- * Each call reads MODEL_API_KEY, FOLEY_OFFLINE (1 enables the local test URL),
- * FOLEY_EMBER_BASE_URL and FOLEY_EMBER_MODEL (only the fixed model is allowed).
- * Relative to cwd: out/ledger.json, out/ledger.json.lock, out/trace.jsonl,
- * out/prompts/<request_digest>.json (media stored by SHA-256 of decoded bytes).
- * Ledger open entries: callId, upperBound,
- * caseId; lock owner: {pid}. Baseline null means unset.
- * Count text UTF-8 bytes as the conservative text-token bound; images add 1600
- * each. The fixtures use ASCII text and integer costs. Never trust a caller's
- * dollar estimate. Unknown media bounds and missing output limits refuse.
- * Trace: type, outcome, model, request_digest, input_tokens (uncached),
- * cached_input_tokens, output_tokens, reasoning_tokens, cost_micro_usd,
- * booked_micro_usd, baseline_micro_usd (baseline event), cap_ledger_micro_usd.
- * Cost and booked fields are event deltas; recovery adds only untraced amounts.
- * Resource group: ephemeral loopback port and unique temporary directory.
- */
+import "./repair.js";
 import assert from "node:assert/strict";
-import { fork } from "node:child_process";
 import { createHash } from "node:crypto";
-import { EventEmitter, once } from "node:events";
 import {
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readdirSync,
-	readFileSync,
-	renameSync,
-	rmSync,
-	writeFileSync,
+	existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-import { sampleUsage, startFakeServer } from "../fake-server.mjs";
+import timers from "node:timers/promises";
+import { syncBuiltinESMExports } from "node:module";
+import { sampleUsage } from "../fake-server.mjs";
+import {
+	cap, model, secret, smallUsage, exactUsage, ok, request, wireBody, priced, booked, total,
+	resultIs, reconcile, scenario, contract, refuse,
+} from "../ember-harness.mjs";
 
-const cap = 9_000_000;
-const model = "muse-ember-1.0";
-const secret = "synthetic-ember-test-only";
-const moduleUrl = new URL("../../src/ember.mjs", import.meta.url);
-const workerPath = fileURLToPath(
-	new URL("../../fixtures/ember/worker.mjs", import.meta.url),
-);
-const smallUsage = { prompt_tokens: 10, completion_tokens: 2 };
-const originalFetch = globalThis.fetch;
-let activeOrigin;
-let attemptedExternal = [];
-let simulateLive = false;
-let liveTargets = [];
-globalThis.fetch = (input, init) => {
-	const url = new URL(input.url ?? input);
-	// A positive live-mode control observes the fixed URL but sends only to loopback.
-	if (
-		simulateLive &&
-		url.origin === "https://api.meta.ai" &&
-		["/v1/chat/completions", "/v1/responses"].includes(url.pathname)
-	) {
-		liveTargets.push(url.href);
-		const local = new URL(url.pathname, activeOrigin);
-		return originalFetch(
-			input instanceof Request ? new Request(local, input) : local,
-			{ ...init, redirect: "error" },
-		);
+// A fixed seed covers cap equality, one micro-dollar on either side, and
+// rounding at different output lengths without relying on random scheduling.
+function* generated(seed, count) {
+	for (let i = 0; i < count; i++) {
+		seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+		yield seed;
 	}
-	if (url.origin !== activeOrigin) {
-		attemptedExternal.push(url.origin);
-		throw new Error("Unexpected network destination");
-	}
-	return originalFetch(input, { ...init, redirect: "error" });
-};
-const exactUsage = (bound) => ({
-	prompt_tokens: 10,
-	completion_tokens: 2 * (bound - 1),
-});
-const ok = (usage = smallUsage, hold = false) => ({ mode: "ok", usage, hold });
-
-async function loadEmber() {
-	try {
-		const ember = await import(moduleUrl);
-		assert.equal(typeof ember.callEmber, "function");
-		return ember;
-	} catch (error) {
-		if (
-			error.code === "ERR_MODULE_NOT_FOUND" &&
-			!existsSync(fileURLToPath(moduleUrl))
-		) {
-			assert.fail("src/ember.mjs is not implemented");
-		}
-		throw error;
-	}
-}
-
-function request(bound = 1000, extra = {}) {
-	return {
-		messages: [{ role: "user", content: "abcdefghij" }],
-		max_output_tokens: 2 * (bound - 1),
-		caseId: "case-a",
-		timeoutMs: 15000,
-		...extra,
-	};
-}
-
-const parse = (path) => JSON.parse(readFileSync(path, "utf8"));
-const booked = (ledger) =>
-	ledger.open.reduce((sum, item) => sum + item.upperBound, 0);
-const total = (ledger) =>
-	(ledger.baseline ?? 0) + ledger.settled + booked(ledger);
-
-function resultIs(result, status) {
-	assert.equal(result.status, status);
-	assert.ok(!JSON.stringify(result).includes(secret), "Credential in result");
-}
-
-function reconcile(ctx) {
-	const ledger = ctx.ledger();
-	const events = ctx.events();
-	const baseline = events.filter((event) => event.type === "baseline");
-	assert.equal(baseline.length, 1);
-	assert.equal(baseline[0].baseline_micro_usd, ledger.baseline);
-	const settled = events.reduce(
-		(sum, event) => sum + (event.cost_micro_usd ?? 0),
-		0,
-	);
-	const liability = events.reduce(
-		(sum, event) => sum + (event.booked_micro_usd ?? 0),
-		0,
-	);
-	assert.equal(settled, ledger.settled);
-	assert.equal(liability, booked(ledger));
-	assert.equal(
-		baseline[0].baseline_micro_usd + settled + liability,
-		total(ledger),
-	);
-	assert.equal(events.at(-1).cap_ledger_micro_usd, total(ledger));
-}
-
-async function scenario(options, run) {
-	const previousCwd = process.cwd();
-	const root = mkdtempSync(join(tmpdir(), "foley-ember-"));
-	const ledgerPath = join(root, "out", "ledger.json");
-	const tracePath = join(root, "out", "trace.jsonl");
-	const lockPath = `${ledgerPath}.lock`;
-	const workers = [];
-	const inFlight = [];
-	let server;
-	try {
-		mkdirSync(join(root, "out", "prompts"), { recursive: true });
-		const baseline = options.baseline === undefined ? 0 : options.baseline;
-		const ledger = {
-			cap,
-			baseline,
-			settled: options.settled ?? 0,
-			open: options.open ?? [],
-		};
-		writeFileSync(ledgerPath, JSON.stringify(ledger));
-		const seed =
-			baseline === null
-				? []
-				: [
-						{
-							type: "baseline",
-							baseline_micro_usd: baseline,
-							cap_ledger_micro_usd: baseline,
-						},
-					];
-		if (ledger.settled)
-			seed.push({
-				type: "request",
-				cost_micro_usd: ledger.settled,
-				cap_ledger_micro_usd: baseline + ledger.settled,
-			});
-		for (const item of ledger.open)
-			seed.push({
-				type: "recovery",
-				callId: item.callId,
-				booked_micro_usd: item.upperBound,
-				cap_ledger_micro_usd: total(ledger),
-			});
-		writeFileSync(
-			tracePath,
-			seed.map((event) => `${JSON.stringify(event)}\n`).join(""),
-		);
-		server = await startFakeServer(options.script ?? [ok()]);
-		// The process is isolated by node --test. Never read or forward an inherited key.
-		process.env.MODEL_API_KEY = secret;
-		process.env.FOLEY_OFFLINE = "1";
-		process.env.FOLEY_EMBER_BASE_URL = server.baseUrl;
-		delete process.env.FOLEY_EMBER_MODEL;
-		process.chdir(root);
-		attemptedExternal = [];
-		simulateLive = options.simulateLive === true;
-		liveTargets = [];
-		activeOrigin = new URL(server.baseUrl).origin;
-		const ember = await loadEmber();
-		const ctx = {
-			server,
-			liveTargets,
-			ledgerPath,
-			tracePath,
-			lockPath,
-			ledger: () => parse(ledgerPath),
-			events: () =>
-				readFileSync(tracePath, "utf8")
-					.trim()
-					.split("\n")
-					.filter(Boolean)
-					.map(JSON.parse),
-			ember,
-			call(options) {
-				const running = Promise.resolve()
-					.then(() => ember.callEmber(options))
-					.then((result) => {
-						assert.deepEqual(
-							attemptedExternal,
-							[],
-							"Client attempted a non-test destination",
-						);
-						return result;
-					});
-				// A failed pre-settlement assertion can leave a request outstanding.
-				// Retain it for cleanup without hiding a rejection from its caller.
-				running.catch(() => {});
-				inFlight.push(running);
-				return running;
-			},
-			async worker() {
-				const child = fork(workerPath, [], {
-					cwd: root,
-					execArgv: [],
-					env: {
-						MODEL_API_KEY: secret,
-						FOLEY_OFFLINE: "1",
-						FOLEY_EMBER_BASE_URL: server.baseUrl,
-					},
-					stdio: ["ignore", "pipe", "pipe", "ipc"],
-				});
-				workers.push(child);
-				let output = "";
-				child.stdout.on("data", (chunk) => {
-					output += chunk.toString();
-				});
-				child.stderr.on("data", (chunk) => {
-					output += chunk.toString();
-				});
-				let closed = false;
-				child.once("close", () => {
-					closed = true;
-				});
-				const changes = new EventEmitter();
-				const messages = [];
-				child.on("message", (message) => {
-					messages.push(message);
-					changes.emit("change");
-				});
-				let launchError;
-				child.on("error", (error) => {
-					launchError = error;
-					changes.emit("change");
-				});
-				async function exited() {
-					if (child.exitCode !== null || child.signalCode !== null) {
-						return [child.exitCode, child.signalCode];
-					}
-					return once(child, "exit", { signal: AbortSignal.timeout(20000) });
-				}
-				// Wake a waiter on failure as well as on IPC.
-				child.on("exit", () => changes.emit("change"));
-				async function waitFor(type) {
-					const signal = AbortSignal.timeout(20000);
-					while (!messages.some((message) => message.type === type)) {
-						if (launchError) throw launchError;
-						assert.equal(child.exitCode, null, `Worker exited before ${type}`);
-						assert.equal(
-							child.signalCode,
-							null,
-							`Worker killed before ${type}`,
-						);
-						assert.ok(
-							!messages.some((message) => message.type === "error"),
-							"Worker call threw",
-						);
-						await once(changes, "change", { signal });
-					}
-					return messages.find((message) => message.type === type);
-				}
-				await waitFor("ready");
-				return {
-					pid: child.pid,
-					start: (options) => child.send(options),
-					async result() {
-						const message = await waitFor("result");
-						assert.deepEqual(message.unexpected, []);
-						assert.deepEqual(await exited(), [0, null]);
-						if (!closed)
-							await once(child, "close", {
-								signal: AbortSignal.timeout(15000),
-							});
-						assert.ok(!output.includes(secret), "Credential in process output");
-						return message.result;
-					},
-					async kill() {
-						child.kill("SIGKILL");
-						assert.deepEqual(await exited(), [null, "SIGKILL"]);
-					},
-					exited,
-				};
-			},
-		};
-		await run(ctx);
-		assert.deepEqual(attemptedExternal, []);
-	} finally {
-		try {
-			for (const child of workers) {
-				if (child.pid && child.exitCode === null && child.signalCode === null) {
-					const exited = once(child, "exit", {
-						signal: AbortSignal.timeout(15000),
-					});
-					child.kill("SIGKILL");
-					await exited;
-				}
-			}
-			await server?.close();
-			await Promise.race([
-				Promise.allSettled(inFlight),
-				new Promise((_, reject) => {
-					const signal = AbortSignal.timeout(20000);
-					signal.addEventListener("abort", () => reject(signal.reason), {
-						once: true,
-					});
-				}),
-			]);
-		} finally {
-			activeOrigin = undefined;
-			simulateLive = false;
-			process.chdir(previousCwd);
-			rmSync(root, { recursive: true, force: true });
-		}
-	}
-}
-
-function contract(id, run) {
-	test(id, { timeout: 60000 }, run);
-}
-
-async function refuse(ctx, options, status = "budget_refused") {
-	const before = readFileSync(ctx.ledgerPath);
-	const count = ctx.server.requests.length;
-	resultIs(await ctx.call(options), status);
-	assert.deepEqual(
-		readFileSync(ctx.ledgerPath),
-		before,
-		"Refusal changed ledger bytes",
-	);
-	assert.equal(
-		ctx.server.requests.length,
-		count,
-		"Refusal transmitted a request",
-	);
-	const event = ctx.events().at(-1);
-	assert.equal(event.type, "refusal");
-	assert.equal(event.outcome, status);
-	assert.equal(event.request_digest, undefined);
 }
 
 contract("TC-R01-1", async () => {
-	await scenario({ baseline: 8_999_000 }, async (ctx) => {
-		await refuse(ctx, request(1001));
-		resultIs(await ctx.call(request(1000)), "ok");
-		assert.equal(ctx.server.requests.length, 1);
-	});
-	// Global cap also includes settled spend and existing liability.
-	await scenario(
-		{
-			baseline: 8_998_000,
-			settled: 600,
-			open: [{ callId: "prior", upperBound: 400, caseId: "prior-case" }],
-		},
-		async (ctx) => {
-			await refuse(ctx, request(1001));
-		},
-	);
+	for (const [index, seed] of [...generated(0xF01, 9)].entries()) {
+		const bound = 100 + seed % 1000;
+		const gap = (index % 3) - 1;
+		const settled = seed % 100;
+		const open = (seed >>> 8) % 100 + 1;
+		const baseline = cap - settled - open - bound + gap;
+		await scenario({
+			baseline, settled,
+			open: [{ callId: "prior", upperBound: open, caseId: "prior-case" }],
+			script: [ok(exactUsage(bound))],
+		}, async (ctx) => {
+			const options = request(bound);
+			if (gap < 0) {
+				await refuse(ctx, options);
+			} else {
+				resultIs(await ctx.call(options), "ok");
+				assert.equal(ctx.server.requests.length, 1);
+				assert.deepEqual(ctx.server.requests[0].body, wireBody(options));
+				assert.equal(total(ctx.ledger()), cap - gap);
+			}
+		});
+	}
 });
 
 contract("TC-R01-2", async () => {
@@ -424,17 +86,34 @@ function checkRace(ctx, results, count) {
 }
 
 contract("TC-R01-3", async () => {
-	for (const baseline of [8_950_000, 8_910_000]) {
-		await scenario(
-			{ baseline, script: [ok(exactUsage(40000)), ok(exactUsage(40000))] },
-			async (ctx) => {
-				const results = await Promise.all([
-					ctx.call(request(40000)),
-					ctx.call(request(40000)),
-				]);
-				checkRace(ctx, results, baseline === 8_950_000 ? 1 : 2);
-			},
-		);
+	for (const [index, seed] of [...generated(0xF03, 6)].entries()) {
+		const bound = 1000 + seed % 4000;
+		const both = index % 2 === 0;
+		const baseline = cap - 2 * bound - (both ? 0 : -1);
+		await scenario({
+			baseline,
+			script: [ok(exactUsage(bound), true), ok(exactUsage(bound), true)],
+		}, async (ctx) => {
+			// Hold the first request until the second has reached admission. Both
+			// reservations must coexist if it is admitted.
+			const first = ctx.call(request(bound));
+			await ctx.server.waitForRequests(1);
+			const second = ctx.call(request(bound));
+			const winner = await Promise.race([
+				ctx.server.waitForRequests(2).then(() => "sent"),
+				second.then(() => "refused"),
+			]);
+			ctx.server.release(0);
+			if (winner === "sent") ctx.server.release(1);
+			const results = await Promise.all([first, second]);
+			assert.equal(winner, both ? "sent" : "refused", "Concurrent admission over cap");
+			assert.deepEqual(results.map((r) => r.status).sort(),
+				both ? ["ok", "ok"] : ["budget_refused", "ok"]);
+			assert.equal(ctx.server.requests.length, both ? 2 : 1);
+			assert.equal(ctx.ledger().settled, (both ? 2 : 1) * bound);
+			assert.ok(total(ctx.ledger()) <= cap);
+			reconcile(ctx);
+		});
 	}
 });
 
@@ -526,7 +205,7 @@ contract("TC-R01-6", async () => {
 		renameSync(ctx.tracePath, savedTrace);
 		mkdirSync(ctx.tracePath);
 		ctx.server.release(0);
-		await worker.exited();
+		resultIs(await worker.result(), "ledger_unreadable");
 		assert.deepEqual(
 			readFileSync(savedTrace),
 			before,
@@ -546,7 +225,15 @@ contract("TC-R01-6", async () => {
 		);
 		assert.equal(ctx.server.requests.length, 1);
 		assert.equal(ctx.ledger().settled, 152);
-		assert.ok(ctx.events().some((event) => event.type === "recovery"));
+		const event = ctx.events().find((event) => event.type === "request");
+		assert.equal(event?.cost_micro_usd, 152, "Lost original request event");
+		assert.equal(event?.model, model);
+		assert.equal(event?.input_tokens, 500);
+		assert.equal(event?.cached_input_tokens, 500);
+		assert.equal(event?.output_tokens, 200);
+		assert.equal(event?.reasoning_tokens, 120);
+		assert.equal(event?.outcome, "ok");
+		assert.match(event?.request_digest ?? "", /^[a-f0-9]{64}$/);
 		reconcile(ctx);
 	});
 });
@@ -588,6 +275,7 @@ function mediaRequest(type) {
 			? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1sAAAAASUVORK5CYII="
 			: `data:${type}/${type === "video" ? "mp4" : "wav"};base64,YQ==`;
 	return request(1000, {
+		max_output_tokens: 1998,
 		messages: [
 			{
 				role: "user",
@@ -610,13 +298,14 @@ contract("TC-R01-8", async () => {
 		await refuse(
 			ctx,
 			request(1000, {
+				max_output_tokens: 1998,
 				messages: [{ role: "user", content: "a".repeat(200001) }],
 			}),
 		);
 	});
 	await scenario(
 		{
-			baseline: cap - 1160,
+			baseline: cap - priced(mediaRequest("image")),
 			script: [ok({ prompt_tokens: 1610, completion_tokens: 2 }, true)],
 		},
 		async (ctx) => {
@@ -626,8 +315,8 @@ contract("TC-R01-8", async () => {
 			await ctx.server.waitForRequests(1);
 			assert.equal(
 				booked(ctx.ledger()),
-				1160,
-				"Frame bound must add 1600 input tokens",
+				priced(input),
+				"Frame bound must include wire framing and 1600 input tokens",
 			);
 			ctx.server.release(0);
 			resultIs(await running, "ok");
@@ -698,13 +387,35 @@ contract("TC-R01-10", async () => {
 			],
 		},
 		async (ctx) => {
-			resultIs(await ctx.call(request(40000)), "ok");
-			assert.equal(ctx.server.requests.length, 2);
-			// Allow small timer granularity; a retry without waiting fails.
-			assert.ok(
-				ctx.server.requests[1].receivedAt - ctx.server.requests[0].receivedAt >=
-					950,
-			);
+			const nativeSleep = timers.setTimeout;
+			let signalWait;
+			let releaseWait;
+			const waiting = new Promise((resolve) => { signalWait = resolve; });
+			const barrier = new Promise((resolve) => { releaseWait = resolve; });
+			timers.setTimeout = (ms, ...args) => {
+				if (ms !== 1000) return nativeSleep(ms, ...args);
+				signalWait("timer");
+				return barrier;
+			};
+			syncBuiltinESMExports();
+			try {
+				const running = ctx.call(request(40000));
+				const observed = await Promise.race([
+					waiting,
+					ctx.server.waitForRequests(2).then(() => "sent"),
+					running.then(() => "returned"),
+				]);
+				assert.equal(observed, "timer", "Retry ignored Retry-After");
+				assert.equal(ctx.server.requests.length, 1, "Retry before clock release");
+				releaseWait();
+				resultIs(await running, "ok");
+				assert.equal(ctx.server.requests.length, 2);
+				assert.deepEqual(ctx.server.requests[0].body, ctx.server.requests[1].body);
+			} finally {
+				releaseWait();
+				timers.setTimeout = nativeSleep;
+				syncBuiltinESMExports();
+			}
 			assert.equal(booked(ctx.ledger()), 40000);
 			assert.equal(ctx.ledger().settled, 40000);
 			assert.ok(total(ctx.ledger()) <= cap);
@@ -818,6 +529,26 @@ contract("TC-R02-2", async () => {
 			reconcile(ctx);
 		},
 	);
+	// Generated event order: successful request, refusal, or unknown-usage
+	// request; each trace delta must conserve the ledger at every quiescent step.
+	for (const seed of generated(0xF02, 4)) {
+		const kinds = Array.from({ length: 5 }, (_, i) => (seed >>> (i * 3)) % 3);
+		const script = kinds.filter((kind) => kind !== 1).map((kind) =>
+			kind === 0 ? ok(smallUsage) : { mode: "missing_usage" });
+		await scenario({ baseline: null, script }, async (ctx) => {
+			await ctx.ember.recordBaseline(seed % 1_000_000);
+			let sent = 0;
+			for (const kind of kinds) {
+				if (kind === 1) await refuse(ctx, request(1000, { caseBudget: 0 }));
+				else {
+					resultIs(await ctx.call(request()), kind === 0 ? "ok" : "malformed_output");
+					sent++;
+				}
+				assert.equal(ctx.server.requests.length, sent);
+				reconcile(ctx);
+			}
+		});
+	}
 });
 
 contract("TC-R03-1", async () => {
@@ -833,7 +564,7 @@ contract("TC-R03-1", async () => {
 		process.env.FOLEY_OFFLINE = "1";
 		resultIs(await ctx.call(request()), "ok");
 		assert.equal(ctx.server.requests.length, 1);
-		assert.equal(ctx.server.requests[0].body.model, model);
+		assert.deepEqual(ctx.server.requests[0].body, wireBody(request()));
 		assert.equal(
 			ctx.server.requests[0].headers.authorization,
 			`Bearer ${secret}`,

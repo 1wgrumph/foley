@@ -10,7 +10,7 @@ export const sampleUsage = {
 	completion_tokens_details: { reasoning_tokens: 120 },
 };
 
-const answer = JSON.stringify({ answer: "ok" });
+const defaultAnswer = JSON.stringify({ answer: "ok" });
 
 export async function startFakeServer(script = [{ mode: "ok" }]) {
 	const requests = [];
@@ -36,7 +36,7 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 			url: req.url,
 			headers: req.headers,
 			body,
-			receivedAt: Date.now(),
+			raw,
 		});
 		const reply = script[index] ?? { mode: "unexpected" };
 		const respond = () => {
@@ -50,6 +50,7 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 				return;
 			}
 			const usage = reply.usage ?? sampleUsage;
+			const answer = Object.hasOwn(reply, "content") ? reply.content : defaultAnswer;
 			const output =
 				req.url === "/v1/responses"
 					? {
