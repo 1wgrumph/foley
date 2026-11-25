@@ -266,7 +266,14 @@ test("TC-R04-6", { timeout: 120000 }, async () => {
 				caseId: "watch-silent",
 				caseBudget: 100000,
 				reportTitle: "Eraser shortcut ends the line tool",
+				appNotes: "E or 0 eraser",
 			});
+			assert.ok(
+				parts(server).some(
+					(part) => part.type === "text" && part.text.includes("E or 0 eraser"),
+				),
+				"Target app notes reach the model as data",
+			);
 			assert.equal(result.status, "ok");
 			// The issue title reaches the model as quoted data (S5 live miss).
 			assert.ok(

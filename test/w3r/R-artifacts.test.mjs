@@ -542,3 +542,36 @@ test("TC-R06-7/watch-round", settings, async () => {
 		},
 	);
 });
+
+// S5 live: after a reproduction that did not show the failure, a predicate the
+// page could read is kept and only Watch's new steps are used.
+test("TC-R06-7/watch-round-keeps-predicate", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const nothing = modelReply({
+		actions: [],
+		done: true,
+		verdict: "not_reproduced",
+	});
+	const changed = modelReply({
+		...archive,
+		predicate: {
+			kind: "visible_text",
+			selector: "#context",
+			expected: "Fresh",
+			observed: "Touched",
+		},
+	});
+	await scenario(
+		[watchReply, nothing, nothing, nothing, changed, reproReply, proveReply],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			assert.deepEqual(ctx.readRun().predicate, archive.predicate);
+			const feedback = ctx.server.requests[4].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.match(feedback.text, /"keep_predicate"/);
+			assert.match(feedback.text, /"predicate_value_after":"Ready"/);
+		},
+	);
+});

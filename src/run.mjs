@@ -391,6 +391,8 @@ export function pairOptions(issue) {
 		reportTitle: pair.title,
 		testNotes:
 			typeof manifest.test_notes === "string" ? manifest.test_notes : undefined,
+		appNotes:
+			typeof manifest.app_notes === "string" ? manifest.app_notes : undefined,
 		revision: pair.bug_commit,
 		runner,
 		target: resolved.bug.checkout,
@@ -734,9 +736,24 @@ const watchMissed = (replay) =>
 		.every((e) => WATCH_MISSES.has(e.reason));
 
 // What an earlier reproduction saw, as data for Watch's next round.
+// After a reproduction that did not show the failure, an earlier predicate the
+// page could read, which did not already hold on the fresh page, is kept: only
+// the steps change in the next round.
+const readablePredicate = (replay) =>
+	replay.status !== "reproduced" &&
+	!replay.attempts.some((a) => a.observed_before) &&
+	replay.attempts.some(
+		(a) =>
+			a.predicate_value !== undefined && a.predicate_value !== "unavailable",
+	);
+
 function reproductionFeedback(run, replay) {
 	const last = replay.events.findLast((e) => e.observation)?.observation;
 	return {
+		...(readablePredicate(replay) && {
+			keep_predicate:
+				"the page could read this predicate; change only the steps",
+		}),
 		earlier_steps: run.steps,
 		earlier_predicate: run.predicate,
 		reproduction: {
@@ -793,11 +810,18 @@ async function watchAgain(ctx, replay) {
 		caseId: ctx.caseId,
 		caseBudget: o.caseBudget,
 		reportTitle: o.reportTitle,
+		appNotes: o.appNotes,
 		feedback: reproductionFeedback(run, replay),
 	});
 	if (result.status !== "ok") return false;
+	const kept = readablePredicate(replay) ? run.predicate : undefined;
 	run.steps = result.document.steps;
-	run.predicate = result.document.predicate;
+	run.predicate = kept ?? result.document.predicate;
+	if (kept)
+		await writeFile(
+			join(runDir, "steps.json"),
+			`${JSON.stringify({ ...result.document, predicate: kept }, null, 2)}\n`,
+		);
 	await ctx.artifacts("watch", ["steps.json"]);
 	const located = await locate(join(runDir, "steps.json"), {
 		targetDir: o.target,
@@ -829,6 +853,7 @@ const STAGE_FNS = {
 			caseId: ctx.caseId,
 			caseBudget: o.caseBudget,
 			reportTitle: o.reportTitle,
+			appNotes: o.appNotes,
 		});
 		if (result.status === "refused_input") {
 			await rm(copy, { force: true }); // a refused recording is never embedded
@@ -868,6 +893,7 @@ const STAGE_FNS = {
 				caseBudget: o.caseBudget,
 				callEmber: ctx.ember("repro"),
 				...(o.reportTitle && { reportTitle: o.reportTitle }),
+				...(o.appNotes && { appNotes: o.appNotes }),
 				// Live viewers see each recorded action and frame as it happens.
 				async onProgress(progress) {
 					ctx.replay = progress;

@@ -34,6 +34,7 @@ const MAX_FRAME_PX = 1280;
 const MAX_OUTPUT_TOKENS = 16_000;
 const TITLE_LIMIT = 300;
 const FEEDBACK_LIMIT = 8_000; // characters of earlier-round data
+const NOTES_LIMIT = 4_000; // characters of target app notes
 // Live probe: at Ember's default effort a 4,000-token reply was all reasoning.
 const REASONING = "medium";
 // Census media are MP4, QuickTime and WebM; ffprobe names QuickTime "mov".
@@ -198,7 +199,8 @@ const SYSTEM = [
 	"predicate that shows that failure. Use null for predicate when the recording",
 	"shows correct behaviour and the title names no failure.",
 	"When an earlier round is given, its steps or predicate did not make the page show",
-	"the failure in a fresh browser: correct them. A predicate must be false on the freshly",
+	"the failure in a fresh browser: correct them, and keep the predicate when keep_predicate",
+	"says so. A predicate must be false on the freshly",
 	"loaded page and true only after the steps. If the earlier steps showed the failure on",
 	"the fixed build too, they did not reproduce the reported bug.",
 	"Describe only what is visible; if narration disagrees with the screen, follow the screen",
@@ -313,7 +315,16 @@ async function saveSteps(runDir, document) {
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one ordered pipeline (check media, try bounded video, fall back to frames, validate, save) reads best whole
 export async function watch(
 	recordingPath,
-	{ runDir, callEmber, probe, caseId, caseBudget, reportTitle, feedback },
+	{
+		runDir,
+		callEmber,
+		probe,
+		caseId,
+		caseBudget,
+		reportTitle,
+		feedback,
+		appNotes,
+	},
 ) {
 	const path = resolve(recordingPath);
 	const media = await inspect(path);
@@ -334,6 +345,16 @@ export async function watch(
 		type: "text",
 		text: `Recording of ${media.duration.toFixed(1)} s.${title}`,
 	};
+	// The target's documented shortcuts and hints, from its configuration.
+	const notes =
+		typeof appNotes === "string"
+			? [
+					{
+						type: "text",
+						text: `Target app notes (data): ${appNotes.slice(0, NOTES_LIMIT)}`,
+					},
+				]
+			: [];
 	// What reproduction saw with an earlier round's steps (bounded data).
 	const earlier =
 		feedback === undefined
@@ -357,7 +378,10 @@ export async function watch(
 		const result = await callEmber({
 			messages: [
 				{ role: "system", content: SYSTEM },
-				{ role: "user", content: [header, ...earlier, ...content, ...audio] },
+				{
+					role: "user",
+					content: [header, ...notes, ...earlier, ...content, ...audio],
+				},
 				...reask,
 			],
 			max_output_tokens: MAX_OUTPUT_TOKENS,
