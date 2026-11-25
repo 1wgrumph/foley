@@ -125,6 +125,14 @@ None. All 16 pass together without weakening.
    reservation stays booked (safe) but is not traced as recovery until that pid exits.
 6. **Repeats ran on Node 22 only.** Each run took about 0.3 s on this host.
 
+7. **History holds a private routing term (fix before the first public push).** Commit fc837ea
+   added this return with a bug-route line that `check-public` flags as a routing term. Commit
+   d726397 removed it, so the tree is clean, but both commits still show the term in history.
+   `check-public --tree` does not scan history. Before the first public push, the orchestrator
+   should fold d726397 into fc837ea, for example with a fixup rebase of these two unpushed commits
+   on `wave-2`. I did not rewrite history, because the packet prohibits `git reset` and this is
+   the orchestrator's landing step.
+
 ## Blocker
 
 None.
