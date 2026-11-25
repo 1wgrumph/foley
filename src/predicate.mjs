@@ -3,12 +3,21 @@
 // model-supplied code runs. Unavailable data is not an observation (false).
 import { validPredicate } from "./run-schema.mjs";
 
-// Reads one JSON scalar from the target's own test hook (Excalidraw sets
-// window.h.elements and window.h.state). This function is ours; source and path
-// are data. Anything missing or not a scalar is unavailable.
+// Reads one JSON scalar from the target's own data: Excalidraw's test hook
+// (window.h.elements, window.h.state) when present, otherwise the scene and app
+// state the app has committed to local storage ("excalidraw",
+// "excalidraw-state"), parsed as JSON. This function is ours; source and path
+// are data. Anything missing, unparsable or not a scalar is unavailable.
 function readHook({ source, path }) {
 	const h = globalThis.h;
 	let value = source === "elements" ? h?.elements : h?.state;
+	if (value === undefined)
+		try {
+			const key = source === "elements" ? "excalidraw" : "excalidraw-state";
+			value = JSON.parse(globalThis.localStorage.getItem(key) ?? "null");
+		} catch {
+			return { available: false };
+		}
 	for (const key of path) {
 		if (
 			value === null ||
