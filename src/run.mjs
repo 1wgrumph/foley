@@ -466,6 +466,8 @@ export function stages(ctx) {
 				return done("watch", result.status, from, "attempted_miss");
 			run.steps = result.document.steps;
 			run.predicate = result.document.predicate;
+			for (const field of ["uncertainty", "narration_evidence"])
+				if (result.document[field]) run[field] = result.document[field];
 			await ctx.artifacts("watch", ["steps.json"]);
 			return done("watch", "ok", from);
 		},
