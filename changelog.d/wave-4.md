@@ -79,3 +79,9 @@
   `failing_test_no_control`. A Watch round drops a predicate the bug build
   contradicted. Rerun: census failures observed 5 to 11 of 36, invalid turns
   21 to 0, held-out 1 to 2 of 8, 9852 verified 5 of 5.
+- Final documentation (S7). The README leads with the verified 9852 result
+  and reports the three pairs, 9852 repeatability, both held-out runs, the
+  census of 50, total spend and the measured Ember facts, with a source for
+  each number and a limits and disclosure section. `docs/SUBMISSION.md` holds
+  the submission text and a three-minute demo script. `docs/evidence/` holds
+  small copies of the cited result files. Pull request: PR #4.

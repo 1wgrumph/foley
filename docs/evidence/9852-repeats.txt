@@ -1,0 +1,13 @@
+# Issue 9852, foley run --pair, unchanged code per head. Source: out/s6/rep-9852-run<n>.txt (exit, wall time, verdict, ledger total after the run).
+# Run cost = ledger total after the run minus the total before it (378400 before run 10; 2544226 before run 15).
+# Runs 10-14 on head 00e38f7, runs 15-19 on head 17791cf.
+run 10: exit 1 wall 182s issue 9852: attempted_miss ledger_total 410116 cost_micro_usd 31716
+run 11: exit 1 wall 165s issue 9852: attempted_miss ledger_total 436175 cost_micro_usd 26059
+run 12: exit 0 wall 118s issue 9852: proof_verified ledger_total 449460 cost_micro_usd 13285
+run 13: exit 0 wall 111s issue 9852: proof_verified ledger_total 463645 cost_micro_usd 14185
+run 14: exit 0 wall 134s issue 9852: proof_verified ledger_total 482990 cost_micro_usd 19345
+run 15: exit 0 wall 63s issue 9852: proof_verified ledger_total 2551708 cost_micro_usd 7482
+run 16: exit 0 wall 76s issue 9852: proof_verified ledger_total 2559170 cost_micro_usd 7462
+run 17: exit 0 wall 59s issue 9852: proof_verified ledger_total 2566174 cost_micro_usd 7004
+run 18: exit 0 wall 66s issue 9852: proof_verified ledger_total 2571233 cost_micro_usd 5059
+run 19: exit 0 wall 66s issue 9852: proof_verified ledger_total 2576656 cost_micro_usd 5423

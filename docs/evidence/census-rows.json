@@ -1,0 +1,452 @@
+[
+  {
+    "issue": 12720,
+    "s6_status": "failure_observed",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 25571,
+    "elapsed_s": 172.5,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 12650,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "Firefox on Wayland only; Foley drives Chromium"
+  },
+  {
+    "issue": 12405,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 29093,
+    "elapsed_s": 171.9,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 12300,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 42417,
+    "elapsed_s": 251.6,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 11842,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 34072,
+    "elapsed_s": 190.2,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 11798,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 32694,
+    "elapsed_s": 506.5,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 11796,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 50972,
+    "elapsed_s": 493.6,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 11795,
+    "s6_status": "excluded_sensitive_or_security",
+    "status": "excluded_sensitive_or_security",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "recording shows the reporter's name in an Excalidraw+ workspace sidebar"
+  },
+  {
+    "issue": 11401,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "touchpad tap gestures"
+  },
+  {
+    "issue": 11173,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "pen tablet input"
+  },
+  {
+    "issue": 11111,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "mobile only"
+  },
+  {
+    "issue": 11042,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "IME composition input"
+  },
+  {
+    "issue": 10863,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 16804,
+    "elapsed_s": 90.3,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 10855,
+    "s6_status": "failure_observed",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 24908,
+    "elapsed_s": 102.9,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 10688,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 41057,
+    "elapsed_s": 224.6,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10661,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 39740,
+    "elapsed_s": 239.0,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10568,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 38830,
+    "elapsed_s": 285.5,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10480,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 36955,
+    "elapsed_s": 218.5,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 10407,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 65761,
+    "elapsed_s": 476.3,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10128,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 37972,
+    "elapsed_s": 288.5,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10015,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 57793,
+    "elapsed_s": 493.4,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9980,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "mobile only"
+  },
+  {
+    "issue": 9938,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 35754,
+    "elapsed_s": 249.3,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9871,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 32174,
+    "elapsed_s": 228.4,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9864,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 25765,
+    "elapsed_s": 177.3,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9815,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 25912,
+    "elapsed_s": 220.6,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 9782,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 34968,
+    "elapsed_s": 233.8,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 9755,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 31092,
+    "elapsed_s": 196.7,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9663,
+    "s6_status": "excluded_sensitive_or_security",
+    "status": "excluded_sensitive_or_security",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "recording shows the reporter's local folder and file names in a file picker"
+  },
+  {
+    "issue": 9517,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "iOS long-press"
+  },
+  {
+    "issue": 9510,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "reported as macOS-only"
+  },
+  {
+    "issue": 9509,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 15351,
+    "elapsed_s": 79.2,
+    "reason": "proof: test_error"
+  },
+  {
+    "issue": 9464,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 48588,
+    "elapsed_s": 421.4,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9441,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "tablet pen input"
+  },
+  {
+    "issue": 9410,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 42047,
+    "elapsed_s": 317.2,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9257,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 25276,
+    "elapsed_s": 178.6,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9240,
+    "s6_status": "failure_observed",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 17604,
+    "elapsed_s": 103.8,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 9170,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "touchpad gestures over a frame name"
+  },
+  {
+    "issue": 9141,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "phone only; reporter says not on desktop"
+  },
+  {
+    "issue": 9115,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "census",
+    "rerun_cost_micro_usd": 29099,
+    "elapsed_s": 247.4,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9049,
+    "s6_status": "failure_observed",
+    "status": "failure_observed",
+    "set": "census",
+    "rerun_cost_micro_usd": 27441,
+    "elapsed_s": 163.5,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 9032,
+    "s6_status": "unsupported_device",
+    "status": "unsupported_device",
+    "set": "census",
+    "rerun_cost_micro_usd": 0,
+    "elapsed_s": null,
+    "reason": "stylus on iPad"
+  },
+  {
+    "issue": 11223,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 33043,
+    "elapsed_s": 195.6,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10928,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 40334,
+    "elapsed_s": 235.8,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10898,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 32735,
+    "elapsed_s": 202.0,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 10000,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 52680,
+    "elapsed_s": 273.0,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9960,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 45605,
+    "elapsed_s": 342.3,
+    "reason": "reproduction: failure not shown"
+  },
+  {
+    "issue": 9812,
+    "s6_status": "failure_observed",
+    "status": "failure_observed",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 19633,
+    "elapsed_s": 107.1,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 9710,
+    "s6_status": "attempted_miss",
+    "status": "failure_observed",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 16336,
+    "elapsed_s": 104.0,
+    "reason": "proof: wrong_predicate"
+  },
+  {
+    "issue": 8989,
+    "s6_status": "attempted_miss",
+    "status": "attempted_miss",
+    "set": "held-out",
+    "rerun_cost_micro_usd": 33875,
+    "elapsed_s": 217.3,
+    "reason": "reproduction: failure not shown"
+  }
+]

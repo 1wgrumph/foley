@@ -1,0 +1,50 @@
+{
+  "schema": "foley.core-proof/1",
+  "issue_url": "https://github.com/excalidraw/excalidraw/issues/9852",
+  "target_revision": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+  "fixture": false,
+  "pair": {
+    "issue": 9852,
+    "bug_commit": "4ce70b815eccbe684866f83d2dcbcba8fc8a97a6",
+    "fix_commit": "cce5001aaafe0286855984cf1b4e154b6ce86754"
+  },
+  "stages": {
+    "watch": "ok",
+    "locate": "ok",
+    "repro": "reproduced",
+    "prove": "verified",
+    "report": "ok"
+  },
+  "rerun_without_ember": {
+    "bug": {
+      "exitCode": 1
+    },
+    "fixed": {
+      "exitCode": 0
+    }
+  },
+  "unedited": true,
+  "artifacts": {
+    "anchors.json": "2feee3668eb0f7bef9034de9f03da06cfc9efd56159e1b806256118b8b7977b7",
+    "comment.md": "8fe6689789c56c1aae32645bd4700b09cf1917820f7ed3200a8f203f13ada207",
+    "proof.json": "a69ee0f2c56bf20e44b163e3952c7b3a8a73f06a237f30633b4a655690f49271",
+    "recording.mp4": "de0b3bde075388266bcf5bc9818d194f37e928e925b12be65557ddf58da9279c",
+    "regression.test.mjs": "2eebac0ba926a0f3e500fc005b28254102e3981e15f8f97b1c71a6e35594965b",
+    "replay.html": "5ea11ebdec703f003de1a93ca68fd9e0ce4ea59c17caa83a876a0b0814a8d485",
+    "replay.json": "26b15a8806f1152799611c428ab3ad04917bf1e62c2a9c84444017537792bdb0",
+    "run.json": "34b3ceebaa8f5280e084479ce9ed4d7ff3f70b807f6b75f80eebc88662304247",
+    "screenshots/001.png": "881048b02b5afdca32f0004a9675b07aefd6bd2ababe28351970cd2141a3ebfd",
+    "screenshots/002.png": "555eba5e05a07d483ea43b58a99793d3084c18a7cb734a59ef944d673668337c",
+    "screenshots/003.png": "9d4fb973407d47afaed6f694afe6a9b59b614a77970c05692cda7eed3e7acfff",
+    "screenshots/004.png": "9d4fb973407d47afaed6f694afe6a9b59b614a77970c05692cda7eed3e7acfff",
+    "screenshots/005.png": "9f08662033d76a5be0b501a5b308a0f56aa2dfdd40bf0c2424af93c0e46d2a82",
+    "screenshots/006.png": "4c61b6271851f68e8ea4b8df238db1c7017e5ed2f2b9ed9cac2c5d13da0a0ff3",
+    "screenshots/007.png": "ce5bcf3117264c291bf0a67a01d3d286152b8ff6d0113a408fa12ea50365dda3",
+    "screenshots/008.png": "bd1bb60040242d85205b5803bb29c72462d53f69e8c581430d47443a681e2909",
+    "screenshots/009.png": "47867310ac978f55148276ba631841197463084c1de86dfdff5849de13e1ae29",
+    "screenshots/010.png": "e18caf5e5a3857b13eaff23183497530cda58c485619d5a05c67998de0ba6bbb",
+    "screenshots/011.png": "23ce24a581da191b33d0dbdc44cb80c864bdb4e755d225b4ca9084a50b58443e",
+    "screenshots/012.png": "0b20abd4d23f41288392f62620ed3948f92563620f4bd628e321c57ab2173b65",
+    "steps.json": "19e1b181087980d7b9543c83f903ca1b80db2def7cc7a0c3374712f8e4edfb71"
+  }
+}

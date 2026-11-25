@@ -19,8 +19,9 @@ Ember request passes through its governor.
   limit is $10, so $1.00 stays as margin.
 - **Reserve before send.** Under an exclusive lock on `out/ledger.json`, each
   request reserves its priced upper bound: every byte of the serialized
-  request body priced as an input token, 1,600 tokens per image frame, and
-  the full output ceiling. If baseline plus settled spend plus open
+  request body priced as an input token, 1,600 tokens per image frame,
+  2,000 tokens per second of video (the ceiling in `fixtures/ember/bounds.json`;
+  251 per second was measured), and the full output ceiling. If baseline plus settled spend plus open
   reservations plus this bound would pass the cap, or the case budget, the
   request is refused with `budget_refused` and nothing is sent.
 - **One price tier.** A request above 200,000 input tokens is refused.
@@ -120,7 +121,7 @@ Foley grants itself no right to republish them.
 | Call any host other than `https://api.meta.ai/v1`, or any model other than `muse-ember-1.0` | `src/ember.mjs` |
 | Spend past $9.00, past a case budget, or after a bound violation | `src/ember.mjs` |
 | Make a live call before the baseline is recorded | `src/ember.mjs` |
-| Send video or audio parts, which it cannot price yet | `src/ember.mjs` |
+| Send audio, which the probe did not show Ember understands, or a video part longer than 120 s or without its measured bound in `fixtures/ember/bounds.json` | `src/ember.mjs` |
 | Read a recording that is not MP4, QuickTime or WebM, is over 50 MB or over 120 s, or cannot be decoded | `src/watch.mjs`, `src/run.mjs` |
 | Accept a path outside the working directory (`outside_working_tree`) | `src/run.mjs` |
 | Start while another run holds the lock (`run_active`) | `src/run.mjs` |

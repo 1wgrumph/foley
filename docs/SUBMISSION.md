@@ -1,41 +1,71 @@
-# Foley submission checklist
+# Foley submission
 
-This document maps the judging rubric and the event rules to evidence in this
-repository. Lines that start with `RESULT PENDING:` are filled from committed
-evidence after the live runs; until then no result is claimed.
+This document holds the submission text, the three-minute demo script, and
+the judging rubric and event rules mapped to evidence in this repository.
+Every figure comes from the [README](../README.md) results, which name their
+source files.
+
+## Submission text
+
+Foley takes the screen recording attached to a bug report and returns a
+reproduced failure, a regression test that fails on the bug and passes on the
+fix, and a replay page. The only model is Muse Ember (`muse-ember-1.0`)
+through the Meta Model API. Ember watches the recording, drives a browser by
+screenshot and pointer, and writes the test. Foley decides every verdict
+itself: a page check decides whether the failure showed, and a sandbox runs
+the test on the bug build and the fixed build.
+
+On Excalidraw issue 9852, Foley went from the reporter's 23.4 s recording to
+a Vitest test that fails on the bug commit and passes on the fix commit, in
+66 s for $0.005059. It verified 5 of 5 unchanged runs. Two other real pairs
+did not verify, and the README states why. On a dated census of 50 Excalidraw
+bug reports with video, Foley observed the failure on 11 of 36 attempted
+issues. It kept no failing test for any of them, because census issues have
+no fixed build and Ember's tests did not show the failure. Total model spend
+for the event was $2.576656, under a $9.00 stop enforced in code.
+
+BRAN v0.4.0 (MIT OR Apache-2.0) is prior work, imported unchanged at the tag
+`baseline-bran-v0.4.0`. Everything after that tag was built during the event.
+
+## Demo script, three minutes
+
+The owner records the screen. Open these before recording:
+
+- `out/demo/9852/replay.html`, the replay page of the 9852 demo run (run 18).
+  It embeds the reporter's recording, so it stays local and is not committed.
+- The census index: the census panel inside the same replay page, or
+  `out/backlog/index.html`.
+- The repository's [README](../README.md) on GitHub.
+
+| Time | What the owner shows | What the owner says |
+| --- | --- | --- |
+| 0:00 | Excalidraw issue 9852 on GitHub: a report with only a video | A maintainer must watch the video, guess the steps and write a test before a fix can start. Foley does that from the recording |
+| 0:20 | Replay page, recording panel: play the reporter's recording | This is the input. Ember reads frames from it and returns steps and one failure condition: the active tool should stay `line`, and the recording shows `eraser` |
+| 0:45 | Replay page, replay panel: step through the screenshots and the action feed | Ember sees a screenshot each turn and answers with key presses and pointer clicks. Foley checks the page itself. Here it read `eraser` on the bug build. The same actions on the fixed build do not show it |
+| 1:15 | Replay page, test panel: the Vitest test, bug FAIL and fixed PASS | Ember wrote this test in Excalidraw's own test runner. It fails on the bug commit with `expected 'eraser' to be 'line'` and passes on the fix commit. Foley reran it with no model and no key: same result |
+| 1:40 | Replay page, model-call list; then README "One verified result" | The page lists every model call made for this issue across all its runs, $0.257391 in total. This run alone took 66 s and $0.005059, from the ledger. 5 of 5 unchanged runs verified. This run's Watch call reported an unusually small token count, which the README explains |
+| 2:00 | Census index | The same pipeline on 50 real reports: 11 failures observed, 25 misses, 14 excluded for touch, pen, mobile, other platforms or private content. No census issue has a kept failing test, and the held-out set gave 1 of 8 on its first run. These are the misses as well as the hit |
+| 2:30 | README, "Spend" and "Prior work and event work" | Total spend $2.576656, under a $9.00 stop in the code. BRAN v0.4.0 is prior work, unchanged; everything after the baseline tag was built this week. The offline demo runs with `npm run demo:offline` |
+| 2:55 | End | |
+
+Recorded runs are shown as recorded runs, not as live.
 
 ## Rubric to evidence
 
-| Criterion (weight) | Evidence in the repository |
+| Criterion (weight) | Evidence |
 | --- | --- |
-| Impact (30) | [README](../README.md) "Why it matters". `fixtures/census/census.json`: a dated census of 50 Excalidraw bug reports with video. `src/score.mjs`: success per attempt and per eligible issue, location accuracy, cost per bug. RESULT PENDING: census counts by status and cost per verified proof from `out/backlog-report.json` and `out/eval-report.json`, published under `trace/` |
-| Meta AI tooling (25) | Muse Ember (`muse-ember-1.0`) through the Meta Model API is the only model, in `src/ember.mjs`. It reads recording frames (`src/watch.mjs`), chooses browser actions from screenshots (`src/repro.mjs`) and writes regression tests (`src/prove.mjs`). [docs/SAFETY.md](SAFETY.md) describes the spend governor. RESULT PENDING: published prompt and token trace with per-call tokens and cost |
-| Technical depth (20) | [docs/ARCHITECTURE.md](ARCHITECTURE.md). Deterministic predicate checks (`src/predicate.mjs`), sandboxed test execution (`tools/isolate.sh`), a ledger with reserve-before-send under a lock (`src/ember.mjs`), resumable stage journal (`src/run.mjs`), a Rust adapter over BRAN (`foley-crates/bran-media-evidence`). Test suites under `test/`, with red and green receipts in `logs/*.receipt.json` |
-| Demo (25) | `npm run demo:offline` runs the whole pipeline offline and writes a replay page. RESULT PENDING: demo video link, and the run folder of a real Excalidraw issue |
+| Impact (30) | README "One verified result" and "Results": 9852 verified in 66 s for $0.005059, 5 of 5 repeats; census of 50 with 11 failures observed and every miss listed in [`evidence/census-rows.json`](evidence/census-rows.json) |
+| Meta AI tooling (25) | Muse Ember is the only model (`src/ember.mjs`). It watches frames (`src/watch.mjs`), acts on screenshots with pointer actions (`src/repro.mjs`) and writes tests (`src/prove.mjs`). README "Measured Ember facts": video against frames token cost, the `max_completion_tokens` limit and reasoning effort, audio not usable, the repeated-request usage figure; native computer use measured against the loop. Trace: [`trace/9852/`](../trace/9852/) |
+| Technical depth (20) | [ARCHITECTURE.md](ARCHITECTURE.md) and [SAFETY.md](SAFETY.md): a page check instead of the model's verdict, fixed-build replay, a namespace sandbox for model-written tests (`tools/isolate.sh`), a reserve-before-send ledger under a lock, a resumable stage journal, a Rust adapter over BRAN (`foley-crates/bran-media-evidence`). Red and green test receipts in `logs/*.receipt.json` |
+| Demo (25) | The script above, built on `out/demo/9852/` and the census index. `npm run demo:offline` runs the whole pipeline offline from a fresh clone |
 
 ## Event rules to evidence
 
 | Rule | How the repository meets it |
 | --- | --- |
-| AI functionality uses only `muse-ember-1.0` through the Meta Model API | `src/ember.mjs` holds the only network call. Host and model are constants; another model is refused before any connection. `tools/check-public.mjs` lists the network hosts named in runtime source and fails on any other model provider. Test `TC-R03-1` in `test/ember/` covers the refusal |
-| Total model spend at most $10 | `src/ember.mjs` stops at $9.00 (`CAP = 9_000_000` micro-dollars). Each request reserves its priced upper bound before it is sent. Live calls need the recorded baseline of earlier spend. RESULT PENDING: final total from `foley spend` (`out/spend-summary.json`), published under `trace/` |
-| Only work built during the event is demonstrated; prior work is identified | `vendor/bran/` is BRAN v0.4.0 (MIT OR Apache-2.0), imported unchanged at tag `baseline-bran-v0.4.0`. `git diff --exit-code baseline-bran-v0.4.0 -- vendor/bran` prints nothing. Everything after that tag is event work. See [README](../README.md) "Prior work and event work" and [NOTICE](../NOTICE) |
-| Repository is public | Public-boundary check before each push: `npm run check-public` runs gitleaks, `tools/check-public.mjs --tree .` and the check's self-test on `fixtures/public-negative/`. It needs `gitleaks` on `PATH`. Reporters' recordings are referenced by URL and hash only |
-| Prompt and token trace | Each request's tokens and cost are in `out/trace.jsonl` and in `run.json` per run. Raw prompts stay in `out/prompts/` and are not published. RESULT PENDING: the allow-listed, redacted trace and spend summary, committed under `trace/` |
-| Setup steps | [README](../README.md) "Setup" and "Offline demo". Each command was run from a fresh clone; see `logs/S7d-RETURN.md` |
-
-## Where the trace will be
-
-The published trace goes in `trace/` at the repository root. It will hold the
-allow-listed trace lines (time, stage, model, token counts, cost, outcome) and
-the spend summary. `tools/check-public.mjs` rejects trace lines with any other
-field. Raw prompts in `out/prompts/` are never published.
-
-## Placeholders for the final slice
-
-Fill each from committed evidence, with its date and source file:
-
-1. RESULT PENDING: README "Results": core-proof issues (target 3), census counts, held-out scores, cost per attempted issue and per verified proof, total spend, demo video link.
-2. RESULT PENDING: `trace/` with the redacted trace and spend summary, and links to it from this file and the README.
-3. RESULT PENDING: the run folder of at least one real Excalidraw issue with its `core-proof.json`, linked from the Demo row.
-4. RESULT PENDING: the Impact and Meta AI tooling rows above, with figures from `out/backlog-report.json`, `out/eval-report.json` and `out/spend-summary.json`.
+| The product's AI uses only `muse-ember-1.0` through the Meta Model API | `src/ember.mjs` holds the only network call; host and model are constants, and another model is refused before any connection (test `TC-R03-1` in `test/ember/`). `tools/check-public.mjs` lists the network hosts named in runtime source and fails on any other model provider |
+| Total model spend at most $10 | $2.576656 in total ([`evidence/spend-summary.json`](evidence/spend-summary.json), from `node bin/foley.mjs spend`). `src/ember.mjs` stops at $9.00 and reserves each request's priced upper bound before it is sent |
+| Only event work is demonstrated; prior work is identified | `vendor/bran/` is BRAN v0.4.0, unchanged at tag `baseline-bran-v0.4.0`; `git diff --exit-code baseline-bran-v0.4.0 -- vendor/bran` prints nothing. README "Prior work and event work" and [NOTICE](../NOTICE) |
+| The repository is public | `node tools/check-public.mjs --tree .` and `gitleaks detect --no-banner --redact` pass before each push. Reporters' recordings are referenced by URL and SHA-256 only and are never committed |
+| Prompt and token trace | [`trace/9852/`](../trace/9852/): `summary.json` (7 calls, 14,280 input and 23,478 output tokens, $0.013285), `calls.json` (each kept request, with images as SHA-256 digests) and `replies.json` (each validated reply). It records 9852 run 12, an earlier verified run of the same pair. The demo run is run 18. Raw prompts in `out/prompts/` are never published |
+| Setup steps | README "Reproduce", run from a fresh clone (`logs/S7-RETURN.md`) |

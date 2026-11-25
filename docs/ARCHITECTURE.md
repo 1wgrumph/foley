@@ -10,7 +10,7 @@ implements it. Paths are relative to the repository root.
 | --- | --- |
 | `bin/foley.mjs` | Command line: `run`, `backlog`, `eval`, `spend`, `baseline`, `--version`, `help`. Maps outcomes to exit codes 0 to 3 |
 | `src/run.mjs` | Preflight checks, the run lock, the stage journal, the run document, the static replay page and the core-proof record. Shared by `run` and `backlog` |
-| `src/ember.mjs` | The only module that opens a network connection. Muse Ember client, spend governor, ledger and trace |
+| `src/ember.mjs` | The only module that opens a network connection. Muse Ember client (`callEmber`, and `callEmberComputer` for the measured computer-use call, which no stage uses), spend governor, ledger and trace. Media bounds come from `fixtures/ember/bounds.json` |
 | `src/watch.mjs` | Recording to steps and a failure predicate. Checks the media, samples frames with `ffmpeg` |
 | `src/locate.mjs` | Steps to file and line anchors. Builds and runs the `bran-media-evidence` binary and checks each anchor against the pinned revision |
 | `foley-crates/bran-media-evidence/` | Rust crate built during the event. Derives search terms from the steps and calls the vendored BRAN library for the scan and graph query |
@@ -77,7 +77,9 @@ demo writes the same files to `out/demo-offline/out/runs/1/`.
 | `replay.json` | `src/repro.mjs` | Attempts, executed, blocked and dropped actions, predicate result |
 | `screenshots/` | `src/repro.mjs` | Browser frames |
 | `proof.json` | `src/prove.mjs` | Test rounds, bug and fixed build results, rerun without the model |
-| `regression.test.mjs` | `src/prove.mjs` | The accepted test |
+| `regression.test.mjs` | `src/prove.mjs` | The accepted test, or the kept red test when there is no fixed build |
+| `regression.red.txt` | `src/prove.mjs` | Failing output of a kept red test (verdict `failing_test_no_control`) |
+| `fixed-check/` | `src/run.mjs` | Pair runs only: the reproducing actions replayed on the fixed build, with no model call |
 | `comment.md` | `src/report.mjs` | Draft comment: steps, anchors, test, verdict, cost |
 | `run.json` | `src/run.mjs` | `foley.run/1`: the whole run, including every model call with stage, tokens and cost |
 | `replay.html` | `src/run.mjs`, `ui/render.mjs` | Self-contained replay page |
@@ -124,7 +126,7 @@ and an unknown value is refused.
 | Set | Values | File |
 | --- | --- | --- |
 | Muse Ember call result | `ok`, `budget_refused`, `ledger_unreadable`, `api_error`, `rate_limited`, `timeout`, `malformed_output`, `refused_input` | `src/ember.mjs` |
-| Issue status | `no_usable_media`, `unsupported_device`, `excluded_sensitive_or_security`, `eligible_not_attempted`, `attempted_miss`, `failure_observed`, `proof_verified` | `src/backlog.mjs` |
+| Issue status | `no_usable_media`, `unsupported_device`, `excluded_sensitive_or_security`, `eligible_not_attempted`, `attempted_miss`, `failure_observed`, `failing_test_no_control`, `proof_verified` | `src/backlog.mjs`, `src/run-schema.mjs` |
 | Predicate kind | `visible_text`, `element_count`, `console_error`, `canvas_state` | `src/predicate.mjs` |
 | Run state | `empty`, `running`, `error`, `disconnected`, `finished` | `src/run-schema.mjs` |
 | Browser action | `click`, `double_click`, `drag`, `move`, `scroll`, `type`, `key_press`, `wait`, `screenshot`; pointer actions `pointer_click`, `pointer_double_click`, `pointer_move`, `pointer_drag` (viewport x, y; drag also to_x, to_y) | `src/repro.mjs`, `src/run-schema.mjs` |
