@@ -1,8 +1,11 @@
 // Backlog runner (DES-FOL-R09): one dated census, one issue at a time, every issue
-// with exactly one status, resumable. runRoot/<issue>/state.json is written by this
-// module only. A stage is marked started before it runs and completed after, so a
-// finished stage never runs again and an interrupted stage runs at most once more.
-// Spend safety stays with the Ember ledger: a crashed call's reservation stays booked.
+// with exactly one status, resumable. runRoot/<issue>/state.json is the one stage
+// journal for both `foley run` and `foley backlog`, written by this module only. A
+// stage is recorded as started (attempt count) before it runs and committed after,
+// so a committed stage never runs again and an interrupted or failed stage runs at
+// most once more. A stage that throws is not committed. The journal is bound to the
+// run's input identity; a resume with different inputs is refused. Spend safety
+// stays with the Ember ledger: a crashed call's reservation stays booked.
 // runRoot/<issue>/census.json in every started folder lists {issue, status} for all
 // candidates; it is replaced (never truncated) after each stage of the current issue.
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
@@ -96,33 +99,49 @@ function decide(name, status) {
 	return null;
 }
 
+const newState = (issue, identity) => ({
+	schema: "foley.backlog-state/1",
+	issue,
+	...(identity && { identity }),
+	completed: [],
+	attempts: {},
+	results: {},
+	cost_micro_usd: 0,
+	status: null,
+});
+
+const sameIdentity = (state, identity) =>
+	!identity || JSON.stringify(state.identity) === JSON.stringify(identity);
+
+// Runs the uncommitted stages of one issue through the journal. Returns true when
+// stopped at the requested boundary. With `cost`, issue and stage spend are read
+// from the authoritative call records, so a resume reconciles before continuing.
 async function runIssue(
 	candidate,
 	state,
-	{ runRoot, stages, stopAfter, targetRevision, publish },
+	{ runRoot, stages, stopAfter, targetRevision, publish, cost },
 ) {
 	const runDir = join(runRoot, String(candidate.issue));
 	const save = () => writeJson(statePath(runRoot, candidate.issue), state);
+	const spent = async () =>
+		cost ? await cost(candidate) : state.cost_micro_usd;
+	state.cost_micro_usd = await spent();
+	await save();
 	for (const name of STAGES.slice(state.completed.length)) {
+		if (state.status) break;
 		if ((state.attempts[name] ?? 0) >= MAX_RUNS_PER_STAGE) {
 			state.status = "attempted_miss"; // interrupted twice: no third run
-			await save();
-			await publish();
-			return false;
+			break;
 		}
 		state.attempts[name] = (state.attempts[name] ?? 0) + 1;
 		await save();
-		let result;
-		try {
-			result = await stages[name](candidate, { runDir, targetRevision });
-		} catch {
-			result = { status: "error" };
-		}
-		const cost = isCount(result?.cost_micro_usd) ? result.cost_micro_usd : 0;
-		state.cost_micro_usd += cost;
+		const before = state.cost_micro_usd;
+		const result = await stages[name](candidate, { runDir, targetRevision });
+		const delta = isCount(result?.cost_micro_usd) ? result.cost_micro_usd : 0;
+		state.cost_micro_usd = cost ? await spent() : before + delta;
 		state.results[name] = {
 			status: String(result?.status),
-			cost_micro_usd: cost,
+			cost_micro_usd: state.cost_micro_usd - before,
 		};
 		state.completed.push(name);
 		state.status = decide(name, result?.status);
@@ -131,9 +150,34 @@ async function runIssue(
 		await publish();
 		if (stopAfter?.issue === candidate.issue && stopAfter?.stage === name)
 			return true;
-		if (state.status) return false;
 	}
+	await save();
+	await publish();
+	// Terminal outcome recorded and published first; then the final export, which
+	// is idempotent and repairs an interrupted finalization without model calls.
+	if (state.status) await stages.finalize?.(candidate, state.status);
 	return false;
+}
+
+/**
+ * One issue through the shared journal (used by `foley run`). Returns
+ * {status: "ok", state}, or "refused_input" for a corrupt journal and
+ * "resume_mismatch" when the saved journal belongs to different inputs; both
+ * refusals happen before any stage runs.
+ */
+export async function runOne(candidate, { runRoot, stages, identity, cost }) {
+	const saved = await readState(runRoot, candidate.issue);
+	if (saved === INVALID) return { status: "refused_input" };
+	if (saved && !sameIdentity(saved, identity))
+		return { status: "resume_mismatch" };
+	const state = saved ?? newState(candidate.issue, identity);
+	await runIssue(candidate, state, {
+		runRoot,
+		stages,
+		publish: async () => {},
+		cost,
+	});
+	return { status: "ok", state };
 }
 
 // An issue runs when it is eligible, not finished, and either resumes or fits
@@ -159,9 +203,17 @@ async function publishCensus(runRoot, census, states) {
 			await writeJson(join(runRoot, String(issue), "census.json"), rows);
 }
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one ordered scheduler: validate every journal, then run issues serially
 export async function backlog(
 	census,
-	{ runRoot, stages, stopAfter, maxIssues = Number.POSITIVE_INFINITY },
+	{
+		runRoot,
+		stages,
+		stopAfter,
+		maxIssues = Number.POSITIVE_INFINITY,
+		identity,
+		cost,
+	},
 ) {
 	const refused = { status: "refused_input", report: [] };
 	if (
@@ -169,11 +221,13 @@ export async function backlog(
 		!(maxIssues === Number.POSITIVE_INFINITY || isCount(maxIssues))
 	)
 		return refused;
-	// Every existing state is read and checked before any stage runs.
+	// Every existing journal is read and checked before any stage runs.
 	const states = new Map();
 	for (const c of census.candidates) {
 		const state = await readState(runRoot, c.issue);
 		if (state === INVALID) return refused;
+		if (state && !sameIdentity(state, identity?.(c)))
+			return { status: "resume_mismatch", report: [] };
 		states.set(c.issue, state);
 	}
 	const publish = () => publishCensus(runRoot, census, states);
@@ -185,28 +239,26 @@ export async function backlog(
 	for (const c of census.candidates) {
 		let state = states.get(c.issue);
 		if (interrupted || !runnable(c, state, started >= maxIssues)) {
+			// A finished issue still gets its spend reconciled and any
+			// interrupted final export repaired; neither makes a model call.
+			if (state?.status && !interrupted)
+				await runIssue(c, state, { runRoot, stages, publish, cost });
 			row(c, ...settled(c, state));
 			continue;
 		}
 		if (!state) {
 			started++;
-			state = {
-				schema: "foley.backlog-state/1",
-				issue: c.issue,
-				completed: [],
-				attempts: {},
-				results: {},
-				cost_micro_usd: 0,
-				status: null,
-			};
+			state = newState(c.issue, identity?.(c));
 			states.set(c.issue, state);
 		}
+		await publish(); // every census row exists before the issue's first request
 		interrupted = await runIssue(c, state, {
 			runRoot,
 			stages,
 			stopAfter,
 			targetRevision: census.target_revision,
 			publish,
+			cost,
 		});
 		row(c, state.status ?? "eligible_not_attempted", state.cost_micro_usd);
 	}
