@@ -172,7 +172,8 @@ const badActions = [
 	{ action: "pointer_move", x: 1 },
 	{ action: "pointer_drag", x: 0, y: 0, to_x: 1, to_y: 720 },
 	{ action: "pointer_drag", x: 0, y: 0, to_x: "1", to_y: 1 },
-	{ action: "pointer_drag", x: 0, y: 0, to_x: 1 },
+	// A drag with no end at all (one missing end coordinate keeps its start value).
+	{ action: "pointer_drag", x: 0, y: 0 },
 ];
 
 test("TC-R06-3/pointer-whole-turn", { timeout: 120000 }, async () => {

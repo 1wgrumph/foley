@@ -281,3 +281,28 @@ test("TC-R07-4", { timeout: 120000 }, async () => {
 		accepted(result, runDir),
 	);
 });
+
+// S6b (d): with no fixed build, a red test that shows the predicate's values is
+// kept with its failing output, and named for what it is.
+test("TC-R07-1/red-test-no-control", { timeout: 120000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			assert.equal(result.status, "red_test");
+			assert.equal(result.path, "regression.test.mjs");
+			assert.equal(
+				readFileSync(join(runDir, result.path), "utf8").trim(),
+				proofCode.trim(),
+			);
+			assert.match(
+				readFileSync(join(runDir, result.red_output), "utf8"),
+				/archive-status/,
+			);
+			assert.notEqual(result.rerun_without_ember.bug.exitCode, 0);
+			assert.equal(result.rerun_without_ember.fixed, null);
+		},
+		{ fixedTargetDir: undefined },
+	);
+});

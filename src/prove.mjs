@@ -26,6 +26,7 @@ import { validPredicate } from "./run-schema.mjs";
 
 const ISOLATE = fileURLToPath(new URL("../tools/isolate.sh", import.meta.url));
 const FILENAME = "regression.test.mjs";
+const RED_OUTPUT = "regression.red.txt"; // the failing run, kept with a red test
 const MAX_ROUNDS = 4;
 const MAX_CODE_BYTES = 64 * 1024;
 const MAX_OUTPUT_BYTES = 64 * 1024; // retained per run; the rest is discarded
@@ -363,9 +364,12 @@ async function attempt(
 			bug: { exitCode: bug.exitCode, output: bug.output },
 		};
 		if (record.reason !== "red") return record;
-		// No fixed build: a repeatable red has no independent control.
+		// No fixed build: a red that shows the predicate's values is kept as a
+		// failing test with no fixed-build control.
 		if (!fixedTargetDir) {
-			record.reason = "inconclusive";
+			record.reason = showsPredicate(bug, predicate)
+				? "red_test"
+				: "wrong_predicate";
 			return record;
 		}
 		const fixed = await runIsolated(fixedTargetDir, candidateDir, limits);
@@ -496,6 +500,29 @@ export async function prove(
 		const result = await attempt(candidate, dirs);
 		attempts.push(result);
 		if (result.reason === "inconclusive") break; // another candidate cannot add a control
+		if (result.reason === "red_test") {
+			const rerun = await attempt(candidate, dirs); // same code, no model call
+			const rerun_without_ember = {
+				bug: { exitCode: rerun.bug.exitCode },
+				fixed: null,
+			};
+			if (rerun.reason !== "red_test")
+				return finish({
+					status: "not_verified",
+					attempts,
+					reason: "rerun_mismatch",
+					rerun_without_ember,
+				});
+			await writeFile(join(runDir, FILENAME), candidate.code);
+			await writeFile(join(runDir, RED_OUTPUT), result.bug.output);
+			return finish({
+				status: "red_test",
+				attempts,
+				path: FILENAME,
+				red_output: RED_OUTPUT,
+				rerun_without_ember,
+			});
+		}
 		if (result.reason === "verified") {
 			const rerun = await attempt(candidate, dirs); // same code, no model call
 			const rerun_without_ember = {

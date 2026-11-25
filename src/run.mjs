@@ -33,6 +33,7 @@ import {
 	checkCoreProof,
 	requiredArtifacts,
 	validateRun,
+	verdictAfterProve,
 } from "./run-schema.mjs";
 import { inspect, watch } from "./watch.mjs";
 
@@ -537,7 +538,11 @@ async function attributedCall(ctx, stage, args) {
 	const trace = join(out(), "trace.jsonl");
 	const before = (await readLines(trace)).length;
 	const reply = await callEmber({ ...args, stage });
-	if (stage === "repro" && typeof reply.output?.verdict === "string")
+	// Only a verdict from the closed set is kept on the run document.
+	if (
+		stage === "repro" &&
+		["reproduced", "not_reproduced"].includes(reply.output?.verdict)
+	)
 		for (const e of (await readLines(trace)).slice(before))
 			if (e.type === "request" && e.callId)
 				ctx.run.call_verdicts[e.callId] = reply.output.verdict;
@@ -739,9 +744,12 @@ const watchMissed = (replay) =>
 // After a reproduction that did not show the failure, an earlier predicate the
 // page could read, which did not already hold on the fresh page, is kept: only
 // the steps change in the next round.
-const readablePredicate = (replay) =>
+// A predicate whose expected value the bug build showed is contradicted by the
+// page and is not kept.
+const readablePredicate = (replay, predicate) =>
 	replay.status !== "reproduced" &&
 	!replay.attempts.some((a) => a.observed_before) &&
+	!replay.attempts.some((a) => a.predicate_value === predicate?.expected) &&
 	replay.attempts.some(
 		(a) =>
 			a.predicate_value !== undefined && a.predicate_value !== "unavailable",
@@ -750,7 +758,7 @@ const readablePredicate = (replay) =>
 function reproductionFeedback(run, replay) {
 	const last = replay.events.findLast((e) => e.observation)?.observation;
 	return {
-		...(readablePredicate(replay) && {
+		...(readablePredicate(replay, run.predicate) && {
 			keep_predicate:
 				"the page could read this predicate; change only the steps",
 		}),
@@ -814,7 +822,9 @@ async function watchAgain(ctx, replay) {
 		feedback: reproductionFeedback(run, replay),
 	});
 	if (result.status !== "ok") return false;
-	const kept = readablePredicate(replay) ? run.predicate : undefined;
+	const kept = readablePredicate(replay, run.predicate)
+		? run.predicate
+		: undefined;
 	run.steps = result.document.steps;
 	run.predicate = kept ?? result.document.predicate;
 	if (kept)
@@ -940,17 +950,17 @@ const STAGE_FNS = {
 			...(o.testNotes && { testNotes: o.testNotes }),
 			...(o.reportTitle && { reportTitle: o.reportTitle }),
 		});
-		if (result.status === "verified")
-			run.test = { path: result.path, verdict: "verified" };
+		if (["verified", "red_test"].includes(result.status))
+			run.test = { path: result.path, verdict: result.status };
 		await ctx.artifacts("prove", [
 			"proof.json",
 			...(result.path ? [result.path] : []),
+			...(result.red_output ? [result.red_output] : []),
 		]);
 		return committed(ctx, "prove", result.status);
 	},
 	async report(ctx) {
-		const verified = ctx.run.stages.prove === "verified";
-		await finish(ctx, verified ? "proof_verified" : "failure_observed");
+		await finish(ctx, verdictAfterProve(ctx.run.stages.prove));
 		return { status: "ok" };
 	},
 };

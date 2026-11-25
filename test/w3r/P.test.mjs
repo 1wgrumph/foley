@@ -141,13 +141,14 @@ test("TC-R07-2/no-independent-control", { timeout: 120000 }, async () => {
 				archive.predicate,
 				options,
 			);
-			assert.equal(
+			// S6b: the red test is kept under its own status; it is still not a proof.
+			assert.notEqual(
 				result.status,
-				"not_verified",
+				"verified",
 				"Repeatable red without a control is not a proof",
 			);
-			assert.equal(result.reason, "inconclusive");
-			assert.equal(existsSync(join(runDir, "regression.test.mjs")), false);
+			assert.equal(result.status, "red_test");
+			assert.equal(existsSync(join(runDir, "regression.test.mjs")), true);
 		}),
 	);
 });

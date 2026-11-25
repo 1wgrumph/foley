@@ -78,7 +78,8 @@ const REQUIRED = {
 	double_click: { selector: cssSelector },
 	move: { selector: cssSelector },
 	type: {
-		selector: cssSelector,
+		// Without a selector, type goes to the focused element only.
+		selector: (v) => v === undefined || cssSelector(v),
 		value: (v) => typeof v === "string" && text(v, FIELD_LIMIT),
 	},
 	drag: { selector: cssSelector, to_selector: cssSelector },
@@ -221,11 +222,14 @@ async function execute(run, page, action, observation) {
 		return record(run, { type: "dropped_action", action: String(kind) });
 	if (Object.hasOwn(POINTER_ACTIONS, kind))
 		return executePointer(run, page, action, observation);
-	const selector =
-		action.selector ?? (action.target && `text=${action.target}`);
+	const focused = kind === "type" && action.selector === undefined;
+	const selector = focused
+		? undefined
+		: (action.selector ?? (action.target && `text=${action.target}`));
 	const detail = typeof selector === "string" ? selector : undefined;
 	try {
 		if (kind === "screenshot") await capture(run, page, kind);
+		else if (focused) await page.keyboard.type(String(action.value));
 		else if (Object.hasOwn(PAGE_ACTIONS, kind))
 			await PAGE_ACTIONS[kind](page, action);
 		else {
@@ -291,6 +295,39 @@ function shown(value) {
 	return hasCredentialShape(text) ? "" : ` (${text})`;
 }
 
+// Unambiguous forms of a turn, made canonical before validation. A verdict on an
+// unfinished turn decides nothing, so one outside the set is dropped. A drag
+// that omits a repeated end coordinate keeps its start value. A pointer click,
+// double click or move with no coordinates but a selector is that element
+// action. Everything else is validated unchanged.
+const ELEMENT_FOR = {
+	pointer_click: "click",
+	pointer_double_click: "double_click",
+	pointer_move: "move",
+};
+function canonicalAction(a) {
+	if (!isRecord(a)) return a;
+	// Exactly one end coordinate missing: a drag with no end stays refused.
+	if (
+		a.action === "pointer_drag" &&
+		(a.to_x === undefined) !== (a.to_y === undefined)
+	)
+		return { ...a, to_x: a.to_x ?? a.x, to_y: a.to_y ?? a.y };
+	const element = ELEMENT_FOR[a.action];
+	if (element && a.x === undefined && a.y === undefined && a.selector)
+		return { ...a, action: element };
+	return a;
+}
+function normalized(reply) {
+	const output = reply?.status === "ok" && reply.output;
+	if (!isRecord(output)) return reply;
+	const turn = { ...output };
+	if (turn.done === false && !VERDICTS.has(turn.verdict)) delete turn.verdict;
+	if (Array.isArray(turn.actions))
+		turn.actions = turn.actions.map(canonicalAction);
+	return { ...reply, output: turn };
+}
+
 // The first rule a turn breaks, for the one re-ask. No action of it has run.
 function turnReason(output) {
 	if (!isRecord(output)) return "the reply was not one JSON object";
@@ -341,21 +378,23 @@ async function ask(run, page) {
 			caseId: run.caseId,
 			caseBudget: run.caseBudget,
 		});
-	let reply = await call();
+	let reply = normalized(await call());
 	// One re-ask on a JSON turn that fails validation, with the error as feedback.
 	// Credential-shaped model text is never sent back or kept.
 	if (reply?.status === "ok" && !validTurn(reply.output)) {
 		record(run, { type: "reask", reason: "malformed_turn" });
 		const echo = JSON.stringify(reply.output);
-		reply = await call([
-			...(hasCredentialShape(echo)
-				? []
-				: [{ role: "assistant", content: echo }]),
-			{
-				role: "user",
-				content: `That turn failed validation and none of its actions ran: ${turnReason(reply.output)}. Reply again with the whole corrected JSON object.`,
-			},
-		]);
+		reply = normalized(
+			await call([
+				...(hasCredentialShape(echo)
+					? []
+					: [{ role: "assistant", content: echo }]),
+				{
+					role: "user",
+					content: `That turn failed validation and none of its actions ran: ${turnReason(reply.output)}. Reply again with the whole corrected JSON object.`,
+				},
+			]),
+		);
 	}
 	const status =
 		reply?.status === "ok" && !validTurn(reply.output)

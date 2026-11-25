@@ -344,3 +344,86 @@ test("TC-R06-1/key-detail", { timeout: 120000 }, async () => {
 		}),
 	);
 });
+
+// S6b (a): type with no selector types into the focused element only; a type
+// aimed at a selector that is not on the page runs nothing.
+test("TC-R06-1/focused-type", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	const typed = {
+		kind: "visible_text",
+		selector: "#typed",
+		expected: "",
+		observed: "hello",
+	};
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply(
+						final([
+							{ action: "type", selector: "#missing", value: "x" },
+							{ action: "click", selector: "#note" },
+							{ action: "type", value: "hello" },
+						]),
+					),
+				],
+				async ({ callEmber }) => {
+					const opts = options(root, "focused", { callEmber });
+					const result = await repro(archive.steps, typed, bug.origin, opts);
+					evidence(result, opts.runDir, true);
+					const types = result.events.filter((e) => e.action === "type");
+					assert.deepEqual(
+						types.map((e) => e.type),
+						["action_error", "action"],
+					);
+				},
+			),
+		),
+	);
+});
+
+// S6b (b, c): unambiguous turn forms run without a re-ask: a free-text verdict
+// on an unfinished turn is dropped, a drag missing one end coordinate keeps its
+// start value, and a pointer click with only a selector is a click.
+test("TC-R06-3/canonical-turn", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, ({ bug }) =>
+			withEmber(
+				root,
+				[
+					modelReply({
+						actions: [
+							{ action: "pointer_drag", x: 10, y: 600, to_x: 40 },
+							{ action: "pointer_click", selector: "#archive" },
+						],
+						done: false,
+						verdict: "pending",
+					}),
+					modelReply(final([])),
+				],
+				async ({ callEmber, server }) => {
+					const opts = options(root, "canonical", { callEmber });
+					const result = await repro(
+						archive.steps,
+						archive.predicate,
+						bug.origin,
+						opts,
+					);
+					evidence(result, opts.runDir, true);
+					assert.equal(server.requests.length, 2);
+					assert.ok(!result.events.some((e) => e.type === "reask"));
+					const actions = result.events.filter((e) => e.type === "action");
+					assert.deepEqual(
+						actions.slice(0, 2).map((e) => [e.action, e.detail]),
+						[
+							["pointer_drag", "10,600 to 40,600"],
+							["click", "#archive"],
+						],
+					);
+				},
+			),
+		),
+	);
+});

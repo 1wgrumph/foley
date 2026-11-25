@@ -10,7 +10,7 @@
 // candidates; it is replaced (never truncated) after each stage of the current issue.
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { STATUSES } from "./run-schema.mjs";
+import { STATUSES, verdictAfterProve } from "./run-schema.mjs";
 
 const STAGES = ["watch", "locate", "repro", "prove", "report"];
 const MAX_RUNS_PER_STAGE = 2; // the first run plus one rerun after an interruption
@@ -87,9 +87,7 @@ async function writeJson(path, value) {
 function outcome(state) {
 	if (state?.status) return state.status;
 	if (!state?.results.prove) return null;
-	return state.results.prove.status === "verified"
-		? "proof_verified"
-		: "failure_observed";
+	return verdictAfterProve(state.results.prove.status);
 }
 
 // Final status after a stage, or null to continue. Watch and repro gate the rest.

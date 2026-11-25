@@ -59,7 +59,12 @@ function status(state, notice = "") {
 	if (refused) detail = human(refused);
 	if (
 		observed === false &&
-		["reproduced", "proof_verified", "failure_observed"].includes(verdict)
+		[
+			"reproduced",
+			"proof_verified",
+			"failure_observed",
+			"failing_test_no_control",
+		].includes(verdict)
 	)
 		badge = "Conflicting evidence";
 	if (state === "error" || state === "loading") badge = state;

@@ -2,10 +2,15 @@
 const ATTEMPTED = new Set([
 	"attempted_miss",
 	"failure_observed",
+	"failing_test_no_control",
 	"proof_verified",
 ]);
 const ELIGIBLE = new Set([...ATTEMPTED, "eligible_not_attempted"]);
-const SUCCESS = new Set(["failure_observed", "proof_verified"]);
+const SUCCESS = new Set([
+	"failure_observed",
+	"failing_test_no_control",
+	"proof_verified",
+]);
 
 const ratio = (part, whole) => (whole === 0 ? 0 : part / whole);
 

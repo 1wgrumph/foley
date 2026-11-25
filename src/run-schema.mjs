@@ -44,8 +44,17 @@ export const STATUSES = new Set([
 	"eligible_not_attempted",
 	"attempted_miss",
 	"failure_observed",
+	"failing_test_no_control",
 	"proof_verified",
 ]);
+// The verdict after proof. A failing test kept without a fixed build is its own
+// verdict: reproduced, with a failing test, and no fixed-build control.
+export const verdictAfterProve = (prove) =>
+	prove === "verified"
+		? "proof_verified"
+		: prove === "red_test"
+			? "failing_test_no_control"
+			: "failure_observed";
 const STATES = new Set([
 	"empty",
 	"running",

@@ -575,3 +575,61 @@ test("TC-R06-7/watch-round-keeps-predicate", settings, async () => {
 		},
 	);
 });
+
+// S6b (e): a predicate whose expected value the bug build showed is
+// contradicted by the page and is not kept into the next Watch round.
+test("TC-R06-7/watch-round-drops-contradicted", settings, async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const nothing = modelReply({
+		actions: [],
+		done: true,
+		verdict: "not_reproduced",
+	});
+	const contradicted = modelReply({
+		...archive,
+		predicate: {
+			...archive.predicate,
+			expected: "Ready",
+			observed: "Archived",
+		},
+	});
+	await scenario(
+		[
+			contradicted,
+			nothing,
+			nothing,
+			nothing,
+			watchReply,
+			reproReply,
+			proveReply,
+		],
+		async (ctx) => {
+			assertExit(await ctx.start(ctx.runArgs).done, 0);
+			assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+			assert.deepEqual(ctx.readRun().predicate, archive.predicate);
+			const feedback = ctx.server.requests[4].body.messages[1].content.find(
+				(part) => part.type === "text" && part.text.startsWith("Earlier round"),
+			);
+			assert.doesNotMatch(feedback.text, /"keep_predicate"/);
+		},
+	);
+});
+
+// S6b (d): a census run with no fixed build keeps its red test and failing
+// output and ends with its own verdict, shown on the replay page's census index.
+test("TC-R09-1/failing-test-no-control", settings, async () => {
+	await scenario([watchReply, reproReply, proveReply], async (ctx) => {
+		const at = ctx.runArgs.indexOf("--fixed-target");
+		const args = ctx.runArgs.filter((_, i) => i !== at && i !== at + 1);
+		assertExit(await ctx.start(args).done, 1);
+		const run = ctx.readRun();
+		assert.equal(run.verdict, "failing_test_no_control");
+		assert.deepEqual(run.test, {
+			path: "regression.test.mjs",
+			verdict: "red_test",
+		});
+		assert.ok(existsSync(join(ctx.runDir, "regression.red.txt")));
+		const page = readFileSync(join(ctx.runDir, "replay.html"), "utf8");
+		assert.match(page, /failing_test_no_control/);
+	});
+});
