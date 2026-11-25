@@ -306,11 +306,16 @@ async function serveBuild(root) {
 }
 
 // The independent control: the recorded steps, run by the scripted browser
-// driver on each build's own page, show the predicate on the bug build and not
-// on the fixed build. "unavailable" when a build has no page to serve.
+// driver on each build's own page, show the observed value on the bug build and
+// positively show the expected value on the fixed build (the predicate with
+// expected and observed swapped). Absence of the failure alone is not evidence.
 async function predicateControl(steps, predicate, builds) {
-	if (!builds.every((dir) => existsSync(join(dir, "index.html"))))
-		return "unavailable";
+	if (!builds.every((dir) => existsSync(join(dir, "index.html")))) return false;
+	const fixedShows = {
+		...predicate,
+		expected: predicate.observed,
+		observed: predicate.expected,
+	};
 	const scratch = mkdtempSync(join(tmpdir(), "foley-control-"));
 	try {
 		const seen = [];
@@ -319,7 +324,8 @@ async function predicateControl(steps, predicate, builds) {
 			try {
 				const runDir = join(scratch, String(index));
 				await mkdir(runDir);
-				const replay = await repro(steps, predicate, server.origin, {
+				const check = index === 0 ? predicate : fixedShows;
+				const replay = await repro(steps, check, server.origin, {
 					runDir,
 					caseId: "proof-control",
 					scripted: true,
@@ -329,16 +335,11 @@ async function predicateControl(steps, predicate, builds) {
 				await server.close();
 			}
 		}
-		return seen[0] && !seen[1] ? "ok" : "unchanged";
+		return seen[0] && seen[1];
 	} finally {
 		rmSync(scratch, { recursive: true, force: true });
 	}
 }
-const CONTROL_REASON = {
-	ok: "verified",
-	unavailable: "inconclusive",
-	unchanged: "wrong_predicate",
-};
 
 // One candidate, run over each build; its disposable folder holds only the
 // candidate file and is removed before return.
@@ -370,7 +371,7 @@ async function attempt(
 		// The builds differ, but only a change in the predicate's value counts,
 		// and only when the builds' own pages show that change.
 		else if (!showsPredicate(bug, predicate)) record.reason = "wrong_predicate";
-		else record.reason = CONTROL_REASON[await control()];
+		else record.reason = (await control()) ? "verified" : "inconclusive";
 		return record;
 	} finally {
 		rmSync(sandboxPath, { recursive: true, force: true });
