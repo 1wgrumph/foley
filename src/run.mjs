@@ -262,6 +262,7 @@ export function preflight(options) {
 
 const PAIRS = "fixtures/pairs/pairs.json";
 const SHA1 = /^[0-9a-f]{40}$/;
+const PAIR_MEMORY_MIB = 1024;
 const SHA256 = /^[0-9a-f]{64}$/;
 
 function readPairJson(path, missing) {
@@ -388,7 +389,9 @@ export function pairOptions(issue) {
 		target: resolved.bug.checkout,
 		fixedTarget: resolved.fixed.checkout,
 		pageDirs: [resolved.bug.page, resolved.fixed.page],
-		...(memory && { memoryMiB: memory }),
+		// A real target's Vitest needs more than prove's 256 MiB default; pairs
+		// default to 1024 MiB, as test/pairs/prove-pair.mjs does.
+		memoryMiB: memory ?? PAIR_MEMORY_MIB,
 		recordingSha256: pair.recording.sha256,
 		pair: { issue, bug_commit: pair.bug_commit, fix_commit: pair.fix_commit },
 	};
