@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 // Writes the publishable prompt and token trace of one finished run.
-//   node tools/export-trace.mjs <issue> <out-dir> [label]
-// Reads out/runs/<issue>/ and the call records of that run only (run.json
+//   node tools/export-trace.mjs <issue> <out-dir> [label] [run-dir]
+// Reads out/runs/<issue>/ (or run-dir) and the call records of that run only (run.json
 // lists them), so the trace and the run folder are the same run. Requests come
 // from out/prompts/, where media are already digests. Check the result with
 // tools/check-public.mjs before committing it.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const [issue, outDir, label = ""] = process.argv.slice(2);
+const [issue, outDir, label = "", runDirArg] = process.argv.slice(2);
 if (!/^\d+$/.test(issue ?? "") || !outDir) {
-	console.error("usage: export-trace.mjs <issue> <out-dir> [label]");
+	console.error("usage: export-trace.mjs <issue> <out-dir> [label] [run-dir]");
 	process.exit(2);
 }
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
-const runDir = join("out", "runs", issue);
+const runDir = runDirArg ?? join("out", "runs", issue);
 const run = readJson(join(runDir, "run.json"));
 const events = new Map(
 	readFileSync(join("out", "trace.jsonl"), "utf8")

@@ -71,6 +71,7 @@ test("TC-R14-4/census-page", { timeout: 240000 }, async () => {
 				`axe findings at ${size}`,
 			);
 			// Every status is visible text, not only a colour or a title.
+			// biome-ignore lint/performance/useDomNodeTextContent: Assert rendered text, not hidden DOM text.
 			const text = (await page.locator("main").innerText()).toLowerCase();
 			for (const row of rows)
 				assert.ok(text.includes(row.status.replaceAll("_", " ")), row.status);
@@ -102,9 +103,11 @@ test("TC-R14-1/fixed-build-conflict", { timeout: 240000 }, async () => {
 		},
 		async (page) => {
 			assert.match(
+				// biome-ignore lint/performance/useDomNodeTextContent: Assert rendered text, not hidden DOM text.
 				await page.getByTestId("verdict").innerText(),
 				/conflicting evidence/i,
 			);
+			// biome-ignore lint/performance/useDomNodeTextContent: Assert rendered text, not hidden DOM text.
 			assert.match(await page.locator("#summary").innerText(), /fixed build/i);
 		},
 	);
@@ -121,6 +124,7 @@ test("TC-R14-1/run-and-case-cost", { timeout: 240000 }, async () => {
 		},
 		null,
 		async (page) => {
+			// biome-ignore lint/performance/useDomNodeTextContent: Assert rendered text, not hidden DOM text.
 			const meter = await page.getByTestId("cost-meter").innerText();
 			assert.match(meter, /this run[^$]*\$0\.000152/i);
 			assert.match(meter, /all runs of this issue[^$]*\$0\.000900/i);

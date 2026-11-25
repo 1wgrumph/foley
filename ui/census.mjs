@@ -2,7 +2,7 @@
 // first-run status, set, cost and reason. No script; all text is escaped. It has
 // a language, one main landmark and a table that becomes stacked rows on a
 // narrow screen, so nothing scrolls sideways.
-const escape = (value) =>
+const text = (value) =>
 	String(value ?? "").replace(
 		/[&<>"']/g,
 		(c) =>
@@ -10,7 +10,7 @@ const escape = (value) =>
 				c
 			],
 	);
-const human = (value) => escape(String(value ?? "").replaceAll("_", " "));
+const human = (value) => text(String(value ?? "").replaceAll("_", " "));
 
 const COLUMNS = [
 	["Status", (row) => human(row.status)],
@@ -18,9 +18,9 @@ const COLUMNS = [
 	["Set", (row) => human(row.set)],
 	[
 		"Rerun cost (micro-USD)",
-		(row) => escape(row.rerun_cost_micro_usd ?? row.cost_micro_usd ?? 0),
+		(row) => text(row.rerun_cost_micro_usd ?? row.cost_micro_usd ?? 0),
 	],
-	["Reason", (row) => escape(row.reason ?? "")],
+	["Reason", (row) => text(row.reason ?? "")],
 ];
 
 const CSS = `
@@ -46,12 +46,12 @@ export function censusPage(rows, { heading, note = "", replayHref }) {
 	const body = rows
 		.map((row) => {
 			const href = replayHref(row.issue);
-			const issue = `#${escape(row.issue)}`;
+			const issue = `#${text(row.issue)}`;
 			const cells = COLUMNS.map(
 				([label, value]) => `<td data-label="${label}">${value(row)}</td>`,
 			).join("");
 			return `<tr data-testid="census-row"><th scope="row">${
-				href ? `<a href="${escape(href)}">${issue}</a>` : issue
+				href ? `<a href="${text(href)}">${issue}</a>` : issue
 			}</th>${cells}</tr>`;
 		})
 		.join("\n");
@@ -61,13 +61,13 @@ export function censusPage(rows, { heading, note = "", replayHref }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<title>${escape(heading)}</title>
+<title>${text(heading)}</title>
 <style>${CSS}</style>
 </head>
 <body>
 <main>
-<h1>${escape(heading)}</h1>
-<p>${escape(`${rows.length} issues. ${note}`.trim())}</p>
+<h1>${text(heading)}</h1>
+<p>${text(`${rows.length} issues. ${note}`.trim())}</p>
 <table>
 <thead><tr><th scope="col">Issue</th>${COLUMNS.map(([label]) => `<th scope="col">${label}</th>`).join("")}</tr></thead>
 <tbody>
