@@ -5,3 +5,5 @@ node_modules/
 dist/
 build/
 *.log
+# Seeded boundary fixtures must be committed
+!fixtures/public-negative/*/out/
