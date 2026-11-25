@@ -50,7 +50,9 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 				return;
 			}
 			const usage = reply.usage ?? sampleUsage;
-			const answer = Object.hasOwn(reply, "content") ? reply.content : defaultAnswer;
+			const answer = Object.hasOwn(reply, "content")
+				? reply.content
+				: defaultAnswer;
 			const output =
 				req.url === "/v1/responses"
 					? {

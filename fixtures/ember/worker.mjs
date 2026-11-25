@@ -9,7 +9,8 @@ const redirectViolations = [];
 const allowed = new URL(process.env.FOLEY_EMBER_BASE_URL);
 globalThis.fetch = (input, init) => {
 	const url = new URL(input.url ?? input);
-	if ((init?.redirect ?? input.redirect) !== "error") redirectViolations.push(url.pathname);
+	if ((init?.redirect ?? input.redirect) !== "error")
+		redirectViolations.push(url.pathname);
 	if (url.origin !== allowed.origin) {
 		unexpected.push(url.origin);
 		throw new Error("Unexpected network destination");

@@ -2,16 +2,36 @@ import "./repair.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
-	existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync,
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	writeFileSync,
 } from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 import timers from "node:timers/promises";
-import { syncBuiltinESMExports } from "node:module";
-import { sampleUsage } from "../fake-server.mjs";
 import {
-	cap, model, secret, smallUsage, exactUsage, ok, request, wireBody, priced, booked, total,
-	resultIs, reconcile, scenario, contract, refuse,
+	booked,
+	cap,
+	contract,
+	exactUsage,
+	model,
+	ok,
+	priced,
+	reconcile,
+	refuse,
+	request,
+	resultIs,
+	scenario,
+	secret,
+	smallUsage,
+	total,
+	wireBody,
 } from "../ember-harness.mjs";
+import { sampleUsage } from "../fake-server.mjs";
 
 // A fixed seed covers cap equality, one micro-dollar on either side, and
 // rounding at different output lengths without relying on random scheduling.
@@ -23,27 +43,31 @@ function* generated(seed, count) {
 }
 
 contract("TC-R01-1", async () => {
-	for (const [index, seed] of [...generated(0xF01, 9)].entries()) {
-		const bound = 100 + seed % 1000;
+	for (const [index, seed] of [...generated(0xf01, 9)].entries()) {
+		const bound = 100 + (seed % 1000);
 		const gap = (index % 3) - 1;
 		const settled = seed % 100;
-		const open = (seed >>> 8) % 100 + 1;
+		const open = ((seed >>> 8) % 100) + 1;
 		const baseline = cap - settled - open - bound + gap;
-		await scenario({
-			baseline, settled,
-			open: [{ callId: "prior", upperBound: open, caseId: "prior-case" }],
-			script: [ok(exactUsage(bound))],
-		}, async (ctx) => {
-			const options = request(bound);
-			if (gap < 0) {
-				await refuse(ctx, options);
-			} else {
-				resultIs(await ctx.call(options), "ok");
-				assert.equal(ctx.server.requests.length, 1);
-				assert.deepEqual(ctx.server.requests[0].body, wireBody(options));
-				assert.equal(total(ctx.ledger()), cap - gap);
-			}
-		});
+		await scenario(
+			{
+				baseline,
+				settled,
+				open: [{ callId: "prior", upperBound: open, caseId: "prior-case" }],
+				script: [ok(exactUsage(bound))],
+			},
+			async (ctx) => {
+				const options = request(bound);
+				if (gap < 0) {
+					await refuse(ctx, options);
+				} else {
+					resultIs(await ctx.call(options), "ok");
+					assert.equal(ctx.server.requests.length, 1);
+					assert.deepEqual(ctx.server.requests[0].body, wireBody(options));
+					assert.equal(total(ctx.ledger()), cap - gap);
+				}
+			},
+		);
 	}
 });
 
@@ -86,34 +110,43 @@ function checkRace(ctx, results, count) {
 }
 
 contract("TC-R01-3", async () => {
-	for (const [index, seed] of [...generated(0xF03, 6)].entries()) {
-		const bound = 1000 + seed % 4000;
+	for (const [index, seed] of [...generated(0xf03, 6)].entries()) {
+		const bound = 1000 + (seed % 4000);
 		const both = index % 2 === 0;
 		const baseline = cap - 2 * bound - (both ? 0 : -1);
-		await scenario({
-			baseline,
-			script: [ok(exactUsage(bound), true), ok(exactUsage(bound), true)],
-		}, async (ctx) => {
-			// Hold the first request until the second has reached admission. Both
-			// reservations must coexist if it is admitted.
-			const first = ctx.call(request(bound));
-			await ctx.server.waitForRequests(1);
-			const second = ctx.call(request(bound));
-			const winner = await Promise.race([
-				ctx.server.waitForRequests(2).then(() => "sent"),
-				second.then(() => "refused"),
-			]);
-			ctx.server.release(0);
-			if (winner === "sent") ctx.server.release(1);
-			const results = await Promise.all([first, second]);
-			assert.equal(winner, both ? "sent" : "refused", "Concurrent admission over cap");
-			assert.deepEqual(results.map((r) => r.status).sort(),
-				both ? ["ok", "ok"] : ["budget_refused", "ok"]);
-			assert.equal(ctx.server.requests.length, both ? 2 : 1);
-			assert.equal(ctx.ledger().settled, (both ? 2 : 1) * bound);
-			assert.ok(total(ctx.ledger()) <= cap);
-			reconcile(ctx);
-		});
+		await scenario(
+			{
+				baseline,
+				script: [ok(exactUsage(bound), true), ok(exactUsage(bound), true)],
+			},
+			async (ctx) => {
+				// Hold the first request until the second has reached admission. Both
+				// reservations must coexist if it is admitted.
+				const first = ctx.call(request(bound));
+				await ctx.server.waitForRequests(1);
+				const second = ctx.call(request(bound));
+				const winner = await Promise.race([
+					ctx.server.waitForRequests(2).then(() => "sent"),
+					second.then(() => "refused"),
+				]);
+				ctx.server.release(0);
+				if (winner === "sent") ctx.server.release(1);
+				const results = await Promise.all([first, second]);
+				assert.equal(
+					winner,
+					both ? "sent" : "refused",
+					"Concurrent admission over cap",
+				);
+				assert.deepEqual(
+					results.map((r) => r.status).sort(),
+					both ? ["ok", "ok"] : ["budget_refused", "ok"],
+				);
+				assert.equal(ctx.server.requests.length, both ? 2 : 1);
+				assert.equal(ctx.ledger().settled, (both ? 2 : 1) * bound);
+				assert.ok(total(ctx.ledger()) <= cap);
+				reconcile(ctx);
+			},
+		);
 	}
 });
 
@@ -370,15 +403,6 @@ contract("TC-R01-9", async () => {
 
 contract("TC-R01-10", async () => {
 	await scenario(
-		{ baseline: 8_950_000, script: [{ mode: "rate_limited" }] },
-		async (ctx) => {
-			resultIs(await ctx.call(request(40000)), "rate_limited");
-			assert.equal(ctx.server.requests.length, 1);
-			assert.equal(booked(ctx.ledger()), 40000);
-			assert.ok(ctx.events().some((event) => event.type === "refusal"));
-		},
-	);
-	await scenario(
 		{
 			baseline: 8_910_000,
 			script: [
@@ -390,8 +414,12 @@ contract("TC-R01-10", async () => {
 			const nativeSleep = timers.setTimeout;
 			let signalWait;
 			let releaseWait;
-			const waiting = new Promise((resolve) => { signalWait = resolve; });
-			const barrier = new Promise((resolve) => { releaseWait = resolve; });
+			const waiting = new Promise((resolve) => {
+				signalWait = resolve;
+			});
+			const barrier = new Promise((resolve) => {
+				releaseWait = resolve;
+			});
 			timers.setTimeout = (ms, ...args) => {
 				if (ms !== 1000) return nativeSleep(ms, ...args);
 				signalWait("timer");
@@ -406,11 +434,18 @@ contract("TC-R01-10", async () => {
 					running.then(() => "returned"),
 				]);
 				assert.equal(observed, "timer", "Retry ignored Retry-After");
-				assert.equal(ctx.server.requests.length, 1, "Retry before clock release");
+				assert.equal(
+					ctx.server.requests.length,
+					1,
+					"Retry before clock release",
+				);
 				releaseWait();
 				resultIs(await running, "ok");
 				assert.equal(ctx.server.requests.length, 2);
-				assert.deepEqual(ctx.server.requests[0].body, ctx.server.requests[1].body);
+				assert.deepEqual(
+					ctx.server.requests[0].body,
+					ctx.server.requests[1].body,
+				);
 			} finally {
 				releaseWait();
 				timers.setTimeout = nativeSleep;
@@ -419,6 +454,15 @@ contract("TC-R01-10", async () => {
 			assert.equal(booked(ctx.ledger()), 40000);
 			assert.equal(ctx.ledger().settled, 40000);
 			assert.ok(total(ctx.ledger()) <= cap);
+		},
+	);
+	await scenario(
+		{ baseline: 8_950_000, script: [{ mode: "rate_limited" }] },
+		async (ctx) => {
+			resultIs(await ctx.call(request(40000)), "rate_limited");
+			assert.equal(ctx.server.requests.length, 1);
+			assert.equal(booked(ctx.ledger()), 40000);
+			assert.ok(ctx.events().some((event) => event.type === "refusal"));
 		},
 	);
 });
@@ -531,17 +575,21 @@ contract("TC-R02-2", async () => {
 	);
 	// Generated event order: successful request, refusal, or unknown-usage
 	// request; each trace delta must conserve the ledger at every quiescent step.
-	for (const seed of generated(0xF02, 4)) {
+	for (const seed of generated(0xf02, 4)) {
 		const kinds = Array.from({ length: 5 }, (_, i) => (seed >>> (i * 3)) % 3);
-		const script = kinds.filter((kind) => kind !== 1).map((kind) =>
-			kind === 0 ? ok(smallUsage) : { mode: "missing_usage" });
+		const script = kinds
+			.filter((kind) => kind !== 1)
+			.map((kind) => (kind === 0 ? ok(smallUsage) : { mode: "missing_usage" }));
 		await scenario({ baseline: null, script }, async (ctx) => {
 			await ctx.ember.recordBaseline(seed % 1_000_000);
 			let sent = 0;
 			for (const kind of kinds) {
 				if (kind === 1) await refuse(ctx, request(1000, { caseBudget: 0 }));
 				else {
-					resultIs(await ctx.call(request()), kind === 0 ? "ok" : "malformed_output");
+					resultIs(
+						await ctx.call(request()),
+						kind === 0 ? "ok" : "malformed_output",
+					);
 					sent++;
 				}
 				assert.equal(ctx.server.requests.length, sent);

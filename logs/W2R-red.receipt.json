@@ -1,7 +1,7 @@
 {
   "status": "red",
   "log": "w2r-new-red.log",
-  "log_sha256": "b6b8d4a7949198cf5e2b1c7684f5e709b4ddf53ce4828ed8d49f81b59b285979",
+  "log_sha256": "8c4906963b1321d9d192b7254744764ed7db7ce0f03b061b738090adacce6430",
   "ids": [
     "TC-R01-2/bound-violation",
     "TC-R01-1/wire-framing",

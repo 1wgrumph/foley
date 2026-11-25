@@ -51,7 +51,8 @@ let liveTargets = [];
 let redirectViolations = [];
 globalThis.fetch = (input, init) => {
 	const url = new URL(input.url ?? input);
-	if ((init?.redirect ?? input.redirect) !== "error") redirectViolations.push(url.pathname);
+	if ((init?.redirect ?? input.redirect) !== "error")
+		redirectViolations.push(url.pathname);
 	// A positive live-mode control observes the fixed URL but sends only to loopback.
 	if (
 		simulateLive &&
@@ -92,10 +93,15 @@ const inputBound = (options) => {
 	return Buffer.byteLength(JSON.stringify(body)) + 1600 * frames;
 };
 const priced = (options) =>
-	Math.ceil((inputBound(options) * 100 + options.max_output_tokens * 500) / 1000);
+	Math.ceil(
+		(inputBound(options) * 100 + options.max_output_tokens * 500) / 1000,
+	);
 const exactUsage = (bound) => {
 	const options = request(bound);
-	return { prompt_tokens: inputBound(options), completion_tokens: options.max_output_tokens };
+	return {
+		prompt_tokens: inputBound(options),
+		completion_tokens: options.max_output_tokens,
+	};
 };
 const ok = (usage = smallUsage, hold = false) => ({ mode: "ok", usage, hold });
 
@@ -164,7 +170,11 @@ function reconcile(ctx) {
 		baseline[0].baseline_micro_usd + settled + liability,
 		total(ledger),
 	);
-	assert.equal(events.at(-1).cap_ledger_micro_usd, total(ledger), "Last trace running total differs from ledger");
+	assert.equal(
+		events.at(-1).cap_ledger_micro_usd,
+		total(ledger),
+		"Last trace running total differs from ledger",
+	);
 }
 
 async function scenario(options, run) {
@@ -242,15 +252,16 @@ async function scenario(options, run) {
 					.map(JSON.parse),
 			ember,
 			call(options) {
-				const running = (async () => ember.callEmber(options))()
-					.then((result) => {
+				const running = (async () => ember.callEmber(options))().then(
+					(result) => {
 						assert.deepEqual(
 							attemptedExternal,
 							[],
 							"Client attempted a non-test destination",
 						);
 						return result;
-					});
+					},
+				);
 				// A failed pre-settlement assertion can leave a request outstanding.
 				// Retain it for cleanup without hiding a rejection from its caller.
 				running.catch(() => {});
@@ -326,7 +337,11 @@ async function scenario(options, run) {
 					async result() {
 						const message = await waitFor("result");
 						assert.deepEqual(message.unexpected, []);
-						assert.deepEqual(message.redirectViolations, [], "Product omitted redirect error policy");
+						assert.deepEqual(
+							message.redirectViolations,
+							[],
+							"Product omitted redirect error policy",
+						);
 						assert.deepEqual(await exited(), [0, null]);
 						if (!closed)
 							await once(child, "close", {
@@ -345,7 +360,11 @@ async function scenario(options, run) {
 		};
 		await run(ctx);
 		assert.deepEqual(attemptedExternal, []);
-		assert.deepEqual(redirectViolations, [], "Product omitted redirect error policy");
+		assert.deepEqual(
+			redirectViolations,
+			[],
+			"Product omitted redirect error policy",
+		);
 	} finally {
 		try {
 			for (const child of workers) {
@@ -400,5 +419,22 @@ async function refuse(ctx, options, status = "budget_refused") {
 	assert.equal(event.request_digest, undefined);
 }
 
-
-export { cap, model, secret, smallUsage, exactUsage, ok, request, wireBody, inputBound, priced, booked, total, resultIs, reconcile, scenario, contract, refuse };
+export {
+	booked,
+	cap,
+	contract,
+	exactUsage,
+	inputBound,
+	model,
+	ok,
+	priced,
+	reconcile,
+	refuse,
+	request,
+	resultIs,
+	scenario,
+	secret,
+	smallUsage,
+	total,
+	wireBody,
+};
