@@ -1,0 +1,13 @@
+{
+  "status": "red",
+  "log": "red.log",
+  "log_sha256": "19f68b056b8c60b3d89b063725fedfd3d83b4825d91cc9ae850e0608f6fa7f86",
+  "ids": [
+    "TC-R06-1/observation",
+    "TC-R06-3/observation",
+    "TC-R06-5/observation",
+    "TC-R09-1/census-record",
+    "TC-R14-1/observation",
+    "TC-R14-1/census-index"
+  ]
+}
