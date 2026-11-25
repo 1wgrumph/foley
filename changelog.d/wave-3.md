@@ -87,3 +87,14 @@
 - Preflight refuses targets with tracked changes; a resume with a different
   recording, revision, runner or fixture mode refuses with `resume_mismatch`;
   `backlog` accepts `--fixture` (W3-16).
+- Wave-3 review repair, group L (W3-10, W3-11, W3-12, W3-19, W3-20). BRAN graph
+  query hits now resolve to repository paths, so a BRAN match breaks anchor
+  ties; the crate's JSON reader follows the JSON number grammar exactly.
+  `foley eval` scores exactly the frozen held-out issues: absent issues are
+  explicit rows, tuning rows never count, and new attempts use held-out census
+  rows only. `eval` (`--budget-usd`, $1.50) and `backlog` (`--budget-usd`,
+  $3.80; `--per-issue-usd`, $0.40) refuse over-ceiling budgets before any
+  request and cap each issue's case budget by what the envelope has left in the
+  ledger. The Node minimum is 22.13.0 (stable `--permission`) in `package.json`,
+  the lockfile and preflight. `tools/check-public.mjs` reports
+  `assignment-metadata` in return files, and three returns were cleaned.
