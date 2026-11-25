@@ -52,8 +52,8 @@ working directory, schema `foley.pairs/1`. Read:
 Run the ordinary watch, locate, repro, prove and report pipeline. Serve
 the bug page on ephemeral loopback for reproduction and pass both receipt
 page directories to proof's independent control. Real Vitest pairs retain
-the resource bounds already exercised by the pair proof helper:
-1,024 MiB memory unless `memory_mib` overrides it, and 180,000 ms timeout.
+the 1,024 MiB memory default already exercised by the pair proof helper,
+unless `memory_mib` overrides it.
 The 256 MiB generic proof default is not sufficient for this target:
 the repeat gate observed a Vitest out-of-memory failure on #9852.
 Do not take target, revision, runner or origin from a conflicting CLI
