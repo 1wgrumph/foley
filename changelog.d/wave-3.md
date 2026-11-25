@@ -31,3 +31,18 @@
   target, the Node permission model and time and memory limits. A test is
   accepted only when it fails on the bug build on its named assertion, passes
   on the fixed build and repeats that result without another model call.
+
+- Integration slice S4i. `bin/foley.mjs` adds `run`, `backlog`, `eval`,
+  `spend` and `baseline`, with exit codes 0 (success or verified proof),
+  1 (no verified proof, or backlog interrupted), 2 (refused before any model
+  call) and 3 (error). `src/run.mjs` runs watch, locate, repro, prove and
+  report into one run folder, attributes every Ember call to its stage in
+  `out/stage-spend.jsonl`, records per-call tokens and cost in `run.json`,
+  writes the static replay page and `core-proof.json` with its artifact trace,
+  and serves the live page with `--live`. Command-line paths must stay inside
+  the working directory; census media are used only from the local media
+  folder when their digest matches the census.
+- Watch accepts QuickTime (`.mov`) recordings; 13 eligible census issues use
+  that format.
+- `tools/demo-offline.mjs` (`npm run demo:offline`) runs one full offline
+  pipeline against the local fake model server into `out/demo-offline/`.

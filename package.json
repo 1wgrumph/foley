@@ -8,10 +8,14 @@
   "engines": {
     "node": ">=20"
   },
+  "bin": {
+    "foley": "bin/foley.mjs"
+  },
   "scripts": {
     "preflight": "bash tools/preflight-tools.sh",
     "check-public": "gitleaks detect --no-banner --redact && node tools/check-public.mjs --tree . && node tools/check-public.mjs --self-test fixtures/public-negative/",
-    "build:ui": "node ui/build.mjs"
+    "build:ui": "node ui/build.mjs",
+    "demo:offline": "FOLEY_OFFLINE=1 node tools/demo-offline.mjs"
   },
   "dependencies": {
     "playwright": "1.65.1"

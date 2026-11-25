@@ -25,7 +25,12 @@ const MAX_SECONDS = 120;
 const MAX_FRAMES = 40;
 const MAX_FRAME_PX = 1280;
 const MAX_OUTPUT_TOKENS = 4000;
-const TYPES = { ".mp4": ["mp4", "video/mp4"], ".webm": ["webm", "video/webm"] };
+// Census media are MP4, QuickTime and WebM; ffprobe names QuickTime "mov".
+const TYPES = {
+	".mp4": ["mp4", "video/mp4"],
+	".mov": ["mov", "video/quicktime"],
+	".webm": ["webm", "video/webm"],
+};
 // Measured media bounds are written by the live protocol probe (slice S3).
 const BOUNDS = new URL("../fixtures/ember/bounds.json", import.meta.url);
 const NO_MEDIA = { video: { accepted: false }, audio: { accepted: false } };
