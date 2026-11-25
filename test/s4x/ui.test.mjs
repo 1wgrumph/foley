@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
@@ -142,6 +142,20 @@ test("TC-R14-1/observation", { timeout: 120000 }, async () => {
 		[expected, expected],
 		"Every visible step must show its recorded model observation and reason, or not recorded",
 	);
+	// Compatibility control for the shared text policy: a run loaded from disk
+	// must still refuse the same inert shape that the input-boundary tests reject.
+	const renderReplay = await product("ui/render.mjs", "renderReplay");
+	const shaped = ["ghp_", "A".repeat(36)].join("");
+	await temporary(async (root) => {
+		const runDir = join(root, "run");
+		for (const field of ["observation", "reason"]) {
+			const run = fixtureRun(runDir);
+			run.replay.events[0][field] = shaped;
+			writeJson(join(runDir, "run.json"), run);
+			await assert.rejects(renderReplay(runDir), /Invalid action explanation/);
+			assert.equal(existsSync(join(runDir, "replay.html")), false);
+		}
+	});
 });
 
 test("TC-R14-1/census-index", { timeout: 120000 }, async () => {

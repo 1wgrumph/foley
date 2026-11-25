@@ -1,0 +1,28 @@
+{
+	"status": "red",
+	"pinned_revision": "d7b86761f4d20085ae8927161e13d853e979321c",
+	"command": "node --test test/w3r/P.test.mjs",
+	"exit_code": 1,
+	"log": "w3r-P-red.log",
+	"log_sha256": "ad549b3ecfa3216646d97c70da60678d25d3cd239f1df6251cd0012202efe5e2",
+	"ids": [
+		"TC-R07-1/native-vitest",
+		"TC-R07-2/no-independent-control",
+		"TC-R07-2/unrelated-build-difference",
+		"TC-R07-2/predicate-provenance",
+		"TC-R06-4/discriminated-predicate",
+		"TC-R06-4/page-oracles",
+		"TC-R06-4/target-canvas-state",
+		"TC-R06-4/console-recording",
+		"TC-R04-1/unsupported-watch-predicate",
+		"TC-R06-5/no-paid-reproduction",
+		"TC-R06-3/whole-turn",
+		"TC-R04-5/evidence-bounds",
+		"TC-R04-5/evidence-replay"
+	],
+	"assertion_failures": 13,
+	"structural_gap": {
+		"finding": "W3-18",
+		"reason": "Identical prior policies have no behavioral red; compatibility checks at both boundaries and structural inspection required."
+	}
+}

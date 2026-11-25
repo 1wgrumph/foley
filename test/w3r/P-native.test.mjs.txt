@@ -1,0 +1,6 @@
+import { expect, test } from "vitest";
+import { degreesToRadians } from "./packages/math/src/angle.ts";
+
+test("180 degrees is pi radians", () => {
+	expect(degreesToRadians(180)).toBeCloseTo(Math.PI);
+});
