@@ -90,7 +90,14 @@ function validReplay(r) {
 		insideRun(s.path) &&
 		isTime(s.t_s) &&
 		typeof s.action === "string";
-	const event = (e) => isObject(e) && isText(e.type) && optional(e.t_s, isTime);
+	const bounded = (limit) => (v) => typeof v === "string" && v.length <= limit;
+	// Model explanation text on an executed action (S4x): bounded plain strings.
+	const explained = (e) =>
+		e.type !== "action" ||
+		(optional(e.observation, bounded(1024)) &&
+			optional(e.reason, bounded(512)));
+	const event = (e) =>
+		isObject(e) && isText(e.type) && optional(e.t_s, isTime) && explained(e);
 	return (
 		isObject(r) &&
 		Array.isArray(r.screenshots) &&

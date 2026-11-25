@@ -46,3 +46,13 @@
   that format.
 - `tools/demo-offline.mjs` (`npm run demo:offline`) runs one full offline
   pipeline against the local fake model server into `out/demo-offline/`.
+- Run data for the replay (S4x). Each reproduction turn may carry a
+  one-sentence `observation` (at most 1,024 characters) and a `reason` per
+  action (at most 512). The whole turn is checked before any action runs; a
+  non-string, over-limit or credential-shaped explanation stops the run as
+  `malformed_output` and the text is never stored. Executed action events in
+  `replay.json` and `run.json` keep the turn's observation and the action's
+  reason. The reproduction output ceiling is now 4,096 tokens, priced by the
+  existing bound. The backlog writes `census.json` (`{issue, status}` for every
+  candidate, in census order) to each started run folder after every stage, by
+  file replacement, so the report sees the current outcome.

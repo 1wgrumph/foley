@@ -3,6 +3,8 @@
 // module only. A stage is marked started before it runs and completed after, so a
 // finished stage never runs again and an interrupted stage runs at most once more.
 // Spend safety stays with the Ember ledger: a crashed call's reservation stays booked.
+// runRoot/<issue>/census.json in every started folder lists {issue, status} for all
+// candidates; it is replaced (never truncated) after each stage of the current issue.
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { STATUSES } from "./run-schema.mjs";
@@ -77,6 +79,16 @@ async function writeJson(path, value) {
 	await rename(`${path}.tmp`, path);
 }
 
+// The issue's outcome once known: its final status, or after prove the status the
+// report stage will record, so the report can show the current outcome.
+function outcome(state) {
+	if (state?.status) return state.status;
+	if (!state?.results.prove) return null;
+	return state.results.prove.status === "verified"
+		? "proof_verified"
+		: "failure_observed";
+}
+
 // Final status after a stage, or null to continue. Watch and repro gate the rest.
 function decide(name, status) {
 	if (name === "watch" && status !== "ok") return "attempted_miss";
@@ -87,7 +99,7 @@ function decide(name, status) {
 async function runIssue(
 	candidate,
 	state,
-	{ runRoot, stages, stopAfter, targetRevision },
+	{ runRoot, stages, stopAfter, targetRevision, publish },
 ) {
 	const runDir = join(runRoot, String(candidate.issue));
 	const save = () => writeJson(statePath(runRoot, candidate.issue), state);
@@ -95,6 +107,7 @@ async function runIssue(
 		if ((state.attempts[name] ?? 0) >= MAX_RUNS_PER_STAGE) {
 			state.status = "attempted_miss"; // interrupted twice: no third run
 			await save();
+			await publish();
 			return false;
 		}
 		state.attempts[name] = (state.attempts[name] ?? 0) + 1;
@@ -113,12 +126,9 @@ async function runIssue(
 		};
 		state.completed.push(name);
 		state.status = decide(name, result?.status);
-		if (name === "report" && !state.status)
-			state.status =
-				state.results.prove?.status === "verified"
-					? "proof_verified"
-					: "failure_observed";
+		if (name === "report") state.status = outcome(state);
 		await save();
+		await publish();
 		if (stopAfter?.issue === candidate.issue && stopAfter?.stage === name)
 			return true;
 		if (state.status) return false;
@@ -134,6 +144,20 @@ const settled = (c, state) =>
 	c.status === "eligible_not_attempted"
 		? [state?.status ?? "eligible_not_attempted", state?.cost_micro_usd ?? 0]
 		: [c.status, 0];
+
+// Census rows in input order from the current states, written to every started folder.
+async function publishCensus(runRoot, census, states) {
+	const rows = census.candidates.map((c) => ({
+		issue: c.issue,
+		status:
+			c.status === "eligible_not_attempted"
+				? (outcome(states.get(c.issue)) ?? c.status)
+				: c.status,
+	}));
+	for (const [issue, state] of states)
+		if (state)
+			await writeJson(join(runRoot, String(issue), "census.json"), rows);
+}
 
 export async function backlog(
 	census,
@@ -152,6 +176,7 @@ export async function backlog(
 		if (state === INVALID) return refused;
 		states.set(c.issue, state);
 	}
+	const publish = () => publishCensus(runRoot, census, states);
 	const report = [];
 	const row = (c, status, cost = 0) =>
 		report.push({ issue: c.issue, status, cost_micro_usd: cost });
@@ -174,12 +199,14 @@ export async function backlog(
 				cost_micro_usd: 0,
 				status: null,
 			};
+			states.set(c.issue, state);
 		}
 		interrupted = await runIssue(c, state, {
 			runRoot,
 			stages,
 			stopAfter,
 			targetRevision: census.target_revision,
+			publish,
 		});
 		row(c, state.status ?? "eligible_not_attempted", state.cost_micro_usd);
 	}
