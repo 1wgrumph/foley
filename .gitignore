@@ -1,0 +1,7 @@
+# Build output and generated state
+out/
+target/
+node_modules/
+dist/
+build/
+*.log

@@ -1,0 +1,32 @@
+Foley NOTICE
+============
+
+BRAN v0.4.0 — prior work, imported unchanged
+--------------------------------------------
+
+Foley vendors BRAN v0.4.0 under vendor/bran/ as prior work. Foley
+builds on BRAN; it does not claim BRAN as event work.
+
+- Project: BRAN (deterministic code search and context packets)
+- Origin: alphazede/bran
+- Version: 0.4.0
+- Tag: bran-v0.4.0
+- Source commit: 7da6d4b5d6ce2292ec386348e177df5ef0023341
+- Tag object: a1b675d7706651bd975ab0517f5eea2b65607ad6
+- Export: git archive bran-v0.4.0 from the BRAN repository, extracted
+  to vendor/bran/ unchanged.
+- Licence: MIT OR Apache-2.0, at the recipient's choice. See
+  vendor/bran/LICENSE, vendor/bran/LICENSE-MIT, and
+  vendor/bran/LICENSE-APACHE.
+
+BRAN's licence and notice files are kept under vendor/bran/.
+Foley's own source (outside vendor/bran/) is MIT licensed; see
+the root LICENSE file.
+
+Target application (not vendored)
+---------------------------------
+
+Foley targets excalidraw/excalidraw (MIT license) as its analysis
+target. The target checkout lives under target/ and is ignored by
+Git; it is not part of the Foley distribution. The pinned revision
+is recorded in fixtures/target.json.

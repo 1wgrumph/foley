@@ -1,0 +1,848 @@
+{
+  "schema_version": 1,
+  "journeys": [
+    {
+      "stable_id": "P1-CLI",
+      "phase": 1,
+      "slice": "1.1",
+      "runner": "rust",
+      "name": "p1_cli",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-cli/src/main.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P1-RELEASE",
+      "phase": 1,
+      "slice": "1.1",
+      "runner": "python",
+      "name": "tools/ci/release_contract_check.py",
+      "category": "contract",
+      "classification": "new",
+      "source": "tools/ci/release_contract_check.py",
+      "support_fixtures": [
+        "fixtures/release/valid-exact-release-manifest.json"
+      ]
+    },
+    {
+      "stable_id": "P1-PUBLIC-BOUNDARY",
+      "phase": 1,
+      "slice": "1.1",
+      "runner": "python",
+      "name": "tools/ci/public_boundary_check.py",
+      "category": "security",
+      "classification": "new",
+      "source": "tools/ci/public_boundary_check.py",
+      "support_fixtures": [
+        "fixtures/public-boundary/public-safe/neutral-product-text.txt",
+        "fixtures/public-boundary/rejected/synthetic-canaries.txt"
+      ]
+    },
+    {
+      "stable_id": "P1-PUBLIC-EXPORT",
+      "phase": 1,
+      "slice": "1.1",
+      "runner": "python",
+      "name": "tools/ci/public_export.py",
+      "category": "security",
+      "classification": "new",
+      "source": "tools/ci/public_export.py",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P1-BUNDLE",
+      "phase": 1,
+      "slice": "1.2",
+      "runner": "rust",
+      "name": "p1_bundle",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/bundle.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P1-PROFILES",
+      "phase": 1,
+      "slice": "1.2",
+      "runner": "rust",
+      "name": "p1_profiles",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-core/src/profile.rs",
+      "support_fixtures": [
+        "fixtures/policy/invalid-version.yaml",
+        "fixtures/policy/unsafe-path.yaml",
+        "fixtures/policy/valid-v1.yaml"
+      ]
+    },
+    {
+      "stable_id": "P1-CONFORMANCE",
+      "phase": 1,
+      "slice": "1.2",
+      "runner": "rust",
+      "name": "p1_conformance",
+      "category": "conformance",
+      "classification": "new",
+      "source": "crates/bran-core/src/profile.rs",
+      "support_fixtures": [
+        "fixtures/conformance/okf-v0.1-index-invalid.fixture",
+        "fixtures/conformance/okf-v0.1-index-valid.fixture",
+        "fixtures/conformance/okf-v0.1-log-invalid.fixture",
+        "fixtures/conformance/okf-v0.1-log-valid.fixture",
+        "fixtures/conformance/strict-gap-strict-selected.fixture",
+        "fixtures/conformance/bran-policy-parity.fixture",
+        "fixtures/conformance/okf-v0.2-attested-computation.fixture",
+        "fixtures/conformance/okf-v0.2-index-version.fixture",
+        "fixtures/conformance/okf-v0.2-legacy-fallback.fixture",
+        "fixtures/conformance/okf-v0.2-lifecycle.fixture",
+        "fixtures/conformance/okf-v0.2-malformed.fixture",
+        "fixtures/conformance/okf-v0.2-minimal.fixture",
+        "fixtures/conformance/okf-v0.2-sources.fixture",
+        "fixtures/conformance/okf-v0.2-trust-list.fixture",
+        "fixtures/conformance/okf-v0.2-unknown-tolerated.fixture",
+        "fixtures/conformance/okf-v0.2-verified-bare.fixture"
+      ]
+    },
+    {
+      "stable_id": "P2-METADATA",
+      "phase": 2,
+      "slice": "2.1",
+      "runner": "rust",
+      "name": "p2_metadata",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/metadata/mod.rs",
+      "support_fixtures": [
+        "fixtures/source-metadata/metadata-report-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P2-SCANNER",
+      "phase": 2,
+      "slice": "2.1",
+      "runner": "rust",
+      "name": "p2_scanner",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/scan/mod.rs",
+      "support_fixtures": [
+        "fixtures/scanner/scan-snapshot-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P2-GRAPH",
+      "phase": 2,
+      "slice": "2.2",
+      "runner": "rust",
+      "name": "p2_graph",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/graph/mod.rs",
+      "support_fixtures": [
+        "fixtures/graph/knowledge-graph-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P2-QUERIES",
+      "phase": 2,
+      "slice": "2.2",
+      "runner": "rust",
+      "name": "p2_queries",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/graph/mod.rs",
+      "support_fixtures": [
+        "fixtures/queries/query-result-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P2-PACKET-SQZ",
+      "phase": 2,
+      "slice": "2.3",
+      "runner": "rust",
+      "name": "p2_packet_sqz",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/packet/mod.rs",
+      "support_fixtures": [
+        "fixtures/packets/context-packet-sqz-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P2-VIEW",
+      "phase": 2,
+      "slice": "2.3",
+      "runner": "rust",
+      "name": "p2_view",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/view/mod.rs",
+      "support_fixtures": [
+        "fixtures/views/compiled-view-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P3-CLI-MAINTAINER",
+      "phase": 3,
+      "slice": "3.1",
+      "runner": "rust",
+      "name": "p3_cli_maintainer",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/repair/mod.rs",
+      "support_fixtures": [
+        "fixtures/repair/rollback-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P3-HEADLESS-CLI",
+      "phase": 3,
+      "slice": "3.1",
+      "runner": "rust",
+      "name": "p3_headless_cli_and_maintain_lifecycle",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-cli/src/main.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-TUI-ONBOARDING-DIAGNOSTICS",
+      "phase": 3,
+      "slice": "3.2",
+      "runner": "rust",
+      "name": "p3_tui_onboarding_diagnostics",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-tui/src/lib.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-TUI-SURFACE",
+      "phase": 3,
+      "slice": "3.2",
+      "runner": "rust",
+      "name": "p3_tui_surface",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-tui/src/lib.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-OBSIDIAN-EXPORT",
+      "phase": 3,
+      "slice": "3.3",
+      "runner": "rust",
+      "name": "p3_obsidian_export",
+      "category": "unit",
+      "classification": "new",
+      "source": "crates/bran-core/src/export/mod.rs",
+      "support_fixtures": [
+        "fixtures/obsidian/p3-body.txt"
+      ]
+    },
+    {
+      "stable_id": "P3-AGENT-PROFILE",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "p3_agent_profile_contract",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-core/src/agent/mod.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-AGENT-RUNTIME",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "p3_agent_runtime",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/agent/coordinator.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-DOCX-ADAPTER",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "docx_export_round_trip_preserves_model_and_anchors",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-document/tests/docx.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/docx/representative.parts",
+        "fixtures/enterprise-documents/docx/review/amplify-small.fixture",
+        "fixtures/enterprise-documents/docx/review/amplify.fixture",
+        "fixtures/enterprise-documents/docx/review/attribute-newline.fixture",
+        "fixtures/enterprise-documents/docx/review/choice.fixture",
+        "fixtures/enterprise-documents/docx/review/foreign.fixture",
+        "fixtures/enterprise-documents/docx/review/high-compression.fixture",
+        "fixtures/enterprise-documents/docx/review/ordinary.fixture",
+        "fixtures/enterprise-documents/docx/review/prefix-control.fixture",
+        "fixtures/enterprise-documents/docx/review/prefix.fixture",
+        "fixtures/enterprise-documents/docx/unsupported-benign.parts"
+      ]
+    },
+    {
+      "stable_id": "P3-ENTERPRISE-CONFORMANCE",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "enterprise_conformance_fast",
+      "category": "conformance",
+      "classification": "new",
+      "source": "crates/bran-document/tests/conformance.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/conformance/docx-base.parts",
+        "fixtures/enterprise-documents/conformance/pptx-base.parts",
+        "fixtures/enterprise-documents/conformance/xlsx-base.parts"
+      ]
+    },
+    {
+      "stable_id": "P3-ENTERPRISE-CONFORMANCE-FULL",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "enterprise_conformance_full",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-document/tests/conformance.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-ENTERPRISE-DOCUMENT",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "python",
+      "name": "tools/ci/enterprise_contract_check.py",
+      "category": "contract",
+      "classification": "new",
+      "source": "tools/ci/enterprise_contract_check.py",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/negative/active-content.json",
+        "fixtures/enterprise-documents/negative/digest-mismatch.json",
+        "fixtures/enterprise-documents/negative/external-reference.json",
+        "fixtures/enterprise-documents/negative/malformed-structure.json",
+        "fixtures/enterprise-documents/negative/oversized.json",
+        "fixtures/enterprise-documents/negative/secret-reflection.json",
+        "fixtures/enterprise-documents/negative/unsafe-asset-path.json",
+        "fixtures/enterprise-documents/negative/unsupported-evidence.json",
+        "fixtures/enterprise-documents/positive/docx-flow.json",
+        "fixtures/enterprise-documents/positive/pdf-fixed-layout.json",
+        "fixtures/enterprise-documents/positive/pptx-presentation.json",
+        "fixtures/enterprise-documents/positive/xlsx-grid.json"
+      ]
+    },
+    {
+      "stable_id": "P3-ENTERPRISE-XLSX",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "xlsx_features_import",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-document/tests/xlsx.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/conformance/xlsx-features.parts"
+      ]
+    },
+    {
+      "stable_id": "P3-GOOGLE-ATTESTATION",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "python",
+      "name": "tools/ci/google_attestation_contract_check.py",
+      "category": "contract",
+      "classification": "new",
+      "source": "tools/ci/google_attestation_contract_check.py",
+      "support_fixtures": [
+        "fixtures/google-attestation/negative/completeness-overclaim.json",
+        "fixtures/google-attestation/negative/conflict-mixed-revision.json",
+        "fixtures/google-attestation/negative/dlp-rejected.json",
+        "fixtures/google-attestation/negative/incomplete-permission-revision.json",
+        "fixtures/google-attestation/negative/network-disabled.json",
+        "fixtures/google-attestation/negative/opaque-locator-missing-scope.json",
+        "fixtures/google-attestation/negative/quota-location-perimeter.json",
+        "fixtures/google-attestation/negative/tenant-escape-secret-action.json",
+        "fixtures/google-attestation/positive/agent-search.json",
+        "fixtures/google-attestation/positive/bran-git.json",
+        "fixtures/google-attestation/positive/bran-okf.json",
+        "fixtures/google-attestation/positive/document-ai.json",
+        "fixtures/google-attestation/positive/gemini-enterprise.json",
+        "fixtures/google-attestation/positive/knowledge-catalog.json",
+        "fixtures/google-attestation/recorded/input.pdf",
+        "fixtures/google-attestation/recorded/process-empty-layout.json",
+        "fixtures/google-attestation/recorded/process-layout.json",
+        "fixtures/google-attestation/recorded/process-legacy-only.json",
+        "fixtures/google-attestation/recorded/processor-create.json",
+        "fixtures/google-attestation/recorded/processor-missing-identity.json"
+      ]
+    },
+    {
+      "stable_id": "P3-PDF-ADAPTER",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "pdf_conformance_fast",
+      "category": "conformance",
+      "classification": "new",
+      "source": "crates/bran-document/tests/pdf.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/conformance/pdf-base.objects"
+      ]
+    },
+    {
+      "stable_id": "P3-PDF-ADAPTER-FULL",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "pdf_conformance_full",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-document/tests/pdf.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P3-PPTX-ADAPTER",
+      "phase": 3,
+      "slice": "3.4",
+      "runner": "rust",
+      "name": "pptx_round_trip_preserves_structure",
+      "category": "conformance",
+      "classification": "new",
+      "source": "crates/bran-document/tests/pptx.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/conformance/pptx-design.parts",
+        "fixtures/enterprise-documents/conformance/pptx-ordinary.parts",
+        "fixtures/enterprise-documents/pptx-review/compressible-text.deflate.hex",
+        "fixtures/enterprise-documents/pptx-review/png-metadata-canary.deflate.hex",
+        "fixtures/enterprise-documents/pptx-review/shared-notes-amplification.deflate.hex",
+        "fixtures/enterprise-documents/pptx-review/undeclared-r.deflate.hex",
+        "fixtures/enterprise-documents/conformance/pptx-slides.parts"
+      ]
+    },
+    {
+      "stable_id": "P4-SEALED-RELEASE",
+      "phase": 4,
+      "slice": "4.2",
+      "runner": "python",
+      "name": "test_p4_sealed_release",
+      "category": "contract",
+      "classification": "new",
+      "source": "tools/ci/release_seal.py",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-SCHEMA-PARSERS",
+      "phase": 8,
+      "slice": "8.1",
+      "runner": "rust",
+      "name": "p8_schema_parsers",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-core/src/graph/model.rs",
+      "support_fixtures": [
+        "fixtures/graph/structural-graph-snapshot-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P8-INCREMENTAL-PUBLISH",
+      "phase": 8,
+      "slice": "8.2",
+      "runner": "rust",
+      "name": "p8_incremental_publish",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/scan/transaction.rs",
+      "support_fixtures": [
+        "fixtures/derived-state/rebuild-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P8-RANKING",
+      "phase": 8,
+      "slice": "8.3",
+      "runner": "rust",
+      "name": "p8_ranking",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/graph/query.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-TRAVERSAL-PACKET",
+      "phase": 8,
+      "slice": "8.4",
+      "runner": "rust",
+      "name": "p8_traversal_packet",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/packet/mod.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-CONNECTED-SQZ",
+      "phase": 8,
+      "slice": "8.6",
+      "runner": "rust",
+      "name": "p8_connected_sqz",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/adapters/connected.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DATABASE-BOUNDARY",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_database_boundary_config",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-core/src/database/mod.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DATABASE-CONTRACT",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "python",
+      "name": "tools/ci/database_contract_check.py",
+      "category": "security",
+      "classification": "new",
+      "source": "tools/ci/database_contract_check.py",
+      "support_fixtures": [
+        "fixtures/database/queries.tsv",
+        "fixtures/database/synthetic.sql"
+      ]
+    },
+    {
+      "stable_id": "P8-DATABASE-EVIDENCE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_database_evidence_packet",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/database/evidence.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DATABASE-SQL-GATE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_database_sql_gate",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-core/src/database/sql.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DEPLOYMENT-CONTRACT",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "python",
+      "name": "tools/ci/deployment_contract_check.py",
+      "category": "security",
+      "classification": "new",
+      "source": "tools/ci/deployment_contract_check.py",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DEPLOYMENT-PROFILE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_deployment_profile",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/deployment_profile.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-DLP",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_packet_refuses_dlp_findings_without_reflecting_them",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-DOCX",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_query_and_packet_return_native_docx_anchors_deterministically",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-INSPECTION",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_inspection_is_read_only_and_schema_valid",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-PACKET",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_packet_selects_native_xlsx_anchors_deterministically",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-PDF",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_packet_selects_native_pdf_anchors",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-PPTX",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_query_and_packet_return_native_pptx_anchors_deterministically",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-PPTX-LOCATOR",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_packet_refuses_pptx_without_native_shape_identity",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-QUERY",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_query_returns_native_xlsx_anchors_deterministically",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REFUSAL",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_packet_refuses_malformed_documents_with_typed_reason",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REVIEW-COVERAGE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_review_matches_contribute_to_query_coverage",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/admission-review/positive-docx.fixture",
+        "fixtures/enterprise-documents/admission-review/positive-xlsx.fixture",
+        "fixtures/enterprise-documents/admission-review/positive-pptx.fixture"
+      ]
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REVIEW-ENVELOPE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_review_unrepresentable_envelope_is_refused",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/admission-review/many.fixture"
+      ]
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REVIEW-LOCATOR-DLP",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_review_locator_dlp_refuses_admission",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/admission-review/filename.fixture"
+      ]
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REVIEW-PACKET-BUDGET",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_review_packet_excerpts_obey_and_account_for_budgets",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/admission-review/budget.fixture",
+        "fixtures/enterprise-documents/admission-review/settings.conf"
+      ]
+    },
+    {
+      "stable_id": "P8-DOCUMENT-REVIEW-REFUSAL-PATH",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_review_refusals_do_not_echo_unsafe_paths",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": [
+        "fixtures/enterprise-documents/admission-review/both.fixture",
+        "fixtures/enterprise-documents/admission-review/boundary.fixture"
+      ]
+    },
+    {
+      "stable_id": "P8-DOCUMENT-UNCHANGED",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "document_outputs_unchanged_without_document_evidence",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/document_admission.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-SCIP-BASELINE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "scip_absent_index_keeps_existing_output",
+      "category": "regression",
+      "classification": "new",
+      "source": "crates/bran-cli/src/scip_tests.rs",
+      "support_fixtures": [
+        "fixtures/symbols/baseline-packet-v1.json",
+        "fixtures/symbols/baseline-query-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P8-SCIP-SYMBOLS",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_scip_symbols",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/src/scip_tests.rs",
+      "support_fixtures": [
+        "fixtures/symbols/symbol-navigation-v1.json"
+      ]
+    },
+    {
+      "stable_id": "P8-SOURCE-REVISION",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_source_revision",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/src/source_revision.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-STATE-STORE",
+      "phase": 8,
+      "slice": "8.7",
+      "runner": "rust",
+      "name": "p8_state_store_failures",
+      "category": "integration",
+      "classification": "new",
+      "source": "crates/bran-core/src/database/state.rs",
+      "support_fixtures": []
+    },
+    {
+      "stable_id": "P8-BRIEF-RANKING",
+      "phase": 8,
+      "slice": "8.8",
+      "runner": "rust",
+      "name": "brief_ranking_tier_keeps_demoted_evidence_below_every_tier_zero_result",
+      "category": "contract",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/brief_ranking.rs",
+      "support_fixtures": [
+        "fixtures/recall/ranking-tree/evidence/lantern/run-0042.md",
+        "fixtures/recall/ranking-tree/evidence/runs/rotate-lantern-keys-run-0043.md",
+        "fixtures/recall/ranking-tree/tools/rotate-lantern-keys.sh",
+        "fixtures/recall/ranking.yaml"
+      ]
+    },
+    {
+      "stable_id": "P8-BRIEF-SELECT",
+      "phase": 8,
+      "slice": "8.8",
+      "runner": "rust",
+      "name": "advisor_faults_keep_the_rule_answer",
+      "category": "security",
+      "classification": "new",
+      "source": "crates/bran-cli/tests/brief_select.rs",
+      "support_fixtures": [
+        "fixtures/advisor/advisor.sh"
+      ]
+    },
+    {
+      "stable_id": "P8-RECALL-CHECK",
+      "phase": 8,
+      "slice": "8.8",
+      "runner": "python",
+      "name": "tools/recall/test_recall_check.py",
+      "category": "contract",
+      "classification": "new",
+      "source": "tools/recall/test_recall_check.py",
+      "support_fixtures": [
+        "fixtures/recall/policy.yaml",
+        "fixtures/recall/questions.jsonl",
+        "fixtures/recall/tree/archive/old-watering-schedule.md",
+        "fixtures/recall/tree/docs/frost-protection.md",
+        "fixtures/recall/tree/docs/soil-moisture-sensor.md",
+        "fixtures/recall/tree/docs/valve-wiring.md",
+        "fixtures/recall/tree/docs/watering-schedule.md",
+        "fixtures/recall/tree/notes/glossary.md",
+        "fixtures/recall/tree/reference/rain-delay.md",
+        "fixtures/recall/tree/reference/zone-naming.md",
+        "fixtures/recall/tree/runbooks/pump-pressure-alarm.md",
+        "fixtures/recall/tree/runbooks/winterize-pipes.md"
+      ]
+    }
+  ]
+}

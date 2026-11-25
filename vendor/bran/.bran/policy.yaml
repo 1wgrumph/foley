@@ -1,0 +1,89 @@
+schema_version: "1"
+
+frontmatter:
+  required:
+    - type
+    - title
+    - okf_status
+    - tags
+  optional:
+    - freshness
+    - resource
+    - public_boundary
+    - description
+    - status
+    - stale_after
+    - sources
+    - usage_window
+    - generated
+    - verified
+    - timestamp
+    - runtime
+    - parameters
+    - computation
+    - executor
+    - attester
+  allowed:
+    - type
+    - title
+    - okf_status
+    - tags
+    - freshness
+    - resource
+    - public_boundary
+    - description
+    - status
+    - stale_after
+    - sources
+    - usage_window
+    - generated
+    - verified
+    - timestamp
+    - runtime
+    - parameters
+    - computation
+    - executor
+    - attester
+  preserved_canonical_keys:
+    - proposal_id
+    - kind
+    - submission_status
+
+coverage:
+  - canonical
+  - legacy
+  - excluded
+  - unclassified
+
+document_coverage:
+  legacy_documents:
+    - README.md
+    - docs/integrations/agent-setup.md
+  excluded_documents:
+    skill/use-bran/SKILL.md: Agent skill frontmatter is parsed by the host and is not an OKF concept document.
+    examples/headless/README.md: Headless command reference, not an OKF concept document.
+  bridge_targets:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+
+tags:
+  allowed:
+    - developer
+    - public
+    - internal
+    - bran
+
+status:
+  allowed:
+    - draft
+    - active
+    - deprecated
+
+public_boundary:
+  values:
+    - public
+    - public-compatible
+    - private
+    - internal
+  path_allowlist:
+    - .
