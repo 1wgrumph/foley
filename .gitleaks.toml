@@ -1,0 +1,9 @@
+# Foley gitleaks configuration: default rules plus one path allow-list.
+title = "foley"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic negative fixtures for tools/check-public.mjs"
+paths = ['''^fixtures/public-negative/''']

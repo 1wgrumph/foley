@@ -5,3 +5,7 @@ node_modules/
 dist/
 build/
 *.log
+# Seeded boundary fixtures must be committed
+!fixtures/public-negative/*/out/
+# Third-party media downloaded for inspection only; never committed
+media/cache/

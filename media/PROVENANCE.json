@@ -1,0 +1,387 @@
+{
+  "files": {
+    "vendor/bran/assets/brand/bran-repository-raven.png": {
+      "source": "BRAN v0.4.0 (tag bran-v0.4.0), imported unchanged",
+      "licence": "MIT OR Apache-2.0",
+      "owner": "BRAN authors"
+    },
+    "fixtures/recordings/owned-basic-flow.mp4": {
+      "source": "Recorded by the Foley project on 2026-11-24 with fixtures/recordings/record-owned-clip.mjs against a local build of excalidraw/excalidraw (MIT) at eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+      "licence": "MIT (Foley); the recorded Excalidraw UI is MIT licensed",
+      "owner": "Foley project"
+    }
+  },
+  "external": {
+    "https://github.com/user-attachments/assets/d73ec1a2-fc3f-4897-a572-d73fbcc62c53": {
+      "issue": 12720,
+      "sha256": "8739e488cd454f27081c3a9f6d29ac300394a93aa3ec72cb7b1d994ef1282918",
+      "size_bytes": 179008,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/2373f72b-fc87-46f5-b31b-9cd6f33db49b": {
+      "issue": 12650,
+      "sha256": "d9a8c921f1477136720e4400682364b0e074425d75e2262419127e26c78fe512",
+      "size_bytes": 2002233,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/48601f52-479c-4b13-8ba6-679c81c42286": {
+      "issue": 12405,
+      "sha256": "b3e54cf447f61284bdbf20702483d2ce6028de173f46262b4094a18c30eecde1",
+      "size_bytes": 829720,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/6d461f11-c069-4f55-b6a7-c19a0e7cd4da": {
+      "issue": 12300,
+      "sha256": "f8ff1807f2630b86b2820d98ed8b69ab4bd4499035d81be40924c92457483288",
+      "size_bytes": 466620,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/6e89a64b-e0e3-4cb1-9dec-2c9f3d5b0306": {
+      "issue": 11842,
+      "sha256": "730c9628edeb7f9f6462cb4eec2c4fc37f091669a4866caf4ca875a06529659f",
+      "size_bytes": 426248,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/68106e2d-4772-4b89-8a53-411aedc9e4b4": {
+      "issue": 11798,
+      "sha256": "dfca6a80aeb7c7ea8557fcc08de2162db366847480a60bbb41cc36fc1800740b",
+      "size_bytes": 447246,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/e6198d88-ca6c-4dba-9bea-86722e6f4eea": {
+      "issue": 11796,
+      "sha256": "790ddd2e7e640e3d3fb98193f084113615007ae1ef214d79a2ab7bcc675b0163",
+      "size_bytes": 3141815,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/3a00355e-02f7-4e7a-8660-72b578d35cd1": {
+      "issue": 11795,
+      "sha256": "2716de5cf5fd951009c97c0346973b9e8c99d5b2aa4a03d272c63ccabd33903b",
+      "size_bytes": 3990667,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/dc040978-6fdc-4b19-bf92-6af3b89dc7f0": {
+      "issue": 11401,
+      "sha256": "33e0236d9a291ba61df7a876ed5228279bae12ae8e78231efba9e4f9cee2d9df",
+      "size_bytes": 4582785,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/a9aff6bf-16ea-49e9-ac08-50d61a2a5358": {
+      "issue": 11223,
+      "sha256": "2a38b2dada4e160720806b2313800d6878d5661b8dd7519fb5455eb725dc45e9",
+      "size_bytes": 3165418,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/02d890e4-156a-4f3b-abf8-0d2d0eb3a65d": {
+      "issue": 11173,
+      "sha256": "a7c7a4f5e571f364617876c208a5bc6d8f2fc5b1e15e5ceac26820dd6f86ddb7",
+      "size_bytes": 1529282,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/f07c19a9-8008-4b4b-86ad-ea8ad531862f": {
+      "issue": 11111,
+      "sha256": "43b97d5c3fc80bd0279a3cb44b3270f7754bfc4925015b126c9a0956cd152e24",
+      "size_bytes": 777755,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/3acbce20-f13d-42d6-8bd6-4f17c8a2fcb8": {
+      "issue": 11042,
+      "sha256": "320e8d74807b2443d53a7f2609370a54a5e16439b2c523af881041e6228a8f4f",
+      "size_bytes": 4289232,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/7d022eaf-cfa5-4b28-8e54-3a6da768e02d": {
+      "issue": 10928,
+      "sha256": "4f78cb8419244fd64a1d601521b278be685fb3d34b0fce0b8f92452256d4e32a",
+      "size_bytes": 4450083,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/c99a6245-f272-42cc-b8d1-dd573c06b9fe": {
+      "issue": 10898,
+      "sha256": "5ebddcb2bc473ec546e25fdfdba5dd18e2f8059b0132c5bf954f3bd6944ffa07",
+      "size_bytes": 473230,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/e0ec9e90-aabc-48db-a3f0-c2db708e184c": {
+      "issue": 10863,
+      "sha256": "f878c1386b8db3d1c19e6c84fa2ccae15120dace5e01d7509af47eaa6dbef668",
+      "size_bytes": 1279679,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/48fa4173-f193-45fe-849b-ba87dcbf5903": {
+      "issue": 10855,
+      "sha256": "5d29803f79009604bba6f030ac24da79d9e2ec8fcc6bc7520b96480e71cd8351",
+      "size_bytes": 1802000,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/1283ee9f-399b-4938-8e69-cc3cc9449f83": {
+      "issue": 10688,
+      "sha256": "bbb2f98e9874576f906b668b5a0a9cdb0245a5458087dc906dbdc22026077f8c",
+      "size_bytes": 1832581,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/5200b285-3edd-4bd0-ae85-38a08921d742": {
+      "issue": 10661,
+      "sha256": "5df374f69803acb13a3fb06b7e2189ae4d870aa3b15f11e8a51c4b9f13657b9b",
+      "size_bytes": 2843110,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/30a4b79a-2abf-4d71-8d20-98c1188f8b72": {
+      "issue": 10568,
+      "sha256": "ce611104729005f9ee050f01474c8f8d44206ba083a1d212593e326edf88f8d1",
+      "size_bytes": 2113528,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/a4fbb12b-d4f6-47e4-8d78-6821f7fabf19": {
+      "issue": 10480,
+      "sha256": "49e97bab51841c006f62e406799c0bccb01d8b02b5727d73758edb0533a08e9e",
+      "size_bytes": 1046319,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/4a122e5f-77b1-41d4-9c26-c9cfc24a6dac": {
+      "issue": 10407,
+      "sha256": "5622449ae42767cc687b25fe762a3bf59341fde2132848bde01632b06d8dc4af",
+      "size_bytes": 885642,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/766eb6fb-f704-4a24-8915-2b2a587cc9b8": {
+      "issue": 10128,
+      "sha256": "69a9e53685df8e48e3482725b8d4d74c2617d4e312e95bbe63e2fa330f40462d",
+      "size_bytes": 7730961,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/0a9b48f2-e774-4d4c-a179-a566321769e1": {
+      "issue": 10015,
+      "sha256": "666d078bfb8027c312bc9713cf83ad321cc8bcd505cc95973f797cf57a046e15",
+      "size_bytes": 10069749,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/3acf8a90-d609-4bd5-a594-81ee52a069bc": {
+      "issue": 10000,
+      "sha256": "086ec3355e7c27ff091bd9005ca1fb858d248b60535296547c1fd5315271fd00",
+      "size_bytes": 2574663,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/96a6404e-c134-4ec7-b377-1bfd4cbb6692": {
+      "issue": 9980,
+      "sha256": "315f6c4f02445af6f25c38a6bec37034d0cbf711772c43102c3402507972439f",
+      "size_bytes": 3876784,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/26076ddc-fcbe-4e7f-8366-0e7cefefdb94": {
+      "issue": 9960,
+      "sha256": "d0d0316c165416adeeb5f32f9bff71618af5dd8e2cc9f9b8cc0e9a3173202b41",
+      "size_bytes": 605692,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/9bb78cb6-8e73-4014-89e1-622951b08794": {
+      "issue": 9938,
+      "sha256": "b706e2864c8eea169618972eab70ecc995fcb2fd81edc967b923e3df035d06f6",
+      "size_bytes": 1417721,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/61f293d1-0be0-4c41-9de8-73359b14fa5f": {
+      "issue": 9871,
+      "sha256": "548935bc3fbd158c9e3a5f42bf7ed61f41566959cdd25be0bb6fdec4c20a09b7",
+      "size_bytes": 499141,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/83d50639-11c1-4165-ba6f-677175bfce53": {
+      "issue": 9864,
+      "sha256": "088c462755a3f767829f0d602fa2092f7c9b31f5a060962b8698d5ad332f4cdc",
+      "size_bytes": 10363703,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/8dab3fa7-1925-421a-b072-2937890b856d": {
+      "issue": 9815,
+      "sha256": "127641cc0f7e06e80cb344fd8c723069cbcd567e279b3393b28325936ead2e2d",
+      "size_bytes": 782989,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/b2ba6dfb-30a0-4fad-8da5-e7f387771600": {
+      "issue": 9812,
+      "sha256": "997f63c4c63fc89d61888120c83e72efd7830e10c7eacd209a77e8f4ed781fb3",
+      "size_bytes": 33255,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/46ecbaf6-4a21-4442-82a1-4d0a5ed9168c": {
+      "issue": 9782,
+      "sha256": "0e285b6eceec32eb7235b6f9266c9a6f06e5d592d572f93defd0c5101d4ae61c",
+      "size_bytes": 3977128,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/8b18c907-c618-4b19-81fb-19a143e434a9": {
+      "issue": 9782,
+      "sha256": "e5963b83e7563ecd221cfb68fd56ba21fce86cb434639494469e2b405b8253e4",
+      "size_bytes": 1471168,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/b7c60a52-2438-414f-9cb2-692e46fd76ae": {
+      "issue": 9755,
+      "sha256": "d0aab77c3b1d9df379a56413dc3ed3a70506634f9252b8d8fc9e8527b589c7fa",
+      "size_bytes": 7053065,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/ffc14e40-0e0c-4ff7-a079-eb77b32de4b9": {
+      "issue": 9710,
+      "sha256": "8bc0707a3c2987b5e2df19e100c19ad1295bc8a567e66740a495e13295065df6",
+      "size_bytes": 235650,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/5ed56a91-f221-453e-8b5e-1b602907141c": {
+      "issue": 9663,
+      "sha256": "9702294482390ee4b8e43ebea6295149879c5ef28876645517b672da785b9d15",
+      "size_bytes": 8535651,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/a7f2fd16-d0ce-435f-b063-b76d9424bf89": {
+      "issue": 9517,
+      "sha256": "11f27560139ce577ae98eba7f1f211c7dc6a6c9143a239baaea37de9295dde9b",
+      "size_bytes": 8006253,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/cf5e30b7-87af-4adb-a115-2585308fb008": {
+      "issue": 9510,
+      "sha256": "775f5702979f7e6d4f6a271ed97560e32292edb009060830ddce99d58f5c8855",
+      "size_bytes": 404301,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/6be81365-dc5c-4fe2-b86c-5c372788fde6": {
+      "issue": 9509,
+      "sha256": "cbecc8106775f517fd9f9c3e2667f2677f87a240072173a88dce86a60719c945",
+      "size_bytes": 178966,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/6b80cfa5-bc5b-43d9-a662-9ca1c69920a4": {
+      "issue": 9464,
+      "sha256": "c09901067cafad452e797d05a4897663c2cdafc56875e5828ed05e9079de7c14",
+      "size_bytes": 4653825,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/3a1b0ec2-2839-4312-ba08-bf2b13330278": {
+      "issue": 9441,
+      "sha256": "628a02c74df359dea312631fe40567b577886ca6aa441470fc15ce744f3eebd8",
+      "size_bytes": 2488133,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/b5176bd6-2de8-4d74-91d3-fb2588690912": {
+      "issue": 9410,
+      "sha256": "a86282fdfd30393b6c3bfcf115efdc44bd0fb6a0ee034a8cee85c2693ec126b7",
+      "size_bytes": 2839039,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/60c55a16-0098-4e93-8228-7bccf2904531": {
+      "issue": 9257,
+      "sha256": "78b5723484bef695167f583c5e33451f484ae0f261e3b9cba016c7be47c2e7a8",
+      "size_bytes": 709084,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/cdc7bd75-92c0-45a9-abc0-36b2ce0a4943": {
+      "issue": 9257,
+      "sha256": "db346a1a26603e9d635e002faabc1249574a3731f97b9794540be4f71e2ef6b3",
+      "size_bytes": 590127,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/09bc2b9f-e9ed-4b2f-a51f-0157020baf11": {
+      "issue": 9240,
+      "sha256": "d4a8025512653f6a5df6c0802b7b55922a49cd9fcfc9e018aa6c6c8897b33d95",
+      "size_bytes": 802006,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/1f525e7e-a9ad-47b0-8b19-da6353a38f7b": {
+      "issue": 9240,
+      "sha256": "2f7bb9bebd8c63244da449890be5280163dbb1a7313c794a92240ed0f49e0c85",
+      "size_bytes": 409106,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/97e831a3-a6d1-402d-ad3d-85271c2fadb7": {
+      "issue": 9170,
+      "sha256": "18eb761a8b3cb9e2e9f8c0efff1babac1c7a6b0ed86e555cdeb11c2b9b3c0346",
+      "size_bytes": 579376,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/e331bd00-754c-4d9d-8656-9a9e6e153265": {
+      "issue": 9141,
+      "sha256": "c684fe1e009b66924421e1e8831fdb22d42e19d3dfa50306deb41df5319f112d",
+      "size_bytes": 3251326,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/34316b0e-51f5-41b9-aa49-2917295245a9": {
+      "issue": 9115,
+      "sha256": "d90c95e57f98947beebabc557aa40ba6df53d5b8ec83826fcf88416d3e599236",
+      "size_bytes": 6721039,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/2df60fcc-c6e7-4ea5-9df8-ca4305891142": {
+      "issue": 9049,
+      "sha256": "ccdca26f400f313e3709a5cad69f02cd3d8796f0518376301cb65372efb17bd7",
+      "size_bytes": 16817496,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/587d0eff-fd5d-412f-8953-3afb82de9eb7": {
+      "issue": 9032,
+      "sha256": "2d4c6b5fbcaf5b8dedfb05ff72db9bc74fb398b837487989334a5d8ea8ba89ae",
+      "size_bytes": 3080442,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    },
+    "https://github.com/user-attachments/assets/95b23aa2-54ac-4b3c-99e0-e23d2bf56155": {
+      "issue": 8989,
+      "sha256": "a7323ce9efa44b3dfc8be2f9755c48fbee86059bb994d684392259b20ad531c2",
+      "size_bytes": 5435927,
+      "basis": "Attached by its reporter to a public excalidraw/excalidraw issue; viewed through GitHub under the GitHub Terms of Service. Foley does not redistribute it: the repository stores URL, size and hash only, and local copies stay in the Git-ignored media/cache/.",
+      "licence": "none granted to Foley; not redistributed"
+    }
+  }
+}

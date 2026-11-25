@@ -1,0 +1,108 @@
+{
+  "schema": "foley.labels/1",
+  "census": "fixtures/census/census.json",
+  "target_revision": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+  "labelled_on": "2026-11-24",
+  "source": "Expected outcomes written by hand from each issue's text and recording.",
+  "split": "tuning",
+  "fixed": false,
+  "note": "Spot-checked issues are kept here, so the held-out set stays unseen. 9509, 12405 and 9938 did not reproduce at the pin on 2026-11-24 and serve as negative tuning cases.",
+  "entries": [
+    {
+      "issue": 9257,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9257",
+      "bug": "Switching tool while drawing an arrow places the arrow instead of cancelling it",
+      "steps": [
+        "Select the arrow tool",
+        "Click a start point and a second point",
+        "Switch to the selection tool or another tool before finishing"
+      ],
+      "wrong_result": "The arrow tool breaks; the unfinished arrow is placed down",
+      "expected_result": "Switching tool cancels or cleanly finishes the arrow"
+    },
+    {
+      "issue": 11842,
+      "url": "https://github.com/excalidraw/excalidraw/issues/11842",
+      "bug": "Deselecting one group from a multi-group selection turns the other groups into individual elements",
+      "steps": [
+        "Create several groups",
+        "Box-select all of them",
+        "Shift-click one group to deselect it"
+      ],
+      "wrong_result": "The remaining groups become individually selected elements; aligning shows the state is wrong",
+      "expected_result": "The remaining groups stay selected as groups"
+    },
+    {
+      "issue": 12300,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12300",
+      "bug": "Axis lock shifts a copied element vertically",
+      "steps": [
+        "Create an element",
+        "Hold Alt and drag it to make a copy",
+        "Release Alt and hold Shift while still dragging"
+      ],
+      "wrong_result": "The new element is sometimes shifted vertically",
+      "expected_result": "The copy keeps the identical vertical or horizontal position"
+    },
+    {
+      "issue": 10863,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10863",
+      "bug": "The hex code popover covers the Preferences submenu",
+      "steps": [
+        "Open the main menu",
+        "Open Preferences",
+        "Under Canvas background, open the custom colour hex input"
+      ],
+      "wrong_result": "The popover covers Preferences items such as Zen mode and View mode",
+      "expected_result": "The popover does not hide the menu items"
+    },
+    {
+      "issue": 9509,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9509",
+      "bug": "Ȳ and ȳ are not rendered on the canvas",
+      "steps": [
+        "Create a text element",
+        "Type Ȳ ȳ",
+        "Finish editing"
+      ],
+      "wrong_result": "The glyphs show in the editor but not on the canvas",
+      "expected_result": "The canvas shows the same glyphs as the editor"
+    },
+    {
+      "issue": 12405,
+      "url": "https://github.com/excalidraw/excalidraw/issues/12405",
+      "bug": "S then B in the draw tool switches to bucket fill instead of picking red",
+      "steps": [
+        "Select the draw tool",
+        "Press S to open the colour palette",
+        "Press B to pick red"
+      ],
+      "wrong_result": "The bucket fill tool is selected",
+      "expected_result": "Red becomes the active colour and the draw tool stays active"
+    },
+    {
+      "issue": 9938,
+      "url": "https://github.com/excalidraw/excalidraw/issues/9938",
+      "bug": "Wrapping several coloured texts gives every container the same colour",
+      "steps": [
+        "Create text elements with different stroke colours",
+        "Select all",
+        "Use Wrap text in a container"
+      ],
+      "wrong_result": "All containers use the same colour",
+      "expected_result": "Each container matches its own text colour"
+    },
+    {
+      "issue": 10688,
+      "url": "https://github.com/excalidraw/excalidraw/issues/10688",
+      "bug": "Colour swatch spacing is wrong for some multi-selections",
+      "steps": [
+        "Draw a rectangle, a diamond and a line",
+        "Select more than one of them or group them",
+        "Look at the stroke and background swatches"
+      ],
+      "wrong_result": "The swatches are spaced incorrectly",
+      "expected_result": "Swatches keep their normal spacing, as for circles, arrows, drawings and text"
+    }
+  ]
+}
