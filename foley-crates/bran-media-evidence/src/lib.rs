@@ -4,7 +4,7 @@
 //! typed values and the predicate text, scans the repository with BRAN's
 //! read-only scanner, and returns ranked `foley.anchors/1` JSON.
 
-use bran_core::graph::{GraphLimits, KnowledgeGraph};
+use bran_core::graph::{GraphLimits, KnowledgeGraph, NodeId};
 use bran_core::scan::{RepositoryScanner, ScanConfig};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -36,11 +36,12 @@ pub fn locate(repo_root: &Path, steps_path: &Path) -> Result<String, String> {
         .graph_input()
         .map_err(|e| format!("BRAN graph input: {e:?}"))?;
     let graph = KnowledgeGraph::build(input, limits).map_err(|e| e.to_string())?;
-    // BRAN query: files whose path or retained metadata names a term rank first among ties.
-    let named: BTreeSet<String> = terms
+    // BRAN query: files whose path or retained metadata names a term rank first among
+    // ties. Query hits are graph nodes, so each is resolved to its repository path.
+    let named: BTreeSet<&str> = terms
         .iter()
         .flat_map(|term| graph.find(term, usize::MAX).items)
-        .map(|node| node.id.as_str().to_owned())
+        .flat_map(|node| node_paths(&graph, &snapshot.entries, &node.id))
         .collect();
 
     let mut anchors = Vec::new();
@@ -72,13 +73,38 @@ pub fn locate(repo_root: &Path, steps_path: &Path) -> Result<String, String> {
     anchors.sort_by(|a, b| {
         b.hits
             .cmp(&a.hits)
-            .then_with(|| named.contains(b.file).cmp(&named.contains(a.file)))
+            .then_with(|| named.contains(&b.file).cmp(&named.contains(&a.file)))
             .then_with(|| a.file.cmp(b.file))
             .then_with(|| a.line.cmp(&b.line))
     });
     anchors.truncate(MAX_ANCHORS);
     let status = if anchors.is_empty() { "miss" } else { "ok" };
     Ok(document(status, &anchors))
+}
+
+/// Repository paths behind one BRAN graph node: a file node's scanner locator is its
+/// path; a symbol or test node belongs to the file node on its incoming edge.
+fn node_paths<'a, V>(
+    graph: &KnowledgeGraph,
+    entries: &'a BTreeMap<String, V>,
+    id: &NodeId,
+) -> Vec<&'a str> {
+    let file_path = |id: &NodeId| {
+        graph
+            .node(id)
+            .filter(|node| node.provenance().source() == "repository-scanner")
+            .and_then(|node| entries.get_key_value(node.provenance().locator()))
+            .map(|(path, _)| path.as_str())
+    };
+    if let Some(path) = file_path(id) {
+        return vec![path];
+    }
+    graph
+        .reverse_edges(id)
+        .iter()
+        .filter_map(|edge| graph.edge(edge))
+        .filter_map(|edge| file_path(edge.source()))
+        .collect()
 }
 
 fn read_terms(steps_path: &Path) -> Result<BTreeSet<String>, String> {
@@ -228,19 +254,46 @@ impl Parser<'_> {
         }
     }
 
+    /// JSON number grammar only: -?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
     fn number(&mut self) -> Result<Json, String> {
-        let start = self.at;
-        while matches!(
-            self.bytes.get(self.at),
-            Some(b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')
-        ) {
+        self.eat(b'-');
+        match self.bytes.get(self.at) {
+            Some(b'0') => self.at += 1,
+            Some(b'1'..=b'9') => {
+                self.digits();
+            }
+            _ => return self.fail("bad number"),
+        }
+        if self.eat(b'.') && !self.digits() {
+            return self.fail("bad number");
+        }
+        if matches!(self.bytes.get(self.at), Some(b'e' | b'E')) {
+            self.at += 1;
+            if !self.eat(b'+') {
+                self.eat(b'-');
+            }
+            if !self.digits() {
+                return self.fail("bad number");
+            }
+        }
+        Ok(Json::Number)
+    }
+
+    fn eat(&mut self, byte: u8) -> bool {
+        let found = self.bytes.get(self.at) == Some(&byte);
+        if found {
             self.at += 1;
         }
-        let text = std::str::from_utf8(&self.bytes[start..self.at]).unwrap_or("");
-        match text.parse::<f64>() {
-            Ok(n) if n.is_finite() => Ok(Json::Number),
-            _ => self.fail("bad number"),
+        found
+    }
+
+    /// Consumes one or more ASCII digits; false when there are none.
+    fn digits(&mut self) -> bool {
+        let start = self.at;
+        while matches!(self.bytes.get(self.at), Some(b'0'..=b'9')) {
+            self.at += 1;
         }
+        self.at > start
     }
 
     fn array(&mut self) -> Result<Json, String> {
@@ -387,7 +440,9 @@ mod tests {
 
     #[test]
     fn json_reader_accepts_valid_and_refuses_invalid() {
-        let value = Json::parse(r#"{"a":[1,-2.5e3,true,null,"x\u00e9\n"],"b":{}}"#).unwrap();
+        let value =
+            Json::parse(r#"{"a":[1,-2.5e3,true,null,"x\u00e9\n",0,-0.5,1E+2,7e-1],"b":{}}"#)
+                .unwrap();
         assert!(
             matches!(value.get("a"), Some(Json::Array(items)) if items[4].as_str() == Some("x\u{e9}\n"))
         );
@@ -400,6 +455,17 @@ mod tests {
             "{\"a\":1,\"a\":2}",
             "1 2",
             "\"\\ud800\"",
+            "01",
+            "1.",
+            ".5",
+            "-",
+            "1e",
+            "1e+",
+            "+1",
+            "1.5e3.2",
+            "0x10",
+            "NaN",
+            "inf",
         ] {
             assert!(Json::parse(bad).is_err(), "accepted {bad:?}");
         }
