@@ -44,6 +44,9 @@ const SYSTEM = [
 	"is exactly that size: coordinates are integer pixels of the screenshot you",
 	`were given, 0 <= x < ${VIEWPORT.width} and 0 <= y < ${VIEWPORT.height}. Prefer a CSS selector`,
 	"when the element has one; use pointer actions for what is drawn on a canvas.",
+	"failure_check_now is what the page shows now for the failure's subject; the failure",
+	"shows when it equals failure_to_show.observed. Keep acting with done false until it does,",
+	"or until you have no other idea.",
 	"earlier_attempts lists earlier fresh-browser attempts: their actions and predicate_value,",
 	"what the page showed for the failure's subject. If they did not show the failure, try a",
 	"different sequence, such as another key, an Escape or a missing step.",
@@ -200,6 +203,12 @@ async function linkBlock(element, origin) {
 	return url.origin === origin ? null : "origin";
 }
 
+// The key a key_press sent, shown on the replay page; bounded, never model prose.
+const keyName = (value) => {
+	const key = String(value ?? "").slice(0, 64);
+	return hasCredentialShape(key) ? undefined : key;
+};
+
 async function execute(run, page, action, observation) {
 	const kind = action?.action;
 	const known =
@@ -231,7 +240,7 @@ async function execute(run, page, action, observation) {
 		record(run, {
 			type: "action",
 			action: kind,
-			detail,
+			detail: kind === "key_press" ? keyName(action.value) : detail,
 			...(observation !== undefined && { observation }),
 			...(action.reason !== undefined && { reason: action.reason }),
 		});
@@ -296,8 +305,12 @@ function turnReason(output) {
 }
 
 async function ask(run, page) {
+	// The app saves state on a debounce; the check value is read after it.
+	await page.waitForTimeout(SETTLE_MS);
+	const now = await predicateValue(page, run.predicate);
 	const png = await capture(run, page, "observe");
 	const text = JSON.stringify({
+		failure_check_now: now,
 		...(run.reportTitle && { report_title: run.reportTitle }),
 		...(run.appNotes && { app_notes: run.appNotes }),
 		recorded_steps: run.steps,

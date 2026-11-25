@@ -308,13 +308,39 @@ test("TC-R06-3/reask", { timeout: 120000 }, async () => {
 						server.requests[1].body.messages.at(-1).content,
 						/failed validation and none of its actions ran: action 1 is invalid/,
 					);
-					assert.equal(
-						JSON.parse(server.requests[0].body.messages[1].content[0].text)
-							.app_notes,
-						"K laser pointer",
+					const first = JSON.parse(
+						server.requests[0].body.messages[1].content[0].text,
 					);
+					assert.equal(first.app_notes, "K laser pointer");
+					// What the failure check reads before any action.
+					assert.equal(first.failure_check_now, "Ready");
 				},
 			),
 		),
+	);
+});
+
+// S5 live: the replay records which key each key_press sent.
+test("TC-R06-1/key-detail", { timeout: 120000 }, async () => {
+	const repro = await product("src/repro.mjs", "repro");
+	await temporary((root) =>
+		withApps(root, async ({ bug }) => {
+			const opts = options(root, "keys", { scripted: true });
+			const key = {
+				order: 1,
+				t_s: 0,
+				action: "key_press",
+				target: "Escape",
+				value: "Escape",
+			};
+			const steps = [key, { ...archiveAction, order: 2 }];
+			const result = await repro(steps, archive.predicate, bug.origin, opts);
+			assert.deepEqual(
+				result.events
+					.filter((e) => e.action === "key_press")
+					.map((e) => e.detail),
+				["Escape"],
+			);
+		}),
 	);
 });
