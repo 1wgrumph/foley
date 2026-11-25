@@ -17,3 +17,5 @@
   reservations are traced as recovery. Ledger fields are validated. Every
   storage and lock failure returns `ledger_unreadable`. Test mode uses its own
   synthetic key and only literal loopback addresses.
+
+Pull request: [#2](https://github.com/1wgrumph/foley/pull/2)
