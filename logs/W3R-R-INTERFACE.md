@@ -39,6 +39,8 @@ CLI processes, the existing owned archive app, and loopback scripted responses.
   before copy/full read or any model request; no invalid asset in the run folder.
   Cached media outside the working tree refuses with `outside_working_tree`.
   Preserve `media_missing` and `media_digest` for missing/mismatched cache data.
+  Audio extraction failure on otherwise valid media records watch
+  `refused_input`, terminal `attempted_miss` (run exit 1), and no model request.
 - Dirty tracked target source refuses with `target_not_pinned` (exit 2).
   A changed recording digest, target revision, runner or fixture mode for an
   existing issue refuses with `resume_mismatch` (exit 2), before model calls or
