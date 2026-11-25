@@ -298,6 +298,10 @@ function verifiedSemantics(manifest, run, replay, proof) {
 		st.prove === "verified" &&
 		st.report === "ok" &&
 		validateRun(run) &&
+		isObject(run.predicate) &&
+		// A run document that records its own stages must agree with the manifest.
+		(run.stages === undefined ||
+			JSON.stringify(run.stages) === JSON.stringify(st)) &&
 		run.state === "finished" &&
 		run.verdict === "proof_verified" &&
 		run.test?.verdict === "verified" &&
