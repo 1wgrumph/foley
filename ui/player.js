@@ -67,6 +67,12 @@ function status(state, notice = "") {
 		].includes(verdict)
 	)
 		badge = "Conflicting evidence";
+	// The fixed build showed the same failure: the steps do not isolate the bug.
+	if (reproduction === "fixed_build_conflict") {
+		badge = "Conflicting evidence";
+		detail =
+			"The fixed build shows the same failure, so this is not counted as a reproduction";
+	}
 	if (state === "error" || state === "loading") badge = state;
 	byId("badge").textContent = badge;
 	byId("badge").dataset.tone =
@@ -304,7 +310,7 @@ function timeline(run) {
 			element("span", event.t_s == null ? "—" : stamp(event.t_s), "meta"),
 			element("strong", human(event.type)),
 			document.createTextNode(
-				` · ${[actionText(event), usage(event)].filter(Boolean).join(" · ")}`,
+				` · ${[actionText(event), count(event.round) ? `round ${event.round}` : "", usage(event)].filter(Boolean).join(" · ")}`,
 			),
 		);
 		return row;
@@ -402,25 +408,39 @@ function evidence(data) {
 	byId("anchors").replaceChildren(
 		...(anchors.length ? anchors : [empty("No code anchor located.")]),
 	);
+	// Two scopes, each labelled: this run's own calls, and everything the
+	// issue's case has spent over all its runs, which is what the cap limits.
 	const cost = run.cost_micro_usd;
+	const spent = count(run.case_cost_micro_usd) ? run.case_cost_micro_usd : cost;
 	const runCap = run.case_budget_micro_usd ?? run.cap_micro_usd;
 	const cap = count(runCap) ? runCap : 9_000_000;
-	const label = count(runCap) ? "Run cap" : "Project ceiling";
+	const label = count(runCap) ? "Issue cap" : "Project ceiling";
 	const meter = byId("cost");
+	const amount = (name, micros) => {
+		const line = element("p", null, "cost-line");
+		line.append(
+			element("span", name, "muted"),
+			element("span", count(micros) ? money(micros) : "Unreported", "amount"),
+		);
+		if (count(micros))
+			line.append(element("span", ` · ${micros} µUSD`, "muted"));
+		return line;
+	};
 	meter.replaceChildren(
-		element("p", count(cost) ? money(cost) : "Unreported", "amount"),
+		amount("This run", cost),
+		amount("All runs of this issue", spent),
 	);
-	if (count(cost)) meter.append(element("span", ` · ${cost} µUSD`, "muted"));
-	if (count(cap) && cap > 0 && count(cost)) {
+	if (count(spent) && cap > 0) {
 		const gauge = element("meter");
 		gauge.max = cap;
-		gauge.value = Math.min(cost, cap);
+		gauge.value = Math.min(spent, cap);
 		gauge.setAttribute(
 			"aria-label",
-			`Run spend as a share of ${label.toLowerCase()}`,
+			`Spend of all runs of this issue as a share of the ${label.toLowerCase()}`,
 		);
-		meter.append(gauge, empty(`${label} ${money(cap)}`));
-	} else meter.append(empty(`${label} ${money(cap)}`));
+		meter.append(gauge);
+	}
+	meter.append(empty(`${label} ${money(cap)}`));
 	const candidates = list(data.candidates);
 	byId("no-census").hidden = candidates.length > 0;
 	byId("census").replaceChildren(

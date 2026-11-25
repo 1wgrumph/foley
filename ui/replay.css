@@ -649,6 +649,12 @@ footer.shell {
 .readout .muted {
 	font-size: 12px;
 }
+.cost-line {
+	margin: 0 0 6px;
+}
+.cost-line .muted:first-child {
+	display: block;
+}
 .readout .result {
 	font-size: 11px;
 	margin: 2px 5px 0 0;
