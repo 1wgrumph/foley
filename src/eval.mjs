@@ -125,6 +125,7 @@ export async function evaluate({ outDir, ids, labels, write }) {
 				issue,
 				status: "eligible_not_attempted",
 				cost_micro_usd: 0,
+				case_cost_micro_usd: 0,
 				anchors: [],
 				elapsed_ms: 0,
 			});
@@ -134,10 +135,16 @@ export async function evaluate({ outDir, ids, labels, write }) {
 			join(outDir, "runs", String(issue), "run.json"),
 			{},
 		);
+		// The report row holds what the issue's case spent over every run. A run
+		// document that separates the two gives the latest run's own cost, which
+		// is the cost of one attempt; elapsed time is the latest run's as well.
+		const caseCost = row.cost_micro_usd ?? 0;
+		const separated = Number.isSafeInteger(saved.case_cost_micro_usd);
 		results.push({
 			issue,
 			status: row.status,
-			cost_micro_usd: row.cost_micro_usd ?? 0,
+			cost_micro_usd: separated ? saved.cost_micro_usd : caseCost,
+			case_cost_micro_usd: caseCost,
 			anchors: saved.anchors ?? [],
 			elapsed_ms: saved.elapsed_ms ?? 0,
 		});

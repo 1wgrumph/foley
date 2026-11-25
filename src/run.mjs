@@ -359,7 +359,12 @@ export function pairOptions(issue) {
 	if (!pair) throw new Refusal("pair_missing", `issue ${issue} is not a pair`);
 	const runner = pair.runner ?? "vitest";
 	const memory = pair.memory_mib;
+	// Test-API calls that set state directly; prove refuses a test that uses one.
+	const refused = manifest.refused_test_calls ?? [];
 	const valid =
+		Array.isArray(refused) &&
+		refused.length <= 32 &&
+		refused.every((c) => typeof c === "string" && c !== "" && c.length <= 64) &&
 		httpsUrl(pair.url) &&
 		SHA1.test(pair.bug_commit ?? "") &&
 		SHA1.test(pair.fix_commit ?? "") &&
@@ -394,6 +399,7 @@ export function pairOptions(issue) {
 			typeof manifest.test_notes === "string" ? manifest.test_notes : undefined,
 		appNotes:
 			typeof manifest.app_notes === "string" ? manifest.app_notes : undefined,
+		refusedTestCalls: refused,
 		revision: pair.bug_commit,
 		runner,
 		target: resolved.bug.checkout,
@@ -475,13 +481,19 @@ function emptyRun(o) {
 		replay: { screenshots: [], events: [] },
 		test: null,
 		verdict: null,
+		// This run's own calls; the case figure adds every earlier run of the issue.
 		cost_micro_usd: 0,
+		case_cost_micro_usd: 0,
 		case_budget_micro_usd: o.caseBudget,
 		...(o.pair && { pair: o.pair }),
 		error: null,
 		stages: {},
 		model_calls: [],
 		call_verdicts: {},
+		// A round is one Watch document with the locate and reproduction run on
+		// it. Every watch and repro call is recorded under the round it served.
+		round: 1,
+		call_rounds: {},
 	};
 }
 
@@ -533,21 +545,28 @@ async function traceArtifacts(runDir, stage, paths) {
 const usageOf = (call) =>
 	Object.fromEntries(USAGE.filter((f) => f in call).map((f) => [f, call[f]]));
 
-// The model's stated repro verdict is display evidence only; spend never uses it.
+// Records each call's round, and for repro the model's stated verdict (display
+// evidence only; spend never uses it). The reply also names its call records,
+// so reproduction can bind them to the frame the model was shown.
 async function attributedCall(ctx, stage, args) {
 	const trace = join(out(), "trace.jsonl");
 	const before = (await readLines(trace)).length;
 	const reply = await callEmber({ ...args, stage });
+	const callIds = (await readLines(trace))
+		.slice(before)
+		.filter((e) => e.type === "request" && e.callId)
+		.map((e) => e.callId);
 	// Only a verdict from the closed set is kept on the run document.
-	if (
+	const verdict =
 		stage === "repro" &&
-		["reproduced", "not_reproduced"].includes(reply.output?.verdict)
-	)
-		for (const e of (await readLines(trace)).slice(before))
-			if (e.type === "request" && e.callId)
-				ctx.run.call_verdicts[e.callId] = reply.output.verdict;
+		["reproduced", "not_reproduced"].includes(reply.output?.verdict) &&
+		reply.output.verdict;
+	for (const callId of callIds) {
+		if (stage !== "prove") ctx.run.call_rounds[callId] = ctx.run.round;
+		if (verdict) ctx.run.call_verdicts[callId] = verdict;
+	}
 	await ctx.publish();
-	return reply;
+	return { ...reply, callIds };
 }
 
 function callEvent(call, t_s) {
@@ -555,29 +574,46 @@ function callEvent(call, t_s) {
 		type: "model_call",
 		detail: `Ember ${call.stage} call: ${call.status}`,
 		...(call.verdict && { reason: `model verdict: ${call.verdict}` }),
+		...(call.round !== undefined && { round: call.round }),
 		...(t_s !== undefined && { t_s }),
 		...usageOf(call),
 	};
 }
 
-// Each repro model turn starts with an "observe" screenshot, so turn k matches
-// observe shot k. Its usage goes on the first action it produced (that step's
-// cost) and its status and verdict on a model_call event in the feed.
+// Each repro model turn starts with an "observe" frame that lists the turn's
+// call records (two after a re-ask). The turn's summed usage goes on the first
+// action it produced (that step's cost) and its status and verdict on a
+// model_call event at the frame's time. Repro calls no kept frame lists, which
+// are those of earlier rounds, come first, each under its round.
 function reproEvents(replay, calls) {
+	const byId = new Map(calls.map((c) => [c.callIds[0], c]));
 	const turns = replay.screenshots.filter((s) => s.action === "observe");
+	const bound = new Set(turns.flatMap((t) => t.calls ?? []));
 	const events = replay.events.map((e) => ({ ...e }));
-	const merged = [];
+	const merged = calls
+		.filter((c) => !bound.has(c.callIds[0]))
+		.map((c) => callEvent(c));
 	let k = 0;
 	const flush = (until) => {
-		for (; k < calls.length && (turns[k]?.t_s ?? 0) <= until; k++) {
-			const at = turns[k]?.t_s;
+		for (; k < turns.length && turns[k].t_s <= until; k++) {
+			const mine = (turns[k].calls ?? []).flatMap((id) => byId.get(id) ?? []);
+			if (!mine.length) continue;
+			const at = turns[k].t_s;
 			const next = turns[k + 1]?.t_s ?? Number.POSITIVE_INFINITY;
 			const step = events.find(
 				(e) => e.type === "action" && e.t_s >= at && e.t_s < next,
 			);
-			const { stage, status, verdict } = calls[k];
-			if (step) Object.assign(step, usageOf(calls[k]));
-			merged.push(callEvent(step ? { stage, status, verdict } : calls[k], at));
+			const usage = Object.fromEntries(
+				USAGE.filter((f) => mine.some((c) => f in c)).map((f) => [
+					f,
+					mine.reduce((sum, c) => sum + (c[f] ?? 0), 0),
+				]),
+			);
+			const { stage, status, verdict, round } = mine.at(-1);
+			if (step) Object.assign(step, usage);
+			merged.push(
+				callEvent({ stage, status, verdict, round, ...(!step && usage) }, at),
+			);
 		}
 	};
 	for (const event of events) {
@@ -600,9 +636,7 @@ function rebuildEvents(run, replay) {
 			: run.replay.screenshots,
 		events: [
 			...of("watch").map((c) => callEvent(c)),
-			...(replay
-				? reproEvents(replay, of("repro").slice(run.repro_calls_from ?? 0))
-				: []),
+			...(replay ? reproEvents(replay, of("repro")) : []),
 			...of("prove").map((c) => callEvent(c)),
 		],
 	};
@@ -619,8 +653,13 @@ async function openRun(o) {
 	let run = emptyRun(o);
 	const saved = await readJsonOptional(join(runDir, "run.json"));
 	if (validateRun(saved) && saved.issue === o.issue) run = saved;
+	// Calls the issue's case made before this run folder existed are earlier
+	// runs: they count in the case's spend and not in this run's.
+	else run.case_calls_before = (await caseEvents(o.issue)).length;
 	run.state = "running";
 	run.call_verdicts ??= {};
+	run.call_rounds ??= {};
+	run.round ??= 1;
 	const ctx = { o, runDir, run, caseId: caseOf(o.issue) };
 	ctx.replay = run.stages.repro
 		? await readJsonOptional(join(runDir, "replay.json"))
@@ -628,7 +667,8 @@ async function openRun(o) {
 	const elapsed = run.elapsed_ms ?? 0;
 	const opened = Date.now();
 	ctx.publish = async () => {
-		const events = await caseEvents(o.issue);
+		const all = await caseEvents(o.issue);
+		const events = all.slice(run.case_calls_before ?? 0);
 		run.model_calls = events.map((e) => ({
 			stage: e.stage,
 			status: e.outcome ?? e.type,
@@ -637,8 +677,10 @@ async function openRun(o) {
 			...(run.call_verdicts[e.callId] && {
 				verdict: run.call_verdicts[e.callId],
 			}),
+			...(run.call_rounds[e.callId] && { round: run.call_rounds[e.callId] }),
 		}));
 		run.cost_micro_usd = spendOf(events);
+		run.case_cost_micro_usd = spendOf(all);
 		rebuildEvents(run, ctx.replay);
 		run.elapsed_ms = elapsed + Date.now() - opened;
 		await writeJsonAtomic(join(runDir, "run.json"), run);
@@ -747,7 +789,7 @@ const watchMissed = (replay) =>
 // A predicate whose expected value the bug build showed is contradicted by the
 // page and is not kept.
 const readablePredicate = (replay, predicate) =>
-	replay.status !== "reproduced" &&
+	!replay.observed &&
 	!replay.attempts.some((a) => a.observed_before) &&
 	!replay.attempts.some((a) => a.predicate_value === predicate?.expected) &&
 	replay.attempts.some(
@@ -783,7 +825,8 @@ function reproductionFeedback(run, replay) {
 
 // Pair runs: steps that also show the failure on the fixed build do not
 // reproduce the reported bug. They are replayed there, without a model, and
-// the result is kept in replay.json.
+// the result is kept in replay.json: the status becomes fixed_build_conflict,
+// which is not a reproduction, so no proof is asked for and no success counted.
 async function checkedOnFixed(ctx, replay) {
 	const { o, runDir, run } = ctx;
 	if (!o.pageDirs || !replay.reproduced_steps) return replay;
@@ -795,17 +838,29 @@ async function checkedOnFixed(ctx, replay) {
 			scripted: true,
 		});
 	} finally {
-		server.close();
+		await server.close();
 	}
+	const conflict = check.status === "reproduced";
 	const checked = {
 		...replay,
-		fixed_build_shows_failure: check.status === "reproduced",
+		...(conflict && { status: "fixed_build_conflict" }),
+		fixed_build_shows_failure: conflict,
 	};
 	await writeFile(
 		join(runDir, "replay.json"),
 		`${JSON.stringify(checked, null, 2)}\n`,
 	);
 	return checked;
+}
+
+// Takes one Watch document as the run's steps, predicate and notes together,
+// so notes never describe steps of another round.
+function adoptWatch(run, document, predicate = document.predicate) {
+	run.steps = document.steps;
+	run.predicate = predicate;
+	for (const field of ["uncertainty", "narration_evidence"])
+		if (document[field]) run[field] = document[field];
+		else delete run[field];
 }
 
 // One more Watch round with reproduction's feedback; false when it fails.
@@ -825,8 +880,7 @@ async function watchAgain(ctx, replay) {
 	const kept = readablePredicate(replay, run.predicate)
 		? run.predicate
 		: undefined;
-	run.steps = result.document.steps;
-	run.predicate = kept ?? result.document.predicate;
+	adoptWatch(run, result.document, kept);
 	if (kept)
 		await writeFile(
 			join(runDir, "steps.json"),
@@ -839,6 +893,7 @@ async function watchAgain(ctx, replay) {
 		runDir,
 	});
 	run.anchors = located.anchors;
+	run.stages.locate = located.status;
 	await ctx.artifacts("locate", ["anchors.json"]);
 	await ctx.publish();
 	return true;
@@ -873,10 +928,7 @@ const STAGE_FNS = {
 		run.recording = name;
 		await ctx.artifacts("watch", [name]);
 		if (result.status !== "ok") return committed(ctx, "watch", result.status);
-		run.steps = result.document.steps;
-		run.predicate = result.document.predicate;
-		for (const field of ["uncertainty", "narration_evidence"])
-			if (result.document[field]) run[field] = result.document[field];
+		adoptWatch(run, result.document);
 		await ctx.artifacts("watch", ["steps.json"]);
 		return committed(ctx, "watch", "ok");
 	},
@@ -893,9 +945,11 @@ const STAGE_FNS = {
 	},
 	async repro(ctx) {
 		const { o, runDir, run } = ctx;
-		run.repro_calls_from = run.model_calls.filter(
-			(c) => c.stage === "repro",
-		).length;
+		// A stage that runs again after an interruption starts a new round.
+		if (
+			run.model_calls.some((c) => c.stage === "repro" && c.round === run.round)
+		)
+			run.round += 1;
 		const once = () =>
 			repro(run.steps, run.predicate, o.appOrigin, {
 				runDir,
@@ -920,6 +974,7 @@ const STAGE_FNS = {
 				(replay.status !== "reproduced" && watchMissed(replay)));
 			round++
 		) {
+			run.round += 1;
 			if (!(await watchAgain(ctx, replay))) break;
 			replay = await checkedOnFixed(ctx, await once());
 		}
@@ -949,6 +1004,7 @@ const STAGE_FNS = {
 			caseBudget: o.caseBudget,
 			...(o.testNotes && { testNotes: o.testNotes }),
 			...(o.reportTitle && { reportTitle: o.reportTitle }),
+			...(o.refusedTestCalls && { refusedTestCalls: o.refusedTestCalls }),
 		});
 		if (["verified", "red_test"].includes(result.status))
 			run.test = { path: result.path, verdict: result.status };

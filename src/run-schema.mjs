@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
-import { hasCredentialShape } from "./text-safety.mjs";
+import { hasCredentialShape, refusedCall } from "./text-safety.mjs";
 
 export const ACTIONS = new Set([
 	"click",
@@ -163,7 +163,9 @@ export function validateSteps(document) {
 		ordered &&
 		nullable(document.predicate, validPredicate) &&
 		evidenceFields(document) &&
-		optional(document.mediaPath, (v) => v === "frames" || v === "video")
+		optional(document.mediaPath, (v) => v === "frames" || v === "video") &&
+		// One credential filter over every string that is kept or sent on.
+		!hasCredentialShape(JSON.stringify(document))
 	);
 }
 
@@ -315,14 +317,25 @@ export function requiredArtifacts(run, stages, replay) {
 
 const exitOf = (result) => result?.exitCode;
 
-// A verified proof: every stage passed, the browser observed the failure, and the
-// accepted test failed on the bug build and passed on the fixed build when run.
-function verifiedSemantics(manifest, run, replay, proof) {
+// A verified proof: every stage passed, the browser observed the failure on the
+// bug build and the fixed build did not show it too, and the accepted test,
+// run again without the model, failed on the bug build and passed on the fixed
+// build. Both exits must be recorded. A kept test must not use a call that the
+// input rule recorded with it refuses. A locate miss is allowed: anchors are a
+// hint for the reader and no part of the proof.
+function verifiedSemantics(manifest, run, replay, proof, test) {
 	const st = manifest.stages ?? {};
 	const rerun = proof?.rerun_without_ember;
 	const bug = exitOf(rerun?.bug);
 	const fixed = exitOf(rerun?.fixed);
+	const refused = proof?.input_rule?.refused_calls;
 	return (
+		replay?.fixed_build_shows_failure !== true &&
+		(proof?.input_rule === undefined ||
+			(Array.isArray(refused) &&
+				refused.every((call) => typeof call === "string") &&
+				typeof test === "string" &&
+				!refusedCall(test, refused))) &&
 		st.watch === "ok" &&
 		["ok", "miss"].includes(st.locate) &&
 		st.repro === "reproduced" &&
@@ -341,7 +354,7 @@ function verifiedSemantics(manifest, run, replay, proof) {
 		proof.path === run.test.path &&
 		Number.isSafeInteger(bug) &&
 		bug !== 0 &&
-		(fixed === undefined || fixed === null || fixed === 0)
+		fixed === 0
 	);
 }
 
@@ -417,7 +430,10 @@ export async function checkCoreProof(runDir) {
 		run?.issue_url === proof.issue_url &&
 		run?.target_revision === proof.target_revision &&
 		run?.fixture === proof.fixture;
-	if (!identity || !verifiedSemantics(proof, run, replay, report))
+	const test = insideRun(run?.test?.path)
+		? await readFile(join(runDir, run.test.path), "utf8").catch(() => null)
+		: null;
+	if (!identity || !verifiedSemantics(proof, run, replay, report, test))
 		return { status: "not_verified" };
 	return { status: "ok", fixture: proof.fixture === true };
 }

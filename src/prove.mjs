@@ -6,7 +6,9 @@
 // assertion fails with the target producing the predicate's observed value
 // where the predicate's expected value is required (values as the runner
 // reports them), and the fixed build passes. Model-chosen assertion labels and
-// code text are never evidence.
+// code text are never evidence for a proof. Code text can only reject one: a
+// candidate that uses a call the target's configuration refuses (one that
+// sets the failing state directly instead of through input) is not run.
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import {
@@ -23,6 +25,7 @@ import { extname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { repro } from "./repro.mjs";
 import { validPredicate } from "./run-schema.mjs";
+import { refusedCall } from "./text-safety.mjs";
 
 const ISOLATE = fileURLToPath(new URL("../tools/isolate.sh", import.meta.url));
 const FILENAME = "regression.test.mjs";
@@ -408,6 +411,9 @@ export async function prove(
 		testNotes,
 		// The issue title: the reporter's words, sent as data.
 		reportTitle,
+		// Calls of the target's test API that set state directly, from the
+		// target's configuration. A candidate that uses one is not run.
+		refusedTestCalls = [],
 	},
 ) {
 	const finish = async (result) => {
@@ -447,6 +453,35 @@ export async function prove(
 		memoryMiB,
 	};
 	const attempts = [];
+	// An accepted candidate runs once more, with no model call, and must give
+	// the same result before its file (and a red test's failing output) is kept.
+	const kept = async (candidate, result) => {
+		const rerun = await attempt(candidate, dirs);
+		const rerun_without_ember = {
+			bug: { exitCode: rerun.bug.exitCode },
+			fixed: rerun.fixed ? { exitCode: rerun.fixed.exitCode } : null,
+		};
+		if (rerun.reason !== result.reason)
+			return {
+				status: "not_verified",
+				attempts,
+				reason: "rerun_mismatch",
+				rerun_without_ember,
+			};
+		await writeFile(join(runDir, FILENAME), candidate.code);
+		const red = result.reason === "red_test";
+		if (red) await writeFile(join(runDir, RED_OUTPUT), result.bug.output);
+		return {
+			status: result.reason,
+			attempts,
+			path: FILENAME,
+			...(red && { red_output: RED_OUTPUT }),
+			rerun_without_ember,
+			...(refusedTestCalls.length && {
+				input_rule: { refused_calls: refusedTestCalls },
+			}),
+		};
+	};
 	let feedback = null;
 	let stopReason;
 	for (let round = 0; round < MAX_ROUNDS; round++) {
@@ -464,6 +499,9 @@ export async function prove(
 						}),
 						...(typeof reportTitle === "string" && {
 							report_title: reportTitle.slice(0, 300),
+						}),
+						...(refusedTestCalls.length && {
+							refused_test_calls: refusedTestCalls,
 						}),
 						earlier_round: feedback,
 					}),
@@ -497,53 +535,19 @@ export async function prove(
 			};
 			continue;
 		}
+		if (refusedCall(candidate.code, refusedTestCalls)) {
+			attempts.push({ reason: "seeds_state" });
+			feedback = {
+				reason: "seeds_state",
+				rule: "reach the failing state only through pointer and keyboard input; do not use any of refused_test_calls",
+			};
+			continue;
+		}
 		const result = await attempt(candidate, dirs);
 		attempts.push(result);
 		if (result.reason === "inconclusive") break; // another candidate cannot add a control
-		if (result.reason === "red_test") {
-			const rerun = await attempt(candidate, dirs); // same code, no model call
-			const rerun_without_ember = {
-				bug: { exitCode: rerun.bug.exitCode },
-				fixed: null,
-			};
-			if (rerun.reason !== "red_test")
-				return finish({
-					status: "not_verified",
-					attempts,
-					reason: "rerun_mismatch",
-					rerun_without_ember,
-				});
-			await writeFile(join(runDir, FILENAME), candidate.code);
-			await writeFile(join(runDir, RED_OUTPUT), result.bug.output);
-			return finish({
-				status: "red_test",
-				attempts,
-				path: FILENAME,
-				red_output: RED_OUTPUT,
-				rerun_without_ember,
-			});
-		}
-		if (result.reason === "verified") {
-			const rerun = await attempt(candidate, dirs); // same code, no model call
-			const rerun_without_ember = {
-				bug: { exitCode: rerun.bug.exitCode },
-				fixed: { exitCode: rerun.fixed?.exitCode ?? null },
-			};
-			if (rerun.reason !== "verified")
-				return finish({
-					status: "not_verified",
-					attempts,
-					reason: "rerun_mismatch",
-					rerun_without_ember,
-				});
-			await writeFile(join(runDir, FILENAME), candidate.code);
-			return finish({
-				status: "verified",
-				attempts,
-				path: FILENAME,
-				rerun_without_ember,
-			});
-		}
+		if (["verified", "red_test"].includes(result.reason))
+			return finish(await kept(candidate, result));
 		feedback = {
 			reason: result.reason,
 			output: (result.fixed ?? result.bug).output.slice(-FEEDBACK_CHARS),

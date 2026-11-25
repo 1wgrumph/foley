@@ -24,7 +24,7 @@ import {
 	validPredicate,
 	validStep,
 } from "./run-schema.mjs";
-import { hasCredentialShape } from "./text-safety.mjs";
+import { reask } from "./text-safety.mjs";
 
 const run = promisify(execFile);
 const MAX_BYTES = 50 * 1024 * 1024;
@@ -284,14 +284,8 @@ async function audioParts(path, media, limits) {
 	return [{ type: "input_audio", input_audio: { format: "wav", data } }];
 }
 
-// A short copy of invalid model data for feedback, or nothing when it has a
-// credential shape.
-function shown(value) {
-	const text = JSON.stringify(value).slice(0, 300);
-	return hasCredentialShape(text) ? "" : ` (${text})`;
-}
-
-// The first rule a reply breaks, for the one re-ask.
+// The first rule a reply breaks, for the one re-ask: the rule and where it
+// broke, never the rejected value.
 function invalidReason(output) {
 	if (output === null || typeof output !== "object")
 		return "the reply was not one JSON object";
@@ -300,10 +294,10 @@ function invalidReason(output) {
 	if (!Array.isArray(output.steps)) return "steps must be a list";
 	const bad = output.steps.findIndex((s, i) => !validStep(s, i));
 	if (bad >= 0)
-		return `step ${bad + 1} is invalid${shown(output.steps[bad])}: each step needs order counting from 1, t_s, a listed action and a target, and pointer steps need every coordinate as an integer inside the viewport`;
+		return `step ${bad + 1} is invalid: each step needs order counting from 1, t_s, a listed action and a target, and pointer steps need every coordinate as an integer inside the viewport`;
 	if (output.predicate !== null && !validPredicate(output.predicate))
-		return `the predicate is invalid${shown(output.predicate)}`;
-	return "a list has more than 40 entries or an entry longer than 1,024 characters";
+		return "the predicate is invalid: use one of the listed forms, with expected and observed that differ";
+	return "a list has more than 40 entries, an entry is longer than 1,024 characters, or a text has the shape of a credential";
 }
 
 async function saveSteps(runDir, document) {
@@ -426,16 +420,14 @@ export async function watch(
 	let document = result.status === "ok" && steps(result.output, mediaPath);
 	// One re-ask on a JSON reply that fails validation, with the error as feedback.
 	if (!document && result.status === "ok") {
-		const echo = JSON.stringify(result.output);
-		result = await attempt(mediaPath, content, [
-			...(hasCredentialShape(echo)
-				? []
-				: [{ role: "assistant", content: echo }]),
-			{
-				role: "user",
-				content: `That reply failed validation: ${invalidReason(result.output)}. Reply again with the whole corrected JSON object.`,
-			},
-		]);
+		result = await attempt(
+			mediaPath,
+			content,
+			reask(
+				result.output,
+				`That reply failed validation: ${invalidReason(result.output)}. Reply again with the whole corrected JSON object.`,
+			),
+		);
 		document = result.status === "ok" && steps(result.output, mediaPath);
 	}
 	if (result.status !== "ok") return { status: result.status };

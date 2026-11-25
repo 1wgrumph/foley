@@ -12,7 +12,7 @@ import {
 	validPointer,
 	validPredicate,
 } from "./run-schema.mjs";
-import { hasCredentialShape } from "./text-safety.mjs";
+import { hasCredentialShape, reask } from "./text-safety.mjs";
 
 const MAX_ATTEMPTS = 3;
 const MAX_STEPS = 25; // per attempt; each model turn counts at least one
@@ -288,13 +288,6 @@ async function executePointer(run, page, action, observation) {
 	}
 }
 
-// A short copy of invalid model data for feedback, or nothing when it has a
-// credential shape.
-function shown(value) {
-	const text = JSON.stringify(value).slice(0, 300);
-	return hasCredentialShape(text) ? "" : ` (${text})`;
-}
-
 // Unambiguous forms of a turn, made canonical before validation. A verdict on an
 // unfinished turn decides nothing, so one outside the set is dropped. A drag
 // that omits a repeated end coordinate keeps its start value. A pointer click,
@@ -328,13 +321,14 @@ function normalized(reply) {
 	return { ...reply, output: turn };
 }
 
-// The first rule a turn breaks, for the one re-ask. No action of it has run.
+// The first rule a turn breaks, for the one re-ask: the rule and where it
+// broke, never the rejected value. No action of it has run.
 function turnReason(output) {
 	if (!isRecord(output)) return "the reply was not one JSON object";
 	if (!Array.isArray(output.actions)) return "actions must be a list";
 	const bad = output.actions.findIndex((a) => !validAction(a));
 	if (bad >= 0)
-		return `action ${bad + 1} is invalid${shown(output.actions[bad])}: click, double_click, move, type and drag need a CSS selector, a point needs pointer_click with integer x and y inside the viewport, key_press and type need a value, wait and scroll need a number value, reason is at most 512 characters`;
+		return `action ${bad + 1} is invalid: click, double_click, move, type and drag need a CSS selector, a point needs pointer_click with integer x and y inside the viewport, key_press and type need a value, wait and scroll need a number value, reason is at most 512 characters`;
 	if (typeof output.done !== "boolean") return "done must be true or false";
 	if (output.done && !VERDICTS.has(output.verdict))
 		return 'a finished turn needs verdict "reproduced" or "not_reproduced"';
@@ -346,6 +340,8 @@ async function ask(run, page) {
 	await page.waitForTimeout(SETTLE_MS);
 	const now = await predicateValue(page, run.predicate);
 	const png = await capture(run, page, "observe");
+	// The frame lists the call records of its turn, when the caller names them.
+	const frame = run.screenshots.at(-1);
 	const text = JSON.stringify({
 		failure_check_now: now,
 		...(run.reportTitle && { report_title: run.reportTitle }),
@@ -369,8 +365,8 @@ async function ask(run, page) {
 			],
 		},
 	];
-	const call = (extra = []) =>
-		run.callEmber({
+	const call = async (extra = []) => {
+		const reply = await run.callEmber({
 			messages: [...messages, ...extra],
 			max_output_tokens: run.maxOutputTokens,
 			// After a failed attempt the model reasons more before trying again.
@@ -378,22 +374,22 @@ async function ask(run, page) {
 			caseId: run.caseId,
 			caseBudget: run.caseBudget,
 		});
+		if (Array.isArray(reply?.callIds))
+			frame.calls = [...(frame.calls ?? []), ...reply.callIds];
+		return reply;
+	};
 	let reply = normalized(await call());
 	// One re-ask on a JSON turn that fails validation, with the error as feedback.
 	// Credential-shaped model text is never sent back or kept.
 	if (reply?.status === "ok" && !validTurn(reply.output)) {
 		record(run, { type: "reask", reason: "malformed_turn" });
-		const echo = JSON.stringify(reply.output);
 		reply = normalized(
-			await call([
-				...(hasCredentialShape(echo)
-					? []
-					: [{ role: "assistant", content: echo }]),
-				{
-					role: "user",
-					content: `That turn failed validation and none of its actions ran: ${turnReason(reply.output)}. Reply again with the whole corrected JSON object.`,
-				},
-			]),
+			await call(
+				reask(
+					reply.output,
+					`That turn failed validation and none of its actions ran: ${turnReason(reply.output)}. Reply again with the whole corrected JSON object.`,
+				),
+			),
 		);
 	}
 	const status =
