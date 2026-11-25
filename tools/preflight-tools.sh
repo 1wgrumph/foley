@@ -41,6 +41,13 @@ bin() {
 }
 
 bin node node --version
+# Minimum Node: tools/isolate.sh runs generated tests under --permission, stable
+# from 22.13.0; the locked @axe-core/playwright needs 22.12.0.
+min_node="22.13.0"
+if node_version="$(node -p 'process.versions.node' 2>/dev/null </dev/null)" &&
+	[ "$(printf '%s\n%s\n' "$min_node" "$node_version" | sort -V | head -n1)" != "$min_node" ]; then
+	failed+=("node $node_version is older than the supported minimum $min_node")
+fi
 bin npm npm --version
 bin yarn yarn --version
 bin ffmpeg ffmpeg -hide_banner -version

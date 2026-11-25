@@ -1,0 +1,9 @@
+{
+  "status": "red",
+  "log": "red-s4-e2e.log",
+  "log_sha256": "1400f5bd7087ebc836b6ee6aeb163dedc1a9c45b76bd8030d11c0b17a1924fb2",
+  "ids": [
+    "TC-R14-2",
+    "TC-INT-1"
+  ]
+}

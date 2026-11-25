@@ -1,7 +1,7 @@
 # W2 repair (product): return
 
-Implementer: Claude Code / Claude Opus 5.5. Date: 2026-11-24. Worktree `foley-wave-2`, branch `wave-2`.
-This is a review repair of slice S2 on the frozen hackathon implementer route. It is not a new slice.
+Author: the W2 product repair Implementer. Date: 2026-11-24. Branch `wave-2`.
+This is a review repair of slice S2. It is not a new slice.
 
 ## Outcome: PASS
 

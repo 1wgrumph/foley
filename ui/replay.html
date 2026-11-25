@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-@@SCRIPT_HASH@@'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; connect-src @@CONNECT@@; base-uri 'none'; form-action 'none'">
+<title>Foley · Issue replay</title>
+<link rel="icon" href="data:,">
+<style>@@CSS@@</style>
+</head>
+<body>
+<a class="skip" href="#viewer">Skip to replay</a>
+<header class="mast">
+	<div class="shell mast-inner">
+		<div class="brand"><i class="mark" aria-hidden="true"></i>Foley</div>
+		<div class="mast-nav"><a href="#census-heading">Issue index</a><div class="mode"><i aria-hidden="true"></i><span id="mode">Recorded replay</span></div></div>
+	</div>
+</header>
+<main class="shell">
+	<div class="intro">
+		<div><p class="eyebrow" id="issue">Issue replay</p><h1 id="title">Opening replay</h1></div>
+		<div class="summary"><div class="status" id="badge" data-testid="verdict">Waiting for run</div><p id="summary"></p></div>
+	</div>
+	<p id="notice" role="status" hidden></p>
+	<div class="viewer" id="viewer" tabindex="-1">
+		<section class="channel" data-testid="replay" aria-labelledby="replay-heading">
+			<div class="channel-head"><h2 id="replay-heading">Ember reproduction</h2><span class="tag ember" id="frame-count"></span></div>
+			<div class="screen" id="frame"><span>No captured frame yet</span></div>
+		</section>
+		<section class="decision" aria-labelledby="decision-heading">
+			<h2 id="decision-heading">Ember’s decision</h2>
+			<div id="decision"><p class="decision-empty">Waiting for an action.</p></div>
+		</section>
+		<div class="transport">
+			<div class="time" id="clock">00:00</div>
+			<div class="selection"><strong id="active">Waiting for actions</strong><span id="position"></span></div>
+			<div class="controls"><button id="prev" aria-label="Previous moment" disabled>‹</button><button id="next" aria-label="Next moment" disabled>›</button></div>
+		</div>
+		<section class="channel" data-testid="recording" aria-labelledby="recording-heading">
+			<div class="channel-head"><h2 id="recording-heading">Reporter recording</h2><span class="tag" id="source-kind"></span></div>
+			<div class="screen" id="recording"><span>No recording yet</span></div>
+		</section>
+	</div>
+	<div class="readout">
+		<section data-testid="location"><h2>Code location</h2><div id="anchors"></div></section>
+		<section><h2>Test runs</h2><div id="runners"></div></section>
+		<section data-testid="cost-meter"><h2>Run cost</h2><div id="cost"></div></section>
+	</div>
+	<div class="work">
+		<div>
+			<section data-testid="steps"><div class="section-head"><h2>Timeline</h2><span class="label" id="count"></span></div><ol id="steps" class="steps"></ol><p id="no-steps" class="muted">No extracted steps yet.</p></section>
+			<section><div class="section-head"><h2>Action feed</h2></div><div data-testid="action-feed" id="feed"></div></section>
+			<section data-testid="test"><div class="section-head"><h2>Regression test</h2></div><div id="test"></div></section>
+		</div>
+		<aside aria-label="Run evidence">
+			<section><div class="section-head"><h2>Failure predicate</h2></div><div id="predicate"></div></section>
+			<section><div class="section-head"><h2>Uncertainty</h2></div><ul data-testid="uncertainty" id="uncertainty" class="evidence-list"></ul></section>
+			<section><div class="section-head"><h2>Narration evidence</h2></div><ul data-testid="narration-evidence" id="narration-evidence" class="evidence-list"></ul></section>
+
+		</aside>
+	</div>
+	<section class="census" data-testid="census-index" aria-labelledby="census-heading"><div class="section-head"><h2 id="census-heading" tabindex="-1">Issue census</h2></div><ul id="census"></ul><p class="muted" id="no-census">No census rows received.</p></section>
+</main>
+<footer class="shell"><span>Foley&nbsp; / &nbsp;Run record</span><span data-testid="run-state" id="state" role="status">loading</span></footer>
+<script type="application/json" id="data">@@DATA@@</script>
+<script>@@JS@@</script>
+</body>
+</html>

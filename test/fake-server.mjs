@@ -10,13 +10,16 @@ export const sampleUsage = {
 	completion_tokens_details: { reasoning_tokens: 120 },
 };
 
-const defaultAnswer = JSON.stringify({ answer: "ok" });
+const defaultAnswer = { answer: "ok" };
 
 export async function startFakeServer(script = [{ mode: "ok" }]) {
 	const requests = [];
 	const arrivals = new EventEmitter();
 	const held = new Map();
+	let sequence = 0;
 	const server = createServer(async (req, res) => {
+		const startedAt = Date.now();
+		const startedOrder = sequence++;
 		const chunks = [];
 		try {
 			for await (const chunk of req) chunks.push(chunk);
@@ -37,6 +40,12 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 			headers: req.headers,
 			body,
 			raw,
+			receivedAt: startedAt,
+			startedOrder,
+		});
+		res.once("finish", () => {
+			requests[index].completedAt = Date.now();
+			requests[index].completedOrder = sequence++;
 		});
 		const reply = script[index] ?? { mode: "unexpected" };
 		const respond = () => {
@@ -50,9 +59,10 @@ export async function startFakeServer(script = [{ mode: "ok" }]) {
 				return;
 			}
 			const usage = reply.usage ?? sampleUsage;
+			// Explicit content preserves even malformed types for the W2 regressions.
 			const answer = Object.hasOwn(reply, "content")
 				? reply.content
-				: defaultAnswer;
+				: (reply.text ?? JSON.stringify(reply.output ?? defaultAnswer));
 			const output =
 				req.url === "/v1/responses"
 					? {

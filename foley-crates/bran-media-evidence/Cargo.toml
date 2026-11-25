@@ -1,0 +1,13 @@
+[package]
+name = "bran-media-evidence"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Event-built Foley adapter: maps reproduction steps to file and line anchors through the vendored BRAN v0.4.0 library."
+publish = false
+
+[dependencies]
+bran-core = { path = "../../vendor/bran/crates/bran-core" }
+
+# Standalone crate: keeps it out of any parent workspace, including vendor/bran.
+[workspace]

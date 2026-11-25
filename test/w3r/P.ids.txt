@@ -1,0 +1,14 @@
+TC-R07-1/native-vitest
+TC-R07-2/no-independent-control
+TC-R07-2/unrelated-build-difference
+TC-R07-2/predicate-provenance
+TC-R07-2/unavailable-fixed-oracle
+TC-R06-4/discriminated-predicate
+TC-R06-4/page-oracles
+TC-R06-4/target-canvas-state
+TC-R06-4/console-recording
+TC-R04-1/unsupported-watch-predicate
+TC-R06-5/no-paid-reproduction
+TC-R06-3/whole-turn
+TC-R04-5/evidence-bounds
+TC-R04-5/evidence-replay

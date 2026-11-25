@@ -78,6 +78,13 @@ const TRACE_FIELDS = new Set([
 ]);
 
 // Runtime source may name the Meta endpoint and loopback only; other model providers fail.
+// Assignment metadata in committed return files: a harness, model, worktree, route
+// or session field, or a role line naming a "<harness> / <model>" route.
+const RETURN_FILE = /(?:^|\/)[^/]*RETURN[^/]*\.md$/i;
+const ASSIGNMENT_LINE = [
+	/^[\s>*-]*(?:harness|model|worktree|route|(?:role )?session)\**\s*:/i,
+	/^[\s>*-]*(?:(?:light |test |product )?implementer|reviewer|orchestrator|author)\**\s*:[^\n]*\S \/ \S/i,
+];
 const RUNTIME_DIRS = ["src/", "bin/"];
 const META_HOSTS = new Set(["api.meta.ai"]);
 const MODEL_PROVIDER_HOST =
@@ -150,6 +157,23 @@ function loadProvenance(root, findings) {
 	}
 }
 
+// Text checks applied to every line of a tracked text file.
+function checkLine(f, line, at, add) {
+	for (const m of line.matchAll(HOME_PATH)) {
+		if (!PLACEHOLDER_USERS.has(m[1]))
+			add("home-path", at, "home-directory path");
+	}
+	if (RETURN_FILE.test(f) && ASSIGNMENT_LINE.some((re) => re.test(line)))
+		add("assignment-metadata", at, "assignment field in a return file");
+	if (KEY_SHAPES.some((re) => re.test(line)))
+		add("key-shaped", at, "key-shaped string (value not printed)");
+	for (const tok of line.split(/[^A-Za-z0-9_.-]+/)) {
+		const t = tok.replace(/^[.-]+|[.-]+$/g, "").toLowerCase();
+		if (t && ROUTING_TOKEN_SHA256.has(sha256(t)))
+			add("routing-term", at, "agent routing term");
+	}
+}
+
 export function checkTree(rootArg) {
 	const root = realpathSync(rootArg);
 	const findings = [];
@@ -175,20 +199,8 @@ export function checkTree(rootArg) {
 		const text = buf.toString("utf8");
 		const lines = text.split("\n");
 
-		lines.forEach((line, i) => {
-			const at = `${f}:${i + 1}`;
-			for (const m of line.matchAll(HOME_PATH)) {
-				if (!PLACEHOLDER_USERS.has(m[1]))
-					add("home-path", at, "home-directory path");
-			}
-			if (KEY_SHAPES.some((re) => re.test(line)))
-				add("key-shaped", at, "key-shaped string (value not printed)");
-			for (const tok of line.split(/[^A-Za-z0-9_.-]+/)) {
-				const t = tok.replace(/^[.-]+|[.-]+$/g, "").toLowerCase();
-				if (t && ROUTING_TOKEN_SHA256.has(sha256(t)))
-					add("routing-term", at, "agent routing term");
-			}
-		});
+		for (const [i, line] of lines.entries())
+			checkLine(f, line, `${f}:${i + 1}`, add);
 
 		if (f.startsWith("trace/") && f.endsWith(".jsonl")) {
 			lines.forEach((line, i) => {

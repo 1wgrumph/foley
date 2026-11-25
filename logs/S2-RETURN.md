@@ -1,6 +1,6 @@
 # S2 Ember client: return
 
-Implementer: Claude Code / Claude Opus 5.5. Date: 2026-11-24. Worktree: `foley-wave-2`, branch `wave-2`.
+Author: the S2 Implementer. Date: 2026-11-24. Branch `wave-2`.
 Planned slice, not a defect fix.
 
 ## Outcome: PASS
