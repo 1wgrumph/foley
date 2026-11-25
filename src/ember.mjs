@@ -835,10 +835,15 @@ export async function callEmber(options = {}) {
 }
 
 // Native computer use: { input, instructions?, max_output_tokens, reasoning_effort?,
-// caseId, caseBudget?, stage?, timeoutMs? }, with the same reservation, settlement
+// caseId, caseBudget, stage?, timeoutMs? }, with the same reservation, settlement
 // and refusals as callEmber. Its output is { status, items } from the response.
+// A pilot interface: no pipeline stage calls it.
 export async function callEmberComputer(options = {}) {
 	try {
+		// This entry has no product caller that sets a budget for it, so a case
+		// budget is required here: without one the call is refused unsent.
+		if (!isCount(options.caseBudget))
+			return await refuse(paths(), "refused_input");
 		return await call(options, PROTOCOLS.responses);
 	} catch {
 		return { status: "ledger_unreadable", message: "ledger storage failed" };

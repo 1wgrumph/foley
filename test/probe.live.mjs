@@ -19,6 +19,8 @@ import { callEmber } from "../src/ember.mjs";
 const CLIP = "fixtures/recordings/owned-basic-flow.mp4";
 const PRICE = { input: 0.1, cached: 0.004, output: 0.5 }; // USD per million tokens, published
 const SYSTEM = "Reply with one JSON object and nothing else.";
+// Pilot use only: each step is its own case and may reserve at most $0.10.
+const PROBE_CASE_BUDGET = 100_000;
 const toolEnv = { PATH: process.env.PATH };
 const b64 = (bytes) => bytes.toString("base64");
 
@@ -116,6 +118,8 @@ const result = await callEmber({
 	],
 	max_output_tokens: 4000,
 	caseId: `probe-${step}`,
+	// Each probe step is its own case; one request may spend at most this.
+	caseBudget: PROBE_CASE_BUDGET,
 	stage: "probe",
 });
 const wall_s = Math.round(performance.now() - started) / 1000;
