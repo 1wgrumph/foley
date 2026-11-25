@@ -1,33 +1,33 @@
 {
-  "status": "red",
-  "pinned_revision": "d7b86761f4d20085ae8927161e13d853e979321c",
-  "command": "node --test test/w3r/L.test.mjs",
-  "exit_code": 1,
-  "log": "w3r-L-red.log",
-  "log_sha256": "ebe72f9278f7265887400ed368cc09564d30aeb8e2d51af8d80db729d9da993d",
-  "ids": [
-    "TC-R05-1/graph-tie",
-    "TC-R05-1/json-number-grammar",
-    "TC-R10-1/eval-population",
-    "TC-R10-2/eval-split",
-    "TC-R10-3/eval-execution",
-    "TC-R10-3/envelope-ledger",
-    "TC-R10-3/envelope-ceilings",
-    "TC-R11-1/return-metadata",
-    "TC-R13-1/node-minimum",
-    "TC-R13-1/node-preflight"
-  ],
-  "assertion_failures": 10,
-  "repeat": {
-    "runs": 5,
-    "assertion_failures": 50,
-    "same_ids": true,
-    "log_sha256": "c9b818b7c3462572fb5cc94fbafcd1852ea9be318c1cf653befd104726143e35"
-  },
-  "two_copy": {
-    "runs": 2,
-    "assertion_failures": 20,
-    "same_ids": true,
-    "log_sha256": "129a278c41f5fd985d5c3d3bc564b4770ce1403fd9082e3184f4fa016587a46c"
-  }
+	"status": "red",
+	"pinned_revision": "d7b86761f4d20085ae8927161e13d853e979321c",
+	"command": "node --test test/w3r/L.test.mjs",
+	"exit_code": 1,
+	"log": "w3r-L-red.log",
+	"log_sha256": "ebe72f9278f7265887400ed368cc09564d30aeb8e2d51af8d80db729d9da993d",
+	"ids": [
+		"TC-R05-1/graph-tie",
+		"TC-R05-1/json-number-grammar",
+		"TC-R10-1/eval-population",
+		"TC-R10-2/eval-split",
+		"TC-R10-3/eval-execution",
+		"TC-R10-3/envelope-ledger",
+		"TC-R10-3/envelope-ceilings",
+		"TC-R11-1/return-metadata",
+		"TC-R13-1/node-minimum",
+		"TC-R13-1/node-preflight"
+	],
+	"assertion_failures": 10,
+	"repeat": {
+		"runs": 5,
+		"assertion_failures": 50,
+		"same_ids": true,
+		"log_sha256": "c9b818b7c3462572fb5cc94fbafcd1852ea9be318c1cf653befd104726143e35"
+	},
+	"two_copy": {
+		"runs": 2,
+		"assertion_failures": 20,
+		"same_ids": true,
+		"log_sha256": "129a278c41f5fd985d5c3d3bc564b4770ce1403fd9082e3184f4fa016587a46c"
+	}
 }
