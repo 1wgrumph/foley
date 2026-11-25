@@ -41,3 +41,8 @@
   asks for a target on every step and for the key in `key_press` steps. Watch
   sends frames rather than video, which missed two of eight actions on the
   owned clip.
+- Computer-use pilot (S3b). The governor gains `callEmberComputer`, a
+  stateless Responses API path for Ember's native computer tool, priced from
+  the replayed history with each screenshot bounded as a frame. On the 9852
+  flow both drivers reproduced the failure first time; the screenshot-and-action
+  loop stays the reproduction driver.

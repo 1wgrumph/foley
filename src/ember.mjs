@@ -631,11 +631,125 @@ async function settle(p, callId, usage, meta) {
 	return value === true && !traceFailed;
 }
 
+const MAX_IMAGES = 50; // per request, the API's limit
+
+// Copies a JSON value, replacing each string with fn(string); fn may throw.
+const mapStrings = (value, fn) =>
+	typeof value === "string"
+		? fn(value)
+		: Array.isArray(value)
+			? value.map((v) => mapStrings(v, fn))
+			: value !== null && typeof value === "object"
+				? Object.fromEntries(
+						Object.entries(value).map(([k, v]) => [k, mapStrings(v, fn)]),
+					)
+				: value;
+
+// Native computer use on the Responses API, stateless (store false): the caller
+// replays the whole history, so every input token is in the priced body. Each
+// data: URL must be a bounded PNG frame; it is priced at 1,600 tokens and kept
+// on disk as its digest.
+function prepareResponses(o, key) {
+	const { input, instructions, max_output_tokens: maxOutput } = o;
+	const effort = o.reasoning_effort;
+	if (
+		!Array.isArray(input) ||
+		input.length === 0 ||
+		(instructions !== undefined && typeof instructions !== "string")
+	)
+		return { status: "refused_input" };
+	if (!Number.isSafeInteger(maxOutput) || maxOutput < 16)
+		return { status: "budget_refused" };
+	let frames = 0;
+	const view = (blank) => (text) => {
+		if (!text.startsWith("data:")) return text;
+		const frame = boundedFrame(text);
+		if (!frame) throw new RangeError("unbounded media");
+		if (blank) frames++;
+		return blank ? "" : `sha256:${sha256(frame)}`;
+	};
+	let priced;
+	let kept;
+	try {
+		priced = mapStrings(input, view(true));
+		kept = mapStrings(input, view(false));
+	} catch {
+		return { status: "budget_refused" };
+	}
+	const body = (items) =>
+		JSON.stringify({
+			model: MODEL,
+			...(instructions !== undefined && { instructions }),
+			input: items,
+			tools: [{ type: "computer" }],
+			max_output_tokens: maxOutput,
+			...(effort && { reasoning: { effort } }),
+			store: false,
+			include: ["reasoning.encrypted_content"],
+		});
+	const text = body(input);
+	if (text.includes(key)) return { status: "refused_input" };
+	const tokens = Buffer.byteLength(body(priced)) + frames * FRAME_TOKENS;
+	if (tokens > MAX_INPUT_TOKENS || frames > MAX_IMAGES)
+		return { status: "budget_refused" };
+	return {
+		wire: text,
+		digest: sha256(text),
+		bound: micro(tokens * PRICE.input + maxOutput * PRICE.output),
+		record: body(kept),
+	};
+}
+
+// The reply must carry a JSON object as a string.
+function chatOutput(reply) {
+	const content = reply?.choices?.[0]?.message?.content;
+	try {
+		const output = typeof content === "string" ? JSON.parse(content) : null;
+		const object =
+			output !== null && typeof output === "object" && !Array.isArray(output);
+		return { output: object ? output : undefined, content };
+	} catch {
+		return { content };
+	}
+}
+
+const PROTOCOLS = {
+	chat: {
+		path: "/chat/completions",
+		prepare: (o, key) =>
+			prepare(o.messages, o.max_output_tokens, key, o.reasoning_effort),
+		usage: (u) => u,
+		finish: (reply) => reply?.choices?.[0]?.finish_reason,
+		output: chatOutput,
+	},
+	responses: {
+		path: "/responses",
+		prepare: prepareResponses,
+		usage: (u) => ({
+			prompt_tokens: u?.input_tokens,
+			completion_tokens: u?.output_tokens,
+			prompt_tokens_details: {
+				cached_tokens: u?.input_tokens_details?.cached_tokens,
+			},
+			completion_tokens_details: {
+				reasoning_tokens: u?.output_tokens_details?.reasoning_tokens,
+			},
+		}),
+		finish: (reply) => reply?.incomplete_details?.reason ?? reply?.status,
+		// The output items (computer calls, messages, reasoning) are returned as
+		// data for the caller to validate.
+		output: (reply) =>
+			Array.isArray(reply?.output)
+				? { output: { status: reply.status, items: reply.output } }
+				: {},
+	},
+};
+
 // One HTTP exchange. Error text never includes the reply body, which may echo the key.
-async function send(cfg, wire, timeoutMs) {
+async function send(cfg, wire, timeoutMs, protocol) {
 	let res;
 	try {
-		res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+		res = await fetch(`${cfg.baseUrl}${protocol.path}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -672,29 +786,20 @@ async function send(cfg, wire, timeoutMs) {
 			message: "unreadable reply",
 		};
 	}
-	const usage = usageCost(reply?.usage);
+	const usage = usageCost(protocol.usage(reply?.usage));
 	if (!usage)
 		return { status: "malformed_output", message: "reply has no usage" };
 	// The API's own usage and stop reason, for reconciliation; counts only.
 	const api = JSON.parse(
 		JSON.stringify({
 			usage: reply.usage,
-			finish_reason: reply.choices?.[0]?.finish_reason,
+			finish_reason: protocol.finish(reply),
 		}),
 	);
-	// The reply must carry a JSON object as a string, and must not echo the key.
-	const content = reply?.choices?.[0]?.message?.content;
-	let output;
-	try {
-		output = typeof content === "string" ? JSON.parse(content) : undefined;
-	} catch {
-		output = undefined;
-	}
+	// The output must not echo the key.
+	const { output, content } = protocol.output(reply);
 	const valid =
-		output !== null &&
-		typeof output === "object" &&
-		!Array.isArray(output) &&
-		!JSON.stringify(output).includes(cfg.key);
+		output !== undefined && !JSON.stringify(output).includes(cfg.key);
 	if (!valid) {
 		if (typeof content === "string" && !content.includes(cfg.key))
 			api.content_head = content.slice(0, 2000);
@@ -712,7 +817,18 @@ async function send(cfg, wire, timeoutMs) {
 // spend left in the ledger and no exception text returned.
 export async function callEmber(options = {}) {
 	try {
-		return await call(options);
+		return await call(options, PROTOCOLS.chat);
+	} catch {
+		return { status: "ledger_unreadable", message: "ledger storage failed" };
+	}
+}
+
+// Native computer use: { input, instructions?, max_output_tokens, reasoning_effort?,
+// caseId, caseBudget?, stage?, timeoutMs? }, with the same reservation, settlement
+// and refusals as callEmber. Its output is { status, items } from the response.
+export async function callEmberComputer(options = {}) {
+	try {
+		return await call(options, PROTOCOLS.responses);
 	} catch {
 		return { status: "ledger_unreadable", message: "ledger storage failed" };
 	}
@@ -728,15 +844,14 @@ async function refuse(p, status) {
 }
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one validated reserve-send-settle sequence with its single retry
-async function call({
-	messages,
-	max_output_tokens,
-	reasoning_effort,
-	caseId,
-	caseBudget,
-	stage,
-	timeoutMs = DEFAULT_TIMEOUT_MS,
-}) {
+async function call(options, protocol) {
+	const {
+		reasoning_effort,
+		caseId,
+		caseBudget,
+		stage,
+		timeoutMs = DEFAULT_TIMEOUT_MS,
+	} = options;
 	const p = paths();
 	const cfg = config();
 	const valid =
@@ -751,7 +866,7 @@ async function call({
 		Number.isSafeInteger(timeoutMs) &&
 		timeoutMs > 0;
 	if (!valid) return refuse(p, "refused_input");
-	const req = prepare(messages, max_output_tokens, cfg.key, reasoning_effort);
+	const req = protocol.prepare(options, cfg.key);
 	if (req.status) return refuse(p, req.status);
 	await mkdir(p.prompts, { recursive: true });
 	await writeFile(join(p.prompts, `${req.digest}.json`), req.record);
@@ -773,7 +888,7 @@ async function call({
 		let r;
 		let recorded;
 		try {
-			r = await send(cfg, req.wire, timeoutMs);
+			r = await send(cfg, req.wire, timeoutMs, protocol);
 			recorded = await settle(p, callId, r.usage, {
 				...meta,
 				outcome: r.status,

@@ -444,6 +444,77 @@ contract("TC-R01-8", async () => {
 			resultIs(await running, "ok");
 		},
 	);
+	// Native computer use is stateless: the replayed history is the whole input, so
+	// the priced body bounds it; each screenshot is a bounded frame at 1,600 tokens,
+	// and the Responses usage names settle the call.
+	const png = mediaRequest("image").messages[0].content[1].image_url.url;
+	const computer = (url) => ({
+		input: [
+			{ role: "user", content: [{ type: "input_text", text: "abcdefghij" }] },
+			{
+				type: "computer_call_output",
+				call_id: "call-1",
+				acknowledged_safety_checks: [],
+				output: { type: "computer_screenshot", image_url: url },
+			},
+		],
+		max_output_tokens: 1998,
+		reasoning_effort: "low",
+		caseId: "case-a",
+		timeoutMs: 15000,
+	});
+	const computerBody = (url) => ({
+		model,
+		input: computer(url).input,
+		tools: [{ type: "computer" }],
+		max_output_tokens: 1998,
+		reasoning: { effort: "low" },
+		store: false,
+		include: ["reasoning.encrypted_content"],
+	});
+	const computerBound = Math.ceil(
+		((Buffer.byteLength(JSON.stringify(computerBody(""))) + 1600) * 100 +
+			1998 * 500) /
+			1000,
+	);
+	await scenario(
+		{
+			script: [
+				ok(
+					{
+						input_tokens: 1700,
+						output_tokens: 40,
+						input_tokens_details: { cached_tokens: 0 },
+						output_tokens_details: { reasoning_tokens: 30 },
+					},
+					true,
+				),
+			],
+		},
+		async (ctx) => {
+			const before = readFileSync(ctx.ledgerPath);
+			resultIs(
+				await ctx.ember.callEmberComputer(
+					computer("data:image/jpeg;base64,/9j/4AAQ"),
+				),
+				"budget_refused",
+			);
+			assert.deepEqual(readFileSync(ctx.ledgerPath), before);
+			const running = ctx.ember.callEmberComputer(computer(png));
+			await ctx.server.waitForRequests(1);
+			assert.equal(ctx.server.requests[0].url, "/v1/responses");
+			assert.deepEqual(ctx.server.requests[0].body, computerBody(png));
+			assert.equal(booked(ctx.ledger()), computerBound);
+			ctx.server.release(0);
+			const result = await running;
+			resultIs(result, "ok");
+			assert.equal(result.output.items[0].type, "message");
+			assert.equal(
+				ctx.ledger().settled,
+				Math.ceil((1700 * 100 + 40 * 500) / 1000),
+			);
+		},
+	);
 });
 
 contract("TC-R01-9", async () => {
