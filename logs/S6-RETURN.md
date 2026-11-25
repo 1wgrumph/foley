@@ -217,7 +217,7 @@ did not view any held-out issue page or recording.
 | `gitleaks detect --no-banner --redact` | 0 | |
 | `node tools/check-public.mjs --tree .` | 0 | 0 findings |
 | `clamdscan --fdpass --multiscan media/cache/` | 0 | clean |
-| `az-simplicity --changed main --format json` (Alphazedehq path, advisory) | 0 | 35 selected paths, all checked by Biome. 3 findings in the files this slice touched: cognitive complexity 22 in `src/ember.mjs` (two functions), and 24 in `prove` in `src/prove.mjs`, up from 22 with the malformed-round branch. Not refactored in this slice. Friction: none |
+| `az-simplicity --changed main --format json` (advisory) | 0 | 35 selected paths, all checked by Biome. 3 findings in the files this slice touched: cognitive complexity 22 in `src/ember.mjs` (two functions), and 24 in `prove` in `src/prove.mjs`, up from 22 with the malformed-round branch. Not refactored in this slice. Friction: none |
 
 ## Remaining risks
 
