@@ -1,0 +1,173 @@
+// Resource group: unique scratch directory, isolated local runner, ephemeral web and model servers.
+import assert from "node:assert/strict";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { join, relative } from "node:path";
+import { test } from "node:test";
+import { product, readJson, sha256, writeJson } from "../stages/support.mjs";
+import {
+	assertExit,
+	issue,
+	pairArgs,
+	replies,
+	syntheticPair,
+} from "./pair-support.mjs";
+
+async function assertProof(ctx, result) {
+	assertExit(result, 0);
+	assert.match(result.stdout, /proof_verified/);
+	const run = readJson(join(ctx.runDir, "run.json"));
+	const core = readJson(join(ctx.runDir, "core-proof.json"));
+	const journal = readJson(join(ctx.runDir, "state.json"));
+	const proof = readJson(join(ctx.runDir, "proof.json"));
+	assert.equal(run.verdict, "proof_verified");
+	assert.equal(core.target_revision, ctx.binding.bug_commit);
+	for (const subject of [run, core, journal.identity])
+		assert.deepEqual(subject.pair, ctx.binding);
+	assert.equal(proof.rerun_without_ember.bug.exitCode, 1);
+	assert.equal(proof.rerun_without_ember.fixed.exitCode, 0);
+	assert.equal(core.rerun_without_ember.bug.exitCode, 1);
+	assert.equal(core.rerun_without_ember.fixed.exitCode, 0);
+	assert.equal(
+		ctx.server.requests.length,
+		3,
+		"Exactly watch, repro and prove model requests",
+	);
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	assert.equal((await checkCoreProof(ctx.runDir)).status, "ok");
+}
+
+test("TC-R15-4/pair-core-proof", { timeout: 240000 }, async () => {
+	await syntheticPair(replies, async (ctx) => {
+		await assertProof(ctx, await ctx.exec(ctx.args));
+		// The manifest's fix revision is part of proof identity, not decoration.
+		const path = join(ctx.runDir, "core-proof.json");
+		const core = readJson(path);
+		core.pair.fix_commit = core.pair.bug_commit;
+		writeJson(path, core);
+		const checkCoreProof = await product(
+			"src/run-schema.mjs",
+			"checkCoreProof",
+		);
+		assert.notEqual(
+			(await checkCoreProof(ctx.runDir)).status,
+			"ok",
+			"Refuse a changed pair binding",
+		);
+	});
+});
+
+async function refused(ctx, args, reason) {
+	assertExit(await ctx.exec(args), 2, reason);
+	assert.equal(
+		ctx.server.requests.length,
+		0,
+		"Refusal must precede every model request",
+	);
+	assert.equal(
+		existsSync(join(ctx.runDir, "state.json")),
+		false,
+		"No journal started on invalid pair",
+	);
+}
+
+test("TC-R07-1/pair-build-missing", { timeout: 120000 }, async () => {
+	await syntheticPair(
+		[],
+		async (ctx) => {
+			rmSync(join(ctx.fixed.page, "index.html"));
+			await refused(ctx, ctx.args, "pair_build_missing");
+		},
+		false,
+	);
+});
+
+test("TC-R07-1/pair-commit-mismatch", { timeout: 120000 }, async () => {
+	await syntheticPair(
+		[],
+		async (ctx) => {
+			ctx.receipt.builds[1].commit = ctx.bug.commit;
+			writeJson(ctx.receiptPath, ctx.receipt);
+			const receiptMismatch = await ctx.exec(ctx.args);
+			// Make the manifest and receipt agree with one another, but not checkout HEAD.
+			ctx.pair.fix_commit = ctx.bug.commit;
+			writeJson(ctx.manifest, { schema: "foley.pairs/1", pairs: [ctx.pair] });
+			const headMismatch = await ctx.exec(ctx.args);
+			for (const result of [receiptMismatch, headMismatch])
+				assertExit(result, 2, "pair_commit_mismatch");
+			assert.equal(ctx.server.requests.length, 0);
+			assert.equal(existsSync(join(ctx.runDir, "state.json")), false);
+		},
+		false,
+	);
+});
+
+test("TC-R07-1/pair-unknown", { timeout: 120000 }, async () => {
+	await syntheticPair(
+		[],
+		(ctx) =>
+			refused(
+				ctx,
+				pairArgs(join(ctx.root, "recording.mp4"), issue + 1),
+				"pair_missing",
+			),
+		false,
+	);
+});
+
+test("TC-R07-1/pair-receipt-boundary", { timeout: 120000 }, async () => {
+	await syntheticPair(
+		[],
+		async (ctx) => {
+			// The other side exists and has an index, but is not the fixed checkout's page.
+			ctx.receipt.builds[1].page = relative(ctx.root, ctx.bug.page);
+			writeJson(ctx.receiptPath, ctx.receipt);
+			await refused(ctx, ctx.args, "pair_invalid");
+		},
+		false,
+	);
+});
+
+test("TC-R15-4/pair-resume-census", { timeout: 240000 }, async () => {
+	await syntheticPair(replies, async (ctx) => {
+		await assertProof(ctx, await ctx.exec(ctx.args));
+		const path = join(ctx.runDir, "state.json");
+		const journal = sha256(readFileSync(path));
+		assertExit(await ctx.exec(ctx.args), 0);
+		assertExit(await ctx.exec(ctx.censusArgs), 2, "resume_mismatch");
+		assert.equal(
+			sha256(readFileSync(path)),
+			journal,
+			"Census must not replace a pair journal",
+		);
+		assert.equal(
+			ctx.server.requests.length,
+			3,
+			"Resume and refusal make no additional requests",
+		);
+	});
+});
+
+test("TC-R15-4/pair-resume-from-census", { timeout: 120000 }, async () => {
+	await syntheticPair(
+		[
+			{
+				mode: "invalid_output",
+				usage: { prompt_tokens: 10, completion_tokens: 20 },
+			},
+		],
+		async (ctx) => {
+			assertExit(await ctx.exec(ctx.censusArgs), 0);
+			const path = join(ctx.runDir, "state.json");
+			const journal = sha256(readFileSync(path));
+			assert.equal(ctx.server.requests.length, 1);
+			assertExit(await ctx.exec(ctx.args), 2, "resume_mismatch");
+			assert.equal(
+				sha256(readFileSync(path)),
+				journal,
+				"Pair must not replace a census journal",
+			);
+			assert.equal(ctx.server.requests.length, 1);
+		},
+		false,
+	);
+});
