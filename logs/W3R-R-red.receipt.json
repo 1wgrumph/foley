@@ -1,0 +1,23 @@
+{
+  "status": "red",
+  "log": "W3R-R-red.log",
+  "log_sha256": "5a354b5682609f866cb897069d62a7827c48e5e6d6aed5bb2fb0404ce6fb61fb",
+  "ids": [
+    "TC-R09-4/run-exclusive",
+    "TC-R09-1/cross-command-resume",
+    "TC-R09-2/attempt-limit",
+    "TC-R13-3/booked-recovery",
+    "TC-R13-3/settled-recovery",
+    "TC-INT-1/finalization-recovery",
+    "TC-R09-1/report-error-not-complete",
+    "TC-R15-4/complete-proof-semantics",
+    "TC-R14-2/incremental-actions",
+    "TC-R09-1/early-miss-census",
+    "TC-R04-2/integrated-recording-refusal",
+    "TC-R04-2/recording-content-and-size",
+    "TC-R04-2/audio-extraction-refusal",
+    "TC-R04-2/cache-size-before-read",
+    "TC-INT-1/dirty-target-refusal",
+    "TC-INT-1/resume-input-identity"
+  ]
+}
