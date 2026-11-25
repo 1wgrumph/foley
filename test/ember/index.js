@@ -48,7 +48,7 @@ contract("TC-R01-1", async () => {
 		const gap = (index % 3) - 1;
 		const settled = seed % 100;
 		const open = ((seed >>> 8) % 100) + 1;
-		const baseline = cap - settled - open - bound + gap;
+		const baseline = cap - settled - open - bound - gap;
 		await scenario(
 			{
 				baseline,

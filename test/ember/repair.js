@@ -123,8 +123,15 @@ contract("TC-R01-2/bound-violation", async () => {
 			"budget_refused",
 			"Bound violation did not stop later admission",
 		);
-		assert.equal(ctx.server.requests.length, 1);
 		assert.equal(event.bound_violated, true, "Missing bound-violation receipt");
+		const restarted = await ctx.worker();
+		restarted.start(request(1000, { caseId: "another-case" }));
+		resultIs(await restarted.result(), "budget_refused");
+		assert.equal(
+			ctx.server.requests.length,
+			1,
+			"Spend stop did not survive restart",
+		);
 		reconcile(ctx);
 	});
 });
@@ -449,7 +456,8 @@ contract("TC-R01-4/settlement-lock", async () => {
 		writeFileSync(ctx.lockPath, JSON.stringify({ pid: dead.pid }));
 		ctx.server.release(0);
 		const blocked = await resultWithoutThrow(running);
-		assert.ok(booked(ctx.ledger()) > 0, "Unsettled liability released");
+		const [reserved] = ctx.ledger().open;
+		assert.ok(reserved?.upperBound > 0, "Unsettled liability released");
 		assert.equal(ctx.server.requests.length, 1);
 		rmSync(ctx.lockPath);
 		resultIs(await ctx.call(request()), "ok");
@@ -458,6 +466,13 @@ contract("TC-R01-4/settlement-lock", async () => {
 			"ledger_unreadable",
 			"Settlement lock failure reported success",
 		);
+		const recovered = ctx.events().filter((e) => e.callId === reserved.callId);
+		assert.equal(
+			recovered.length,
+			1,
+			"Missing or duplicated recovered liability",
+		);
+		assert.equal(recovered[0].booked_micro_usd, reserved.upperBound);
 		reconcile(ctx);
 	});
 });
@@ -729,11 +744,16 @@ contract("TC-R01-8/frame-dimensions", async () => {
 });
 
 contract("TC-R12-1/usage-numeric-domain", async () => {
-	for (const reasoning_tokens of ["5", -1, 1.5, {}]) {
-		const usage = {
+	const invalidUsage = [
+		...["5", -1, 1.5, {}, false].map((reasoning_tokens) => ({
 			...sampleUsage,
 			completion_tokens_details: { reasoning_tokens },
-		};
+		})),
+		{ ...sampleUsage, prompt_tokens: "1000" },
+		{ ...sampleUsage, completion_tokens: false },
+		{ ...sampleUsage, prompt_tokens_details: { cached_tokens: "500" } },
+	];
+	for (const usage of invalidUsage) {
 		await scenario({ script: [ok(usage)] }, async (ctx) => {
 			resultIs(await ctx.call(request()), "malformed_output");
 			assert.equal(ctx.server.requests.length, 1);
