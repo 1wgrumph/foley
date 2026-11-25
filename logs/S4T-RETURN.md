@@ -215,3 +215,118 @@ unimplemented stage. Synthetic transport fixtures are not evidence
 of live provider protocol compatibility, video pricing or actual
 held-out issue success. Those are separate planned obligations.
 Use the pinned base when the old integration ref is absent.
+
+## Merge of main
+
+**Outcome: PASS.** The test branch contains main at
+`5917d77c96885cfabc82305012a11cafa6ab1f39`. The merge commit
+`a405c0321385f78ec96ff10c3431cf042dc6dcb3` has parents the prior
+wave-3 head `d94bed6` and main `5917d77`. The verified test/interface
+candidate after alignment is `be1dfbfa5b2b76394383bcf661d7121658628565`.
+This return is appended in the subsequent evidence commit.
+
+The sole conflict was `test/fake-server.mjs`. Preserve exact raw wire
+capture, parsed bodies and headers; the W2 arbitrary `content` reply
+field, including malformed types; S4 structured `output` and raw
+`text` replies; request start and completion timestamps and strict
+sequence numbers; held response release and all existing fault modes.
+The merged product, worker crash barrier, redirect observations and
+W2 repair tests are unchanged from main. No product file was edited.
+`git diff --exit-code main HEAD -- src` returned 0.
+
+### Changed paths
+
+- Merge resolution: `test/fake-server.mjs`; all other incoming files
+  are main's landed content.
+- Contract alignment (`be1dfbf`):
+  `test/stages/support.mjs`, `test/stages/watch/index.js`,
+  `test/stages/repro/index.js`, `test/stages/predicate/index.js`,
+  `test/stages/prove/index.js`, `test/ui/support.mjs`,
+  `fixtures/stages/backlog-worker.mjs`,
+  `fixtures/stages/loopback-only.mjs`,
+  `fixtures/stages/support-smoke.mjs`,
+  `tools/test-process.mjs`, `logs/S4T-INTERFACE.md`,
+  `logs/red-s4.receipt.json`, `logs/red-s4-e2e.receipt.json`.
+- Evidence: this appended return.
+
+### Contract corrections
+
+1. Offline model scenarios and repeat children use only
+   `FOLEY_TEST_API_KEY` with synthetic values. The support process
+   deletes the live key variable without reading its value. Browser
+   and non-model subprocess environments omit both keys. The generated
+   proof isolation control now asserts the absence of both keys.
+2. Parent model requests are restricted to the configured literal
+   loopback fake origin. The guard observes the caller's original
+   redirect policy before enforcing it. The crash worker and CLI
+   child guard also enforce local-only transport and the model
+   redirect policy.
+3. The bounded-video test-only adapter emits the normalized
+   `{model,messages,max_completion_tokens}` wire shape, synthetic
+   offline bearer, and redirect refusal. It accepts only a string
+   encoding a non-null JSON object. It remains protocol-only, not
+   governor or live-video evidence.
+4. Frame tests require inline PNG with both dimensions 1–1280 px,
+   including the UI pixel fixture. Watch's frame byte inspection
+   checks the PNG envelope and decoded dimensions. Real Ember
+   continues to refuse unpriced video/audio.
+5. The reproduction retry oracle prices the captured normalized
+   wire JSON, including framing and the 1,600-token frame allowance,
+   and checks each in-flight reservation. After settlement it checks
+   the exact wire SHA-256 and absence of a bound violation.
+6. The one-attempt case ceiling is 5,500 micro-dollars rather than
+   4,000. This allows serialized framing and screenshot input.
+   A 6,000-output-token response with 10 input tokens settles
+   3,001 micro-dollars, leaving 2,499, below the next output-only
+   reservation of 3,000. The test verifies a case-budget refusal,
+   not a persisted usage-overrun stop.
+7. The interface note now identifies W2R as authoritative for
+   credentials, framing, normalized wire, media bounds, exact
+   digest, complete cost, persisted stop and recovery metadata.
+   Stage spend attribution still uses actual call IDs; it must
+   not discard charge above a bound.
+8. Added a repeatable support smoke. It exercises both reply
+   conventions, actual framed PNG admission, a held reservation,
+   exact digest, media-only prompt digest, malformed null content,
+   strict request ordering, and the one-attempt budget refusal.
+
+All changes are tests, fixtures, test tools or interface/evidence
+notes. The original 16 and additional 34 W2 test IDs remain intact.
+The 28 S4 case IDs remain intact. No dependency or lockfile changed.
+
+### Verification
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `node test/fake-server.mjs` | 0 | 10 scripted replies |
+| `FOLEY_OFFLINE=1 node --test test/ember/` | 0 | 50/50 passed, no skips/cancellations |
+| `node --test test/stages/ test/ui/ > logs/red-s4.log; test $? -ne 0 && node tools/red-receipt.mjs logs/red-s4.log --expect-ids test/stages/ids.txt` | 0 | Runner 1; all 26 IDs fail on assertions |
+| `node --test test/e2e/ > logs/red-s4-e2e.log; test $? -ne 0 && node tools/red-receipt.mjs logs/red-s4-e2e.log --expect-ids test/e2e/ids.txt` | 0 | Runner 1; both IDs fail on assertions |
+| `node fixtures/stages/support-smoke.mjs` | 0 | Four loopback requests; real client settles 33 micro-dollars; separate framed budget control settles 3,001 and refuses second request |
+| Seeded import-failure receipt checker | 1 | Expected rejection |
+| `node out/s4t-reference.mjs app` / `app-fixed` | 1 / 0 | Same actual Chromium predicate still distinguishes the builds after browser environment isolation |
+| `node tools/check-public.mjs --tree .` | 0 | Zero findings |
+| `az-lint --changed main` | 0 | Biome and secret scan pass; local Semgrep advisory zero findings. Rust workspace still absent, so Cargo gates skip. |
+| `git merge-base --is-ancestor main HEAD` | 0 | Main integrated as a merge, not a rebase |
+| `git diff --exit-code main HEAD -- src` | 0 | No test-branch product deviation |
+| `git diff --check` | 0 | No whitespace errors |
+
+The refreshed receipts supersede the original S4 red digests above
+on this head. SHA-256:
+
+| Path | Digest |
+| --- | --- |
+| `logs/S4T-merge-ember.log` | `9491421e9a468bd4b905c69fcb9db55c40928ce929cb1fcc7ffd72b2f9490d19` |
+| `logs/red-s4.log` | `60fbd54fc1249b3c817ade2581bfd190509abbe8d89664c4e8fe67df3658f1f0` |
+| `logs/red-s4.receipt.json` | `303a4af6e2aab3e324ec628433bdc5898db9f9e8cd7551ff14228bb49f3afdc2` |
+| `logs/red-s4-e2e.log` | `1400f5bd7087ebc836b6ee6aeb163dedc1a9c45b76bd8030d11c0b17a1924fb2` |
+| `logs/red-s4-e2e.receipt.json` | `92d071511880d91f41b3dbcf59e204327e5e06c17bdd432f69a5abb968faf317` |
+| `logs/S4T-merge-support.log` | `bb817023477bd702a1b1ed8f1ad59a9524be6586e1cfc2a8213b552d1ba04a6e` |
+
+**Blocker: none for the merge packet.** Stage red receipts prove
+assertion-only entry failures, not product green behavior. The
+subsequent stage implementations, Rust compilation and UI/integration
+green gates remain separate obligations. The support smoke proves the
+local repaired client and shared fixtures; no live provider pricing
+or protocol claim. No credential read, external network call, push,
+destructive Git action or product-source edit.
