@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { product } from "../support.mjs";
+import { fixture, product, readJson } from "../support.mjs";
 
 // Synthetic hand-labelled results, separate from the frozen real held-out set.
 const results = [
@@ -51,6 +51,14 @@ const labels = {
 
 test("TC-R10-1", async () => {
 	const score = await product("src/score.mjs", "score");
+	// Inspect split membership only; the arithmetic oracle uses synthetic labels.
+	const heldOut = readJson(fixture("eval", "held-out.json"));
+	const tuning = readJson(fixture("eval", "tuning.json"));
+	assert.equal(heldOut.schema, labels.schema);
+	assert.equal(heldOut.fixed, true);
+	assert.equal(heldOut.split, "held-out");
+	const tuningIds = new Set(tuning.entries.map((entry) => entry.issue));
+	assert.ok(heldOut.entries.every((entry) => !tuningIds.has(entry.issue)));
 	const result = score(results, labels);
 	assert.equal(result.success_per_attempt, 2 / 3);
 	assert.equal(result.success_per_eligible, 2 / 4);

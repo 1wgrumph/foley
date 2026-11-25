@@ -138,6 +138,12 @@ test("TC-R09-3", async () => {
 		"failure_observed",
 		"proof_verified",
 	];
+	const committed = readJson(fixture("census", "census.json"));
+	assert.equal(committed.schema, "foley.census/1");
+	assert.deepEqual(
+		new Set(Object.keys(committed.status_set)),
+		new Set(statuses),
+	);
 	await temporary((root) =>
 		withEmber(root, [], async ({ server, callEmber }) => {
 			const opts = config(root, callEmber, { maxIssues: 0 });

@@ -1,7 +1,7 @@
 {
   "status": "red",
   "log": "red-s4.log",
-  "log_sha256": "a0d84906f21b4d1682c962b0e455d9046265744de40d3b6f59bde97e85d2a118",
+  "log_sha256": "d7a62df482ecabcf950562b8aeca5c890672642b2a89a262e44410a917bb5741",
   "ids": [
     "TC-R04-1",
     "TC-R04-2",
