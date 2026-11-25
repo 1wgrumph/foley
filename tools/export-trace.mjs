@@ -74,6 +74,10 @@ write("replies.json", {
 	},
 	proof: {
 		...proof,
+		// The scratch folder of each attempt is a local path and is left out.
+		attempts: (proof.attempts ?? []).map(
+			({ sandboxPath: _local, ...attempt }) => attempt,
+		),
 		...(run.test && {
 			test: readFileSync(join(runDir, run.test.path), "utf8"),
 		}),
