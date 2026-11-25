@@ -2,7 +2,7 @@
 // for one issue, every artifact in out/runs/<issue>/. The same stage functions
 // serve `foley run` and the backlog. Model calls go only through callEmber; each
 // call is attributed to its stage in out/stage-spend.jsonl.
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import {
@@ -11,7 +11,6 @@ import {
 	mkdir,
 	readFile,
 	rename,
-	unlink,
 	writeFile,
 } from "node:fs/promises";
 import { extname, isAbsolute, join, relative } from "node:path";
@@ -27,7 +26,7 @@ import { watch } from "./watch.mjs";
 export const STAGES = ["watch", "locate", "repro", "prove", "report"];
 const BOUNDS = new URL("../fixtures/ember/bounds.json", import.meta.url);
 const UI_PAGE = new URL("../ui/dist/replay.html", import.meta.url);
-const TOOLS = ["git", "ffmpeg", "ffprobe", "cargo", "unshare"];
+const TOOLS = ["git", "ffmpeg", "ffprobe", "cargo", "unshare", "flock"];
 const RUNNERS = new Set(["node-test", "vitest"]);
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "[::1]"]);
 const USAGE = [
@@ -180,28 +179,57 @@ export function preflight(options) {
 	return o;
 }
 
-/** One foley run at a time per out/ folder, so trace attribution stays exact. */
+/**
+ * One foley run at a time per out/ folder, for the whole pipeline. The kernel
+ * holds an flock(2) on out/foley-run.lock through a child process that lives
+ * only while this process keeps its stdin open: a crash or kill of this process
+ * closes the pipe and releases the lock, and only this process can release it
+ * earlier. Any failure to take the lock refuses the run (fail closed).
+ */
 export async function lockRun() {
 	await mkdir(out(), { recursive: true });
 	const path = join(out(), "foley-run.lock");
-	for (let tries = 0; tries < 2; tries++) {
-		try {
-			await writeFile(path, String(process.pid), { flag: "wx" });
-			return () => unlink(path).catch(() => {});
-		} catch (error) {
-			if (error.code !== "EEXIST") throw error;
-			const holder = Number(await readFile(path, "utf8").catch(() => ""));
-			let alive = false;
-			try {
-				alive =
-					Number.isSafeInteger(holder) && holder > 0 && process.kill(holder, 0);
-			} catch {}
-			if (alive)
-				throw new Refusal("run_active", `foley run ${holder} holds ${path}`);
-			await unlink(path).catch(() => {}); // the holder died; take over
-		}
+	const holder = spawn(
+		"flock",
+		[
+			"--exclusive",
+			"--nonblock",
+			"--conflict-exit-code",
+			"75",
+			path,
+			"sh",
+			"-c",
+			"echo locked; exec cat",
+		],
+		{ stdio: ["pipe", "pipe", "ignore"], env: { PATH: process.env.PATH } },
+	);
+	const exited = new Promise((resolve) =>
+		holder.once("close", (code) => resolve(code)),
+	);
+	holder.once("error", () => {}); // a spawn failure also closes: refused below
+	const locked = await Promise.race([
+		new Promise((resolve) =>
+			holder.stdout.once("data", (chunk) =>
+				resolve(String(chunk).startsWith("locked")),
+			),
+		),
+		exited.then(() => false),
+	]);
+	if (!locked) {
+		holder.kill("SIGKILL");
+		const code = await exited;
+		throw new Refusal(
+			"run_active",
+			code === 75
+				? `another foley run holds ${path}`
+				: `could not lock ${path}; is flock installed?`,
+		);
 	}
-	throw new Refusal("run_active", `could not take ${path}`);
+	holder.stdout.resume();
+	return async () => {
+		holder.stdin.end();
+		await exited;
+	};
 }
 
 function emptyRun(o) {
