@@ -52,7 +52,7 @@ only for its issue numbers, to exclude them.
 | Command | Exit | Result |
 | --- | --- | --- |
 | `tools/build-pair.sh 10840`, `9852` (from `pairs.json`) | 0, 0 | 45 s and 48 s with a warm cache |
-| `tools/build-pair.sh 8418` | see note | First build exit 0. A rebuild hung in the 2024 Vite ESLint checker after the bundle was written; I killed it at 976 s and added a 900 s build timeout. The final rebuild result is under "Final 8418 rebuild" below. |
+| `tools/build-pair.sh 8418` | see note | First build exit 0. A rebuild hung in the 2024 Vite ESLint checker after the bundle was written; I killed it at 976 s and added a 900 s build timeout. A final rebuild was still running when this return was committed; every 8418 check and proof above used the first successful build. |
 | `tools/build-pair.sh 1 --commits 0123…4567 cae9d2bc…` | 1 | `build-pair: unknown commit 0123456789abcdef0123456789abcdef01234567` |
 | `tools/build-pair.sh 424242` | 1 | `issue 424242 is not in fixtures/pairs/pairs.json` |
 | `node test/pairs/check.mjs <issue> bug` / `fixed`, three runs each | 1 / 0 | All three pairs, every run |
