@@ -6,7 +6,7 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { checkPredicate } from "./predicate.mjs";
-import { credentialShaped } from "./text-safety.mjs";
+import { hasCredentialShape } from "./text-safety.mjs";
 
 const MAX_ATTEMPTS = 3;
 const MAX_STEPS = 25; // per attempt; each model turn counts at least one
@@ -17,6 +17,8 @@ const MAX_WAIT_MS = 2_000;
 const DEFAULT_OUTPUT_TOKENS = 4_096;
 const OBSERVATION_LIMIT = 1_024; // UTF-16 code units, inclusive
 const REASON_LIMIT = 512;
+const FIELD_LIMIT = 1_024; // selector, target, to_selector and value text
+const NAME_LIMIT = 64;
 const VIEWPORT = { width: 1280, height: 720 }; // within the 1280 px frame bound
 
 const SYSTEM = [
@@ -32,23 +34,57 @@ const SYSTEM = [
 	"Both are shown to people as plain text.",
 ].join(" ");
 
-// Optional model explanation text: a bounded string with no credential shape.
-const explanation = (value, limit) =>
+// Optional model text: absent, or a bounded string with no credential shape.
+const text = (value, limit) =>
 	value === undefined ||
 	(typeof value === "string" &&
 		value.length <= limit &&
-		!credentialShaped(value));
+		!hasCredentialShape(value));
+const isRecord = (v) =>
+	v !== null && typeof v === "object" && !Array.isArray(v);
 
-// The whole turn is checked before any of its actions runs.
+const cssSelector = (v) =>
+	typeof v === "string" && v !== "" && text(v, FIELD_LIMIT);
+const number = (v) => Number.isFinite(v);
+// Fields each declared action needs; an unknown action name passes here and is
+// dropped, unexecuted, when the turn runs.
+const REQUIRED = {
+	click: { selector: cssSelector },
+	double_click: { selector: cssSelector },
+	move: { selector: cssSelector },
+	type: {
+		selector: cssSelector,
+		value: (v) => typeof v === "string" && text(v, FIELD_LIMIT),
+	},
+	drag: { selector: cssSelector, to_selector: cssSelector },
+	scroll: { value: number },
+	key_press: {
+		value: (v) => typeof v === "string" && v !== "" && text(v, FIELD_LIMIT),
+	},
+	wait: { value: (v) => number(v) && v >= 0 },
+	screenshot: {},
+};
+const validAction = (a) =>
+	isRecord(a) &&
+	typeof a.action === "string" &&
+	text(a.action, NAME_LIMIT) &&
+	text(a.target, FIELD_LIMIT) &&
+	text(a.reason, REASON_LIMIT) &&
+	Object.entries(
+		Object.hasOwn(REQUIRED, a.action) ? REQUIRED[a.action] : {},
+	).every(([field, check]) => check(a[field]));
+
+// The whole turn is checked before any of its actions runs (W2 reply shape).
+const VERDICTS = new Set(["reproduced", "not_reproduced"]);
 const validTurn = (output) =>
-	explanation(output?.observation, OBSERVATION_LIMIT) &&
-	(!Array.isArray(output?.actions) ||
-		output.actions.every(
-			(action) =>
-				action === null ||
-				typeof action !== "object" ||
-				explanation(action.reason, REASON_LIMIT),
-		));
+	isRecord(output) &&
+	Array.isArray(output.actions) &&
+	output.actions.every(validAction) &&
+	typeof output.done === "boolean" &&
+	(output.done
+		? VERDICTS.has(output.verdict)
+		: output.verdict === undefined || VERDICTS.has(output.verdict)) &&
+	text(output.observation, OBSERVATION_LIMIT);
 
 const timeout = { timeout: ACTION_TIMEOUT_MS };
 // The declared action set. Element actions receive the located element.
@@ -198,16 +234,13 @@ async function modelTurns(run, page) {
 	for (let used = 0; used < MAX_STEPS; ) {
 		const output = await ask(run, page);
 		if (!output) return { executed, verdict, stopped: true };
-		const valid = Array.isArray(output.actions);
-		if (!valid)
-			record(run, { type: "dropped_action", action: "invalid_output" });
-		const actions = valid ? output.actions : [];
+		const actions = output.actions;
 		for (const action of actions.slice(0, MAX_STEPS - used)) {
 			await execute(run, page, action, output.observation);
 			executed.push(String(action?.action));
 		}
 		used += Math.max(actions.length, 1);
-		verdict = typeof output.verdict === "string" ? output.verdict : undefined;
+		verdict = output.verdict;
 		if (output.done === true) break;
 	}
 	return { executed, verdict, stopped: false };

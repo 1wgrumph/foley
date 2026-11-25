@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
 import { insideRun, STATUSES, validateRun } from "../src/run-schema.mjs";
-import { credentialShaped } from "../src/text-safety.mjs";
+import { hasCredentialShape } from "../src/text-safety.mjs";
 
 const media = new Map(
 	Object.entries({
@@ -109,7 +109,7 @@ export async function snapshot(root, inline) {
 	for (const event of run.replay.events) {
 		if (
 			event.type === "action" &&
-			(credentialShaped(event.observation) || credentialShaped(event.reason))
+			(hasCredentialShape(event.observation) || hasCredentialShape(event.reason))
 		)
 			throw new Error("Invalid action explanation");
 	}

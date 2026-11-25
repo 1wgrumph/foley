@@ -9,6 +9,6 @@ const CREDENTIAL_SHAPES = [
 	/\b[A-Za-z0-9_]*(?:api[_-]?key|secret|token)\b["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}/i,
 ];
 
-export const credentialShaped = (text) =>
+export const hasCredentialShape = (text) =>
 	typeof text === "string" &&
 	CREDENTIAL_SHAPES.some((shape) => shape.test(text));
