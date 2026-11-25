@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/excalidraw/excalidraw.git",
+  "commit": "eaa7fa32a6645ae9da57eda548e838d0e2a024a1",
+  "pinned_on": "2026-11-24",
+  "package_manager": "yarn@1.22.22",
+  "install_command": "cd target && yarn install --frozen-lockfile --ignore-scripts",
+  "build_command": "npm --prefix target run build",
+  "runner": {
+    "name": "vitest",
+    "version": "3.0.6",
+    "entry": "target/node_modules/vitest/vitest.mjs",
+    "version_command": "target/node_modules/.bin/vitest --version"
+  },
+  "start_command": "cd target/excalidraw-app && ../node_modules/.bin/vite preview --host 127.0.0.1 --port 0 --strictPort",
+  "origin": "http://127.0.0.1:<port chosen by the system at start>"
+}
