@@ -106,8 +106,10 @@ build() {
 		echo "build-pair: $side ClamAV $([ "$scan" -eq 1 ] && echo BLOCK || echo INDETERMINATE), see $log-clamav.log" >&2
 		exit 1
 	fi
-	npm --prefix "$tree" run build >"$log-build.log" 2>&1 || {
-		echo "build-pair: $side build failed, see $log-build.log" >&2
+	# A hung build (seen once: a 2024 Vite checker plugin kept running ESLint
+	# after the bundle was written) fails after 15 minutes.
+	timeout 900 npm --prefix "$tree" run build >"$log-build.log" 2>&1 || {
+		echo "build-pair: $side build failed or timed out, see $log-build.log" >&2
 		exit 1
 	}
 	[ -f "$tree/excalidraw-app/build/index.html" ] || {
