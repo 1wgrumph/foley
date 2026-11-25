@@ -198,11 +198,18 @@ export async function withEmber(root, script, run) {
 			"Model caller omitted redirect error policy",
 		);
 		for (const request of server.requests) {
-			assert.deepEqual(Object.keys(request.body).sort(), [
+			// Live probe (S3): each stage sets a reasoning effort, or Ember's default
+			// "max" can spend the whole output limit on reasoning.
+			const { reasoning_effort, ...required } = request.body;
+			assert.deepEqual(Object.keys(required).sort(), [
 				"max_completion_tokens",
 				"messages",
 				"model",
 			]);
+			assert.ok(
+				[undefined, "low", "medium"].includes(reasoning_effort),
+				"Unexpected reasoning effort",
+			);
 			assert.equal(request.body.model, "muse-ember-1.0");
 			assert.equal(request.headers.authorization, `Bearer ${syntheticKey}`);
 			assert.ok(

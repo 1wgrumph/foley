@@ -30,3 +30,14 @@
   commit or recording, and binding the pair's commits into the journal, run
   document and core proof. All three real pairs reach `proof_verified` offline.
   Locate now reports only anchors in files tracked at the pinned revision.
+- Live protocol probe (S3). The first paid calls confirmed the Ember chat
+  endpoint, `max_completion_tokens` and the usage fields; the ledger's tokens
+  and cost equal the API's usage on every call. Whole MP4 video is accepted
+  (about 251 tokens per second, against about 1,200 per sampled frame), so the
+  client now prices `video_url` parts from `fixtures/ember/bounds.json`; audio
+  stays refused. Requests may carry a validated `reasoning_effort`, and Watch,
+  reproduction and proof each set one, because at Ember's default effort a
+  Watch reply spent its whole output limit on reasoning. The Watch prompt now
+  asks for a target on every step and for the key in `key_press` steps. Watch
+  sends frames rather than video, which missed two of eight actions on the
+  owned clip.

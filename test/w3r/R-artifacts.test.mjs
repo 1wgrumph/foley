@@ -355,11 +355,12 @@ test("TC-R04-2/audio-extraction-refusal", settings, async () => {
 			streams.some(({ codec_type }) => codec_type === "audio"),
 			"Fixture must contain an audio track",
 		);
-		const probe = join(ctx.root, "probe.json");
-		writeJson(probe, {
+		// Measured bounds (fixtures/ember/bounds.json) refuse audio, and the CLI
+		// ignores --probe once they exist, so Watch is driven with the probe directly.
+		const probe = {
 			video: { accepted: false },
 			audio: { accepted: true, tokensPerSecond: 100 },
-		});
+		};
 		const tools = join(ctx.root, "decoder-tools");
 		mkdirSync(tools);
 		const ffmpeg = runCommand("which", ["ffmpeg"]).trim();
@@ -378,13 +379,28 @@ exec ${ffmpeg} "$@"
 `,
 			{ mode: 0o755 },
 		);
-		const result = await ctx.start(option(ctx.runArgs, "--recording", audio), {
-			PATH: `${tools}:${process.env.PATH}`,
-		}).done;
-		assertExit(result, 1);
-		assert.equal(ctx.readRun().stages.watch, "refused_input");
-		assert.equal(ctx.readRun().verdict, "attempted_miss");
-		assert.equal(ctx.server.requests.length, 0);
+		const { watch } = await import("../../src/watch.mjs");
+		const path = process.env.PATH;
+		let calls = 0;
+		let result;
+		process.env.PATH = `${tools}:${path}`;
+		try {
+			result = await watch(audio, {
+				runDir: join(ctx.root, "watch-run"),
+				callEmber: async () => {
+					calls++;
+					return { status: "api_error" };
+				},
+				probe,
+				caseId: "audio-extraction",
+				caseBudget: 100000,
+			});
+		} finally {
+			process.env.PATH = path;
+		}
+		assert.equal(result.status, "refused_input");
+		assert.match(result.message, /audio/);
+		assert.equal(calls, 0);
 	});
 });
 

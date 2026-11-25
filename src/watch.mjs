@@ -24,7 +24,9 @@ const MAX_BYTES = 50 * 1024 * 1024;
 const MAX_SECONDS = 120;
 const MAX_FRAMES = 40;
 const MAX_FRAME_PX = 1280;
-const MAX_OUTPUT_TOKENS = 4000;
+const MAX_OUTPUT_TOKENS = 16_000;
+// Live probe: at Ember's default effort a 4,000-token reply was all reasoning.
+const REASONING = "medium";
 // Census media are MP4, QuickTime and WebM; ffprobe names QuickTime "mov".
 const TYPES = {
 	".mp4": ["mp4", "video/mp4"],
@@ -159,7 +161,8 @@ const SYSTEM = [
 	"You turn a screen recording of a web application into reproduction steps.",
 	"Reply with one JSON object and nothing else:",
 	'{"schema":"foley.steps/1","steps":[{"order":1,"t_s":<seconds>,"action":<action>,',
-	'"target":<visible text of the element>,"value":<typed text, only for type>,',
+	'"target":<the element acted on, in a few words, using its visible text when it has some; always present>,',
+	'"value":<the typed text for type; the key or key combination for key_press, such as "Control+z">,',
 	'"selector":<CSS selector, optional>}],"predicate":<null or one predicate>,',
 	'"uncertainty":[{"t_s":<seconds>,"text":<what is unclear>}],',
 	'"narration_evidence":[{"t_s":<seconds>,"text":<a fact only the narration states>}]}.',
@@ -252,8 +255,8 @@ async function framesContent(path, duration) {
 // Narration is sent only when the clip has audio and the probe bounds audio.
 async function audioParts(path, media, limits) {
 	if (!media.audio || !bounded(limits.audio)) return [];
-	const url = dataUrl("audio/wav", await extractAudio(path));
-	return [{ type: "audio_url", audio_url: { url } }];
+	const data = (await extractAudio(path)).toString("base64");
+	return [{ type: "input_audio", input_audio: { format: "wav", data } }];
 }
 
 async function saveSteps(runDir, document) {
@@ -297,6 +300,7 @@ export async function watch(
 				{ role: "user", content: [header, ...content, ...audio] },
 			],
 			max_output_tokens: MAX_OUTPUT_TOKENS,
+			reasoning_effort: REASONING,
 			caseId,
 			...(caseBudget !== undefined && { caseBudget }),
 		});
@@ -308,7 +312,8 @@ export async function watch(
 	};
 	let mediaPath = "video";
 	let result;
-	if (bounded(limits.video))
+	// The probe can mark accepted video as not preferred when frames watch better.
+	if (bounded(limits.video) && limits.video.preferred !== false)
 		result = await attempt("video", [
 			{
 				type: "video_url",

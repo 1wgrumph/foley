@@ -369,6 +369,81 @@ contract("TC-R01-8", async () => {
 			);
 		},
 	);
+	// Video bounded by the live probe: whole seconds times the probe's ceiling, plus
+	// the wire framing and the output limit. Audio has no ceiling and stays refused.
+	const fixture = (path) =>
+		readFileSync(new URL(`../../${path}`, import.meta.url));
+	const bounds = JSON.parse(fixture("fixtures/ember/bounds.json"));
+	const truth = JSON.parse(
+		fixture("fixtures/recordings/owned-basic-flow.truth.json"),
+	);
+	const clip = fixture("fixtures/recordings/owned-basic-flow.mp4");
+	const videoPart = (url) => ({ type: "video_url", video_url: { url } });
+	const video = request(1000, {
+		max_output_tokens: 1998,
+		reasoning_effort: "low",
+		messages: [
+			{
+				role: "user",
+				content: [
+					{ type: "text", text: "abcdefghij" },
+					videoPart(`data:video/mp4;base64,${clip.toString("base64")}`),
+				],
+			},
+		],
+	});
+	const sent = { ...wireBody(video), reasoning_effort: "low" };
+	const blank = structuredClone(sent);
+	blank.messages[0].content[1] = videoPart("");
+	const videoBound = Math.ceil(
+		((Buffer.byteLength(JSON.stringify(blank)) +
+			Math.ceil(truth.duration_s) * bounds.video.ceilingTokensPerSecond) *
+			100 +
+			1998 * 500) /
+			1000,
+	);
+	const wav = Buffer.alloc(44 + 32000);
+	wav.write("RIFFxxxxWAVEfmt ", 0, "latin1");
+	wav.writeUInt32LE(16, 16);
+	wav.writeUInt16LE(1, 20);
+	wav.writeUInt16LE(1, 22);
+	wav.writeUInt32LE(16000, 24);
+	wav.writeUInt32LE(32000, 28);
+	wav.write("data", 36, "latin1");
+	wav.writeUInt32LE(32000, 40);
+	await scenario(
+		{ script: [ok({ prompt_tokens: 4206, completion_tokens: 2 }, true)] },
+		async (ctx) => {
+			await refuse(
+				ctx,
+				{ ...video, reasoning_effort: "turbo" },
+				"refused_input",
+			);
+			await refuse(
+				ctx,
+				request(1000, {
+					max_output_tokens: 1998,
+					messages: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "input_audio",
+									input_audio: { format: "wav", data: wav.toString("base64") },
+								},
+							],
+						},
+					],
+				}),
+			);
+			const running = ctx.call(video);
+			await ctx.server.waitForRequests(1);
+			assert.equal(booked(ctx.ledger()), videoBound);
+			assert.deepEqual(ctx.server.requests[0].body, sent);
+			ctx.server.release(0);
+			resultIs(await running, "ok");
+		},
+	);
 });
 
 contract("TC-R01-9", async () => {

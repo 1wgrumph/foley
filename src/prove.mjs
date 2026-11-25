@@ -30,7 +30,9 @@ const MAX_ROUNDS = 4;
 const MAX_CODE_BYTES = 64 * 1024;
 const MAX_OUTPUT_BYTES = 64 * 1024; // retained per run; the rest is discarded
 const FEEDBACK_CHARS = 4_000;
-const OUTPUT_TOKENS = 4_000;
+const OUTPUT_TOKENS = 16_000;
+// Ember's default effort ("max") can spend the whole output limit on reasoning.
+const REASONING = "medium";
 const EXCERPT_LINES = 20;
 const BACKSTOP_S = 5; // isolate.sh kills on its own if this process dies
 
@@ -453,6 +455,7 @@ export async function prove(
 				},
 			],
 			max_output_tokens: OUTPUT_TOKENS,
+			reasoning_effort: REASONING,
 			caseId,
 			caseBudget,
 		});

@@ -15,7 +15,9 @@ const ACTION_TIMEOUT_MS = 3_000;
 const MAX_WAIT_MS = 2_000;
 // A turn of 25 actions with 512-character reasons and a 1,024-character
 // observation is about 14 KiB of JSON, under 4,096 output tokens.
-const DEFAULT_OUTPUT_TOKENS = 4_096;
+const DEFAULT_OUTPUT_TOKENS = 8_192;
+// One short action turn per screenshot; Ember's default effort is "max".
+const REASONING = "low";
 const OBSERVATION_LIMIT = 1_024; // UTF-16 code units, inclusive
 const REASON_LIMIT = 512;
 const FIELD_LIMIT = 1_024; // selector, target, to_selector and value text
@@ -283,6 +285,7 @@ async function ask(run, page) {
 			},
 		],
 		max_output_tokens: run.maxOutputTokens,
+		reasoning_effort: REASONING,
 		caseId: run.caseId,
 		caseBudget: run.caseBudget,
 	});
