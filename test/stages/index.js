@@ -1,0 +1,9 @@
+import "./watch/index.js";
+import "./locate/index.js";
+import "./repro/index.js";
+import "./predicate/index.js";
+import "./prove/index.js";
+import "./report/index.js";
+import "./backlog/index.js";
+import "./score/index.js";
+import "./schema/index.js";
