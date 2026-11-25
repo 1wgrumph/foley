@@ -4,3 +4,7 @@ TC-R06-5/observation
 TC-R09-1/census-record
 TC-R14-1/observation
 TC-R14-1/census-index
+TC-R11-1/trace-json
+TC-R14-4/census-page
+TC-R14-1/fixed-build-conflict
+TC-R14-1/run-and-case-cost

@@ -1,0 +1,12 @@
+[
+	{
+		"n": 1,
+		"stage": "watch",
+		"request": {
+			"messages": [
+				{ "role": "user", "content": "notes at \u002fhome\u002frealperson\u002fnotes.txt" },
+				{ "role": "user", "content": [{ "type": "image_url", "image_url": { "url": "data:image/png;base64,iVBORw0KGgo=" } }] }
+			]
+		}
+	}
+]

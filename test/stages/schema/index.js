@@ -80,47 +80,43 @@ test("TC-R13-3", async () => {
 	});
 });
 
-test("TC-R15-4", async () => {
-	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
-	const validateRun = await product("src/run-schema.mjs", "validateRun");
-	await temporary(async (runDir) => {
-		const run = fixtureRun(runDir);
-		assert.equal(validateRun(run), true);
-		assert.equal(validateRun({ ...run, state: "unknown" }), false);
-		writeJson(join(runDir, "steps.json"), archive);
-		writeJson(join(runDir, "anchors.json"), {
-			schema: "foley.anchors/1",
-			status: "ok",
-			anchors: [anchor],
-		});
-		writeJson(join(runDir, "replay.json"), {
-			...run.replay,
-			status: "reproduced",
-			observed: true,
-		});
-		writeJson(join(runDir, "proof.json"), {
-			status: "verified",
-			path: run.test.path,
-			attempts: [],
-			rerun_without_ember: { bug: { exitCode: 1 }, fixed: { exitCode: 0 } },
-		});
-		writeFileSync(join(runDir, "comment.md"), "# Synthetic fixture proof\n");
-		writeFileSync(
-			join(runDir, "replay.html"),
-			"<!doctype html><title>Synthetic fixture proof</title>",
-		);
-		const names = [
-			"recording.mp4",
-			"run.json",
-			"steps.json",
-			"anchors.json",
-			"replay.json",
-			"proof.json",
-			"regression.test.mjs",
-			"screenshots/step-1.png",
-			"comment.md",
-			"replay.html",
-		];
+// A complete verified run folder; seal() writes the trace and manifest over the
+// files as they are, so a test can change one record and seal again.
+function coreFolder(runDir) {
+	const run = fixtureRun(runDir);
+	writeJson(join(runDir, "steps.json"), archive);
+	writeJson(join(runDir, "anchors.json"), {
+		schema: "foley.anchors/1",
+		status: "ok",
+		anchors: [anchor],
+	});
+	const replay = { ...run.replay, status: "reproduced", observed: true };
+	const proof = {
+		status: "verified",
+		path: run.test.path,
+		attempts: [],
+		rerun_without_ember: { bug: { exitCode: 1 }, fixed: { exitCode: 0 } },
+	};
+	writeJson(join(runDir, "replay.json"), replay);
+	writeJson(join(runDir, "proof.json"), proof);
+	writeFileSync(join(runDir, "comment.md"), "# Synthetic fixture proof\n");
+	writeFileSync(
+		join(runDir, "replay.html"),
+		"<!doctype html><title>Synthetic fixture proof</title>",
+	);
+	const names = [
+		"recording.mp4",
+		"run.json",
+		"steps.json",
+		"anchors.json",
+		"replay.json",
+		"proof.json",
+		"regression.test.mjs",
+		"screenshots/step-1.png",
+		"comment.md",
+		"replay.html",
+	];
+	const seal = () => {
 		const artifacts = Object.fromEntries(
 			names.map((path) => [path, sha256(readFileSync(join(runDir, path)))]),
 		);
@@ -150,8 +146,68 @@ test("TC-R15-4", async () => {
 			unedited: true,
 			artifacts,
 		});
+	};
+	seal();
+	return { run, replay, proof, seal };
+}
+
+test("TC-R15-4", async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const validateRun = await product("src/run-schema.mjs", "validateRun");
+	await temporary(async (runDir) => {
+		const { run } = coreFolder(runDir);
+		assert.equal(validateRun(run), true);
+		assert.equal(validateRun({ ...run, state: "unknown" }), false);
 		assert.equal((await checkCoreProof(runDir)).status, "ok");
 		writeJson(join(runDir, "steps.json"), { ...archive, steps: [] });
 		assert.equal((await checkCoreProof(runDir)).status, "digest_mismatch");
+	});
+});
+
+// W4-01, W4-02: a verified proof needs both runner exits (bug build red, fixed
+// build green), a kept test that obeys the input rule recorded with it, and a
+// reproduction the fixed build does not also show.
+test("TC-R15-4/proof-controls", async () => {
+	const checkCoreProof = await product("src/run-schema.mjs", "checkCoreProof");
+	const cases = {
+		"no fixed exit": ({ proof }) => ({
+			"proof.json": { ...proof, rerun_without_ember: { bug: { exitCode: 1 } } },
+		}),
+		"unknown fixed exit": ({ proof }) => ({
+			"proof.json": {
+				...proof,
+				rerun_without_ember: {
+					bug: { exitCode: 1 },
+					fixed: { exitCode: null },
+				},
+			},
+		}),
+		"kept test breaks its input rule": ({ proof }) => ({
+			"proof.json": {
+				...proof,
+				input_rule: { refused_calls: ["archiveItem"] },
+			},
+		}),
+		"fixed build shows the failure": ({ replay }) => ({
+			"replay.json": { ...replay, fixed_build_shows_failure: true },
+		}),
+	};
+	for (const [name, change] of Object.entries(cases))
+		await temporary(async (runDir) => {
+			const folder = coreFolder(runDir);
+			for (const [path, value] of Object.entries(change(folder)))
+				writeJson(join(runDir, path), value);
+			folder.seal();
+			assert.equal((await checkCoreProof(runDir)).status, "not_verified", name);
+		});
+	// Control: an obeyed input rule is still a verified proof.
+	await temporary(async (runDir) => {
+		const folder = coreFolder(runDir);
+		writeJson(join(runDir, "proof.json"), {
+			...folder.proof,
+			input_rule: { refused_calls: ["API.setAppState"] },
+		});
+		folder.seal();
+		assert.equal((await checkCoreProof(runDir)).status, "ok");
 	});
 });

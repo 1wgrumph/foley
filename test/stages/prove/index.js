@@ -306,3 +306,42 @@ test("TC-R07-1/red-test-no-control", { timeout: 120000 }, async () => {
 		{ fixedTargetDir: undefined },
 	);
 });
+
+// W4-01: a candidate that reaches the failing state through a call the target's
+// configuration refuses is rejected before it runs, and the rule is fed back.
+test("TC-R07-2/seeds-state", { timeout: 240000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	const refusedTestCalls = ["API.setAppState"];
+	const seeded = `${proofCode}\nconst API = { setAppState() {} };\nAPI . setAppState({});\n`;
+	await proofScenario(
+		prove,
+		seeded,
+		(result, { runDir, server }) => {
+			assert.equal(result.status, "not_verified");
+			assert.equal(result.reason, "seeds_state");
+			assert.equal(result.attempts.length, 4);
+			assert.ok(
+				result.attempts.every(
+					(attempt) => attempt.reason === "seeds_state" && !attempt.bug,
+				),
+				"A seeded candidate must not run",
+			);
+			assert.equal(existsSync(join(runDir, "regression.test.mjs")), false);
+			const sent = (n) =>
+				JSON.parse(server.requests[n].body.messages[1].content);
+			assert.deepEqual(sent(0).refused_test_calls, refusedTestCalls);
+			assert.equal(sent(1).earlier_round.reason, "seeds_state");
+		},
+		{ refusedTestCalls },
+	);
+	// The same rule accepts a test without the refused call and records the rule.
+	await proofScenario(
+		prove,
+		proofCode,
+		(result, { runDir }) => {
+			accepted(result, runDir);
+			assert.deepEqual(result.input_rule, { refused_calls: refusedTestCalls });
+		},
+		{ refusedTestCalls },
+	);
+});

@@ -11,3 +11,7 @@ TC-R15-4/pair-core-proof
 TC-R15-4/pair-real-9852
 TC-R15-4/pair-resume-census
 TC-R15-4/pair-resume-from-census
+TC-R06-7/pair-fixed-build-conflict
+TC-R15-4/pair-run-cost
+TC-R06-7/round-attribution
+TC-R06-3/pair-reask-attribution

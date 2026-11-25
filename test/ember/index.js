@@ -478,6 +478,7 @@ contract("TC-R01-8", async () => {
 		max_output_tokens: 1998,
 		reasoning_effort: "low",
 		caseId: "case-a",
+		caseBudget: 100000,
 		timeoutMs: 15000,
 	});
 	const computerBody = (url) => ({
@@ -516,6 +517,11 @@ contract("TC-R01-8", async () => {
 				),
 				"budget_refused",
 			);
+			// W4-09: a native computer call names its case budget, or is refused
+			// before anything is reserved or sent.
+			const { caseBudget: _unset, ...unbudgeted } = computer(png);
+			resultIs(await ctx.ember.callEmberComputer(unbudgeted), "refused_input");
+			assert.equal(ctx.server.requests.length, 0);
 			assert.deepEqual(readFileSync(ctx.ledgerPath), before);
 			const running = ctx.ember.callEmberComputer(computer(png));
 			await ctx.server.waitForRequests(1);

@@ -287,7 +287,9 @@ test("TC-R06-3/reask", { timeout: 120000 }, async () => {
 			withEmber(
 				root,
 				[
-					modelReply(final([{ action: "click", x: 5, y: 5 }])),
+					modelReply(
+						final([{ action: "click", x: 5, y: 5, note: "REJECTED-VALUE-77" }]),
+					),
 					// A wait written as decimal text is a valid wait.
 					modelReply(final([archiveAction, { action: "wait", value: "200" }])),
 				],
@@ -307,6 +309,13 @@ test("TC-R06-3/reask", { timeout: 120000 }, async () => {
 					assert.match(
 						server.requests[1].body.messages.at(-1).content,
 						/failed validation and none of its actions ran: action 1 is invalid/,
+					);
+					// W4-11: the diagnostic names the rule, never the rejected value.
+					assert.ok(
+						!server.requests[1].body.messages
+							.at(-1)
+							.content.includes("REJECTED-VALUE-77"),
+						"Diagnostic echoed a rejected value",
 					);
 					const first = JSON.parse(
 						server.requests[0].body.messages[1].content[0].text,

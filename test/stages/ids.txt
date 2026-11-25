@@ -24,3 +24,7 @@ TC-R14-3
 TC-R14-4
 TC-R14-5
 TC-R15-4
+TC-R07-2/seeds-state
+TC-R15-4/proof-controls
+TC-R10-1/unlabelled
+TC-R04-2/credential-field
