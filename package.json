@@ -1,0 +1,21 @@
+{
+  "name": "foley",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turns a screen recording of a UI bug into reproduction steps, code anchors, a failing test and a replay page.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "preflight": "bash tools/preflight-tools.sh",
+    "check-public": "gitleaks detect --no-banner --redact && node tools/check-public.mjs --tree . && node tools/check-public.mjs --self-test fixtures/public-negative/"
+  },
+  "dependencies": {
+    "playwright": "1.65.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.1"
+  }
+}
