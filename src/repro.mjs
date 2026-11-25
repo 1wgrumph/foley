@@ -6,6 +6,7 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { checkPredicate } from "./predicate.mjs";
+import { validPredicate } from "./run-schema.mjs";
 import { hasCredentialShape } from "./text-safety.mjs";
 
 const MAX_ATTEMPTS = 3;
@@ -19,6 +20,7 @@ const OBSERVATION_LIMIT = 1_024; // UTF-16 code units, inclusive
 const REASON_LIMIT = 512;
 const FIELD_LIMIT = 1_024; // selector, target, to_selector and value text
 const NAME_LIMIT = 64;
+const MAX_CONSOLE = 200; // error messages kept per attempt
 const VIEWPORT = { width: 1280, height: 720 }; // within the 1280 px frame bound
 
 const SYSTEM = [
@@ -274,12 +276,19 @@ async function attempt(run, browser, contextId, scripted) {
 	try {
 		const page = await context.newPage();
 		await lockToOrigin(run, context, page);
+		const consoleErrors = []; // listened before navigation (console_error)
+		page.on("console", (message) => {
+			if (message.type() === "error" && consoleErrors.length < MAX_CONSOLE)
+				consoleErrors.push(message.text());
+		});
 		await page.goto(run.origin);
 		let turns = { executed: [], stopped: false };
 		if (scripted) for (const step of run.steps) await execute(run, page, step);
 		else turns = await modelTurns(run, page);
 		if (turns.stopped && !turns.executed.length) return true;
-		const observed = await checkPredicate(page, run.predicate);
+		const observed = await checkPredicate(page, run.predicate, {
+			consoleErrors,
+		});
 		await capture(run, page, "check");
 		run.attempts.push({
 			contextId,
@@ -329,6 +338,12 @@ export async function repro(
 		attempts: [],
 	};
 	await mkdir(join(runDir, "screenshots"), { recursive: true });
+	// No supported failure to check: a typed miss before any browser or paid call.
+	if (!validPredicate(predicate)) {
+		const reason = predicate === null ? "no_predicate" : "malformed_output";
+		record(run, { type: "stopped", reason });
+		return finishReplay(run);
+	}
 	const browser = await chromium.launch({
 		args: ["--disable-background-networking"],
 		env: browserEnv(),
@@ -340,6 +355,10 @@ export async function repro(
 	} finally {
 		await browser.close();
 	}
+	return finishReplay(run);
+}
+
+async function finishReplay(run) {
 	const observed = run.attempts.some((item) => item.observed);
 	const replay = {
 		status: observed ? "reproduced" : "not_reproduced",
@@ -348,6 +367,6 @@ export async function repro(
 		screenshots: run.screenshots,
 		events: run.events,
 	};
-	await writeJsonAtomic(join(runDir, "replay.json"), replay);
+	await writeJsonAtomic(join(run.runDir, "replay.json"), replay);
 	return replay;
 }

@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { readFile, realpath, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join, relative, sep } from "node:path";
+import { hasCredentialShape } from "./text-safety.mjs";
 
 export const ACTIONS = new Set([
 	"click",
@@ -37,7 +38,6 @@ const isObject = (v) =>
 const isText = (v) => typeof v === "string" && v !== "";
 const isCount = (n) => Number.isSafeInteger(n) && n >= 0;
 const isTime = (t) => typeof t === "number" && Number.isFinite(t) && t >= 0;
-const isScalar = (v) => ["string", "number", "boolean"].includes(typeof v);
 const optional = (v, check) => v === undefined || check(v);
 const nullable = (v, check) => v === null || check(v);
 
@@ -62,15 +62,66 @@ function validStep(s, index) {
 	);
 }
 
-function validPredicate(p) {
+const TEXT_LIMIT = 1024;
+const isBounded = (v) => typeof v === "string" && v.length <= TEXT_LIMIT;
+const isSelector = (v) => isText(v) && isBounded(v);
+const isJsonScalar = (v) =>
+	v === null ||
+	isBounded(v) ||
+	typeof v === "boolean" ||
+	(typeof v === "number" && Number.isFinite(v));
+
+// Predicate kinds with an independent page check (DES-FOL-R06, src/predicate.mjs).
+// Each kind names its own fields; expected and observed must differ.
+const PREDICATES = {
+	visible_text: (p) =>
+		isSelector(p.selector) &&
+		isBounded(p.expected) &&
+		isBounded(p.observed) &&
+		p.expected.trim() !== p.observed.trim(),
+	element_count: (p) =>
+		isSelector(p.selector) && isCount(p.expected) && isCount(p.observed),
+	console_error: (p) =>
+		isSelector(p.message) &&
+		typeof p.expected === "boolean" &&
+		typeof p.observed === "boolean",
+	canvas_state: (p) =>
+		(p.source === "elements" || p.source === "appState") &&
+		Array.isArray(p.path) &&
+		p.path.length <= 32 &&
+		p.path.every((key) => isSelector(key) || isCount(key)) &&
+		isJsonScalar(p.expected) &&
+		isJsonScalar(p.observed),
+};
+
+export function validPredicate(p) {
 	return (
 		isObject(p) &&
-		isText(p.kind) &&
-		optional(p.selector, (v) => typeof v === "string") &&
-		isScalar(p.expected) &&
-		isScalar(p.observed)
+		Object.hasOwn(PREDICATES, p.kind) &&
+		PREDICATES[p.kind](p) &&
+		p.expected !== p.observed
 	);
 }
+
+// Watch's uncertainty and narration-only facts (DES-FOL-R04): timestamped plain
+// text, kept as data through steps, run, comment and replay.
+const validEvidence = (list) =>
+	Array.isArray(list) &&
+	list.length <= 40 &&
+	list.every(
+		(e) =>
+			isObject(e) &&
+			typeof e.t_s === "number" &&
+			Number.isFinite(e.t_s) &&
+			e.t_s >= 0 &&
+			e.t_s <= 120 &&
+			isText(e.text) &&
+			isBounded(e.text) &&
+			!hasCredentialShape(e.text),
+	);
+const evidenceFields = (d) =>
+	optional(d.uncertainty, validEvidence) &&
+	optional(d.narration_evidence, validEvidence);
 
 export function validateSteps(document) {
 	if (!isObject(document) || document.schema !== "foley.steps/1") return false;
@@ -80,6 +131,7 @@ export function validateSteps(document) {
 	return (
 		ordered &&
 		nullable(document.predicate, validPredicate) &&
+		evidenceFields(document) &&
 		optional(document.mediaPath, (v) => v === "frames" || v === "video")
 	);
 }
@@ -126,6 +178,7 @@ export function validateRun(run) {
 		Array.isArray(run.steps) &&
 		run.steps.every(validStep) &&
 		nullable(run.predicate, validPredicate) &&
+		evidenceFields(run) &&
 		Array.isArray(run.anchors) &&
 		run.anchors.every(anchor) &&
 		validReplay(run.replay) &&

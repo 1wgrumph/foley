@@ -160,13 +160,32 @@ const SYSTEM = [
 	"Reply with one JSON object and nothing else:",
 	'{"schema":"foley.steps/1","steps":[{"order":1,"t_s":<seconds>,"action":<action>,',
 	'"target":<visible text of the element>,"value":<typed text, only for type>,',
-	'"selector":<CSS selector, optional>}],"predicate":null or',
-	'{"kind":"visible_text","selector":<CSS selector>,"expected":<what should be shown>,',
-	'"observed":<what is shown instead>}}.',
+	'"selector":<CSS selector, optional>}],"predicate":<null or one predicate>,',
+	'"uncertainty":[{"t_s":<seconds>,"text":<what is unclear>}],',
+	'"narration_evidence":[{"t_s":<seconds>,"text":<a fact only the narration states>}]}.',
+	"A predicate is one of:",
+	'{"kind":"visible_text","selector":<CSS>,"expected":<text>,"observed":<text shown instead>};',
+	'{"kind":"element_count","selector":<CSS>,"expected":<count>,"observed":<count>};',
+	'{"kind":"console_error","message":<exact console error text>,"expected":false,"observed":true};',
+	'{"kind":"canvas_state","source":"elements" or "appState","path":[<keys or indices>],',
+	'"expected":<JSON scalar>,"observed":<JSON scalar>}. Expected and observed must differ.',
 	`Actions: ${[...ACTIONS].join(", ")}. Number steps from 1 and order them by time.`,
 	"Use null for predicate when the recording shows correct behaviour.",
-	"Describe only what is visible; if narration disagrees with the screen, follow the screen.",
+	"Describe only what is visible; if narration disagrees with the screen, follow the screen",
+	"and record the conflict in uncertainty. Each list has at most 40 entries of at most",
+	"1,024 characters; omit a list when it would be empty.",
 ].join(" ");
+
+// Every field any predicate kind declares; validateSteps checks them per kind.
+const PREDICATE_FIELDS = [
+	"kind",
+	"selector",
+	"message",
+	"source",
+	"path",
+	"expected",
+	"observed",
+];
 
 const dataUrl = (mime, bytes) =>
 	`data:${mime};base64,${bytes.toString("base64")}`;
@@ -188,19 +207,23 @@ function steps(output, mediaPath) {
 		...(s?.selector !== undefined && { selector: s.selector }),
 	});
 	const p = output.predicate;
+	const fields = (o, names) =>
+		Object.fromEntries(
+			names.filter((n) => o?.[n] !== undefined).map((n) => [n, o[n]]),
+		);
+	const evidence = (list) =>
+		Array.isArray(list) ? list.map((e) => fields(e, ["t_s", "text"])) : list;
 	const document = {
 		schema: output.schema,
 		steps: output.steps.map(pick),
-		predicate:
-			p && typeof p === "object"
-				? {
-						kind: p.kind,
-						...(p.selector !== undefined && { selector: p.selector }),
-						expected: p.expected,
-						observed: p.observed,
-					}
-				: p,
+		predicate: p && typeof p === "object" ? fields(p, PREDICATE_FIELDS) : p,
 		mediaPath,
+		...(output.uncertainty !== undefined && {
+			uncertainty: evidence(output.uncertainty),
+		}),
+		...(output.narration_evidence !== undefined && {
+			narration_evidence: evidence(output.narration_evidence),
+		}),
 	};
 	return validateSteps(document) ? document : null;
 }
