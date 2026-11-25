@@ -2,9 +2,8 @@
 // Foley command line (DES-FOL-R13, R14, R15). Exit codes: 0 success or verified
 // proof; 1 finished without a verified proof, or backlog interrupted; 2 refused
 // (bad argument or missing prerequisite, before any model call); 3 error.
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
+import { mkdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { backlog } from "../src/backlog.mjs";
@@ -22,14 +21,15 @@ import {
 } from "../src/eval.mjs";
 import { startLive } from "../src/live.mjs";
 import {
+	checkRecording,
+	identityOf,
 	insideCwd,
+	issueSpend,
+	issueStages,
 	lockRun,
-	openRun,
 	preflight,
 	Refusal,
 	runIssue,
-	STAGES,
-	stages,
 } from "../src/run.mjs";
 import { writeSpendSummary } from "../src/run-schema.mjs";
 
@@ -107,6 +107,7 @@ async function run([issue, ...extra], v) {
 		recording: v.recording,
 		fixture: v.fixture,
 	});
+	o.recordingSha256 = await checkRecording(o.recording);
 	if (v["dry-run"]) {
 		console.log(`dry run: issue ${o.issue} ready; no model call made`);
 		return 0;
@@ -121,13 +122,13 @@ async function run([issue, ...extra], v) {
 	process.once("SIGTERM", stop);
 	process.once("SIGINT", stop);
 	try {
-		const result = await runIssue(o, {
-			async beforeStages(runDir) {
-				if (!v.live) return;
-				live = await startLive(runDir);
-				console.log(`LIVE_URL=${live.origin}`);
-			},
-		});
+		if (v.live) {
+			const runDir = join(OUT(), "runs", String(o.issue));
+			await mkdir(runDir, { recursive: true });
+			live = await startLive(runDir);
+			console.log(`LIVE_URL=${live.origin}`);
+		}
+		const result = await runIssue(o);
 		console.log(`issue ${o.issue}: ${result.verdict} (out/runs/${o.issue}/)`);
 		return result.verdict === "proof_verified" ? 0 : 1;
 	} finally {
@@ -138,7 +139,7 @@ async function run([issue, ...extra], v) {
 
 // Media come from the census and are never fetched here: each must already sit
 // in the media folder under its census digest, and is checked before use.
-function cachedMedia(candidate, dir) {
+async function cachedMedia(candidate, dir) {
 	const media = candidate.media?.[0];
 	const ext = MEDIA_EXT[media?.media_type];
 	if (!ext || !/^[0-9a-f]{64}$/.test(media?.sha256 ?? ""))
@@ -147,21 +148,19 @@ function cachedMedia(candidate, dir) {
 			`issue ${candidate.issue} has no usable media`,
 		);
 	const path = join(dir, `${media.sha256}${ext}`);
-	let bytes;
-	try {
-		bytes = readFileSync(path);
-	} catch {
+	if (!existsSync(path))
 		throw new Refusal(
 			"media_missing",
 			`issue ${candidate.issue}: ${path} not found`,
 		);
-	}
-	if (createHash("sha256").update(bytes).digest("hex") !== media.sha256)
+	// Confinement, then type, size and content, before the bytes are hashed.
+	const real = insideCwd(path, `issue ${candidate.issue} media`);
+	if ((await checkRecording(real)) !== media.sha256)
 		throw new Refusal(
 			"media_digest",
 			`issue ${candidate.issue}: ${path} digest differs`,
 		);
-	return path;
+	return real;
 }
 
 // Envelopes are checked before anything else, including dry runs.
@@ -199,12 +198,14 @@ async function processCensus(census, v, { total, perIssue, population }) {
 		caseBudget: perIssue,
 		revision: census.target_revision,
 		issue: 1,
+		fixture: v.fixture,
 	});
 	const eligible = (census.candidates ?? []).filter(
 		(c) => c.status === "eligible_not_attempted",
 	);
+	const recordings = new Map();
 	for (const c of eligible.slice(0, maxIssues ?? eligible.length))
-		cachedMedia(c, mediaDir);
+		recordings.set(c.issue, await cachedMedia(c, mediaDir));
 	if (v["dry-run"]) {
 		console.log(
 			`dry run: ${eligible.length} eligible issues ready; no model call made`,
@@ -213,33 +214,28 @@ async function processCensus(census, v, { total, perIssue, population }) {
 	}
 	const caseBudget = envelope({ outDir: OUT(), population, total, perIssue });
 	const unlock = await lockRun();
-	const contexts = new Map();
-	const contextFor = async (c) => {
-		if (!contexts.has(c.issue))
-			contexts.set(
-				c.issue,
-				stages(
-					await openRun({
-						...base,
-						caseBudget: await caseBudget(c.issue),
-						issue: c.issue,
-						issueUrl: c.url,
-						recording: cachedMedia(c, mediaDir),
-						fixture: false,
-					}),
-				),
-			);
-		return contexts.get(c.issue);
-	};
-	const stageFns = Object.fromEntries(
-		STAGES.map((name) => [name, async (c) => (await contextFor(c))[name]()]),
-	);
+	const options = async (c) => ({
+		...base,
+		caseBudget: await caseBudget(c.issue),
+		issue: c.issue,
+		issueUrl: c.url,
+		recording: recordings.get(c.issue) ?? (await cachedMedia(c, mediaDir)),
+		recordingSha256: c.media?.[0]?.sha256,
+	});
 	try {
 		const result = await backlog(census, {
 			runRoot: join(OUT(), "runs"),
-			stages: stageFns,
+			stages: issueStages(options),
+			identity: (c) =>
+				identityOf({ ...base, recordingSha256: c.media?.[0]?.sha256 }),
+			cost: (c) => issueSpend(c.issue),
 			...(maxIssues !== undefined && { maxIssues }),
 		});
+		if (result.status === "resume_mismatch")
+			throw new Refusal(
+				"resume_mismatch",
+				"a census issue was started with a different recording, revision, runner or fixture mode",
+			);
 		if (result.status === "refused_input")
 			throw new Refusal(
 				"bad_census",
