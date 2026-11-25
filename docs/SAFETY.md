@@ -82,8 +82,15 @@ for each attempt.
 - File URLs and downloads are blocked (`acceptDownloads: false`). Service
   workers are blocked.
 - Only the declared actions run: `click`, `double_click`, `drag`, `move`,
-  `scroll`, `type`, `key_press`, `wait`, `screenshot`. Any other action is
-  dropped and recorded. Model text is never evaluated as script.
+  `scroll`, `type`, `key_press`, `wait`, `screenshot`, and the pointer
+  actions `pointer_click`, `pointer_double_click`, `pointer_move` and
+  `pointer_drag`. Any other action is dropped and recorded. Model text is
+  never evaluated as script.
+- Pointer actions name integer pixels of the fixed 1280 by 720 viewport
+  (device scale factor 1), the size of every screenshot the model sees. A
+  model turn with any coordinate outside the viewport, or not an integer, is
+  refused whole before any action runs. A clicked point gets the same link
+  and download checks as a selector target.
 - At most 25 steps per attempt and 3 attempts.
 - The reproduction verdict comes from `src/predicate.mjs` reading the page.
   The model's claim of success is stored for display only.

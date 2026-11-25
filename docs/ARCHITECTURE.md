@@ -127,5 +127,5 @@ and an unknown value is refused.
 | Issue status | `no_usable_media`, `unsupported_device`, `excluded_sensitive_or_security`, `eligible_not_attempted`, `attempted_miss`, `failure_observed`, `proof_verified` | `src/backlog.mjs` |
 | Predicate kind | `visible_text`, `element_count`, `console_error`, `canvas_state` | `src/predicate.mjs` |
 | Run state | `empty`, `running`, `error`, `disconnected`, `finished` | `src/run-schema.mjs` |
-| Browser action | `click`, `double_click`, `drag`, `move`, `scroll`, `type`, `key_press`, `wait`, `screenshot` | `src/repro.mjs` |
+| Browser action | `click`, `double_click`, `drag`, `move`, `scroll`, `type`, `key_press`, `wait`, `screenshot`; pointer actions `pointer_click`, `pointer_double_click`, `pointer_move`, `pointer_drag` (viewport x, y; drag also to_x, to_y) | `src/repro.mjs`, `src/run-schema.mjs` |
 | Exit code | 0 success or verified proof, 1 no verified proof or backlog interrupted, 2 refused before any model call, 3 error | `bin/foley.mjs` |

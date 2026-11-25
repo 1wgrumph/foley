@@ -156,7 +156,20 @@ node bin/foley.mjs spend
 ```
 
 `--live` prints `LIVE_URL=<loopback address>`, a read-only page that updates
-as the run proceeds. `foley backlog` runs every eligible issue in
+as the run proceeds.
+
+A real bug-and-fix pair from `fixtures/pairs/pairs.json` runs the same
+pipeline against its own builds, after `tools/build-pair.sh <issue>`:
+
+```sh
+node bin/foley.mjs run --pair <issue> --recording <file>.mp4 \
+  --case-budget 400000
+```
+
+The pair supplies the issue URL, the bug and fix commits, the runner and both
+built pages. Foley serves the bug build on a loopback port and refuses a
+missing build, a commit that differs from the manifest, or a recording whose
+SHA-256 differs from the pair's. `foley backlog` runs every eligible issue in
 `fixtures/census/census.json`, and `foley eval` scores the held-out set in
 `fixtures/eval/held-out.json`. `node bin/foley.mjs help` lists every option.
 Exit codes: 0 success or verified proof, 1 finished without a verified proof,

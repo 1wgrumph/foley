@@ -20,3 +20,13 @@
   made that possible: the isolated Vitest run gets a home directory, `prove`
   takes the built page directories for its control (`pageDirs`), and a
   multi-line Vitest failure message counts as an assertion failure.
+- Pointer actions and pair runs (S5w). Reproduction gains `pointer_click`,
+  `pointer_double_click`, `pointer_move` and `pointer_drag`, which name integer
+  pixels of the fixed 1280 by 720 viewport; the prompt states the viewport, a
+  turn with any out-of-range coordinate is refused whole, and recorded steps
+  and the page control accept the same actions. `foley run --pair <issue>`
+  proves a real pair from `fixtures/pairs/pairs.json` and its build receipt,
+  serving the bug build on loopback, refusing a missing build, a mismatched
+  commit or recording, and binding the pair's commits into the journal, run
+  document and core proof. All three real pairs reach `proof_verified` offline.
+  Locate now reports only anchors in files tracked at the pinned revision.
