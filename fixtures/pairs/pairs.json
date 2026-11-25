@@ -1,0 +1,87 @@
+{
+	"schema": "foley.pairs/1",
+	"repository": "https://github.com/excalidraw/excalidraw",
+	"selected_on": "2026-11-25",
+	"rule": "Closed Excalidraw bug issues with a reporter recording and a merged fix pull request. The bug commit is the fix commit's parent. No held-out issue is used. Recordings are referenced by URL and SHA-256 and are never committed.",
+	"build_command": "tools/build-pair.sh <issue>",
+	"check_command": "node test/pairs/check.mjs <issue> <bug|fixed>",
+	"prove_command": "node test/pairs/prove-pair.mjs <issue>",
+	"pairs": [
+		{
+			"issue": 10840,
+			"url": "https://github.com/excalidraw/excalidraw/issues/10840",
+			"title": "In view mode, if laser pointer was active, stopping view mode, the active tool will default to hand",
+			"labelled_set": "none",
+			"recording": {
+				"url": "https://github.com/user-attachments/assets/8fde38fd-c267-40a6-bf70-79e60545346e",
+				"sha256": "ce93af94b1e806b8995ac93f8db66d5e3ad4c3944925aedbd2e167ccfea03f27",
+				"media_type": "video/mp4",
+				"duration_s": 23.6,
+				"width": 1210,
+				"height": 834
+			},
+			"fix_pull_request": "https://github.com/excalidraw/excalidraw/pull/10841",
+			"fix_commit": "cae9d2bcbd3e6c70c579a52574d91ea8898a80bb",
+			"bug_commit": "2874f9e48c3bf9e7c4a46015b4bb65b177f18b13",
+			"user_steps": [
+				"Open the app and wait until its menu shows.",
+				"Press Alt+R to enter view mode.",
+				"Press K for the laser pointer.",
+				"Press Escape to leave the laser pointer.",
+				"Press Alt+R to leave view mode."
+			],
+			"steps": [
+				{
+					"order": 1,
+					"t_s": 0,
+					"action": "move",
+					"target": "main menu",
+					"selector": "[data-testid=\"main-menu-trigger\"]"
+				},
+				{
+					"order": 2,
+					"t_s": 1,
+					"action": "key_press",
+					"target": "view mode shortcut",
+					"value": "Alt+r"
+				},
+				{
+					"order": 3,
+					"t_s": 3,
+					"action": "key_press",
+					"target": "laser pointer shortcut",
+					"value": "k"
+				},
+				{
+					"order": 4,
+					"t_s": 6,
+					"action": "key_press",
+					"target": "Escape",
+					"value": "Escape"
+				},
+				{
+					"order": 5,
+					"t_s": 9,
+					"action": "key_press",
+					"target": "view mode shortcut",
+					"value": "Alt+r"
+				},
+				{
+					"order": 6,
+					"t_s": 10,
+					"action": "wait",
+					"target": "saved state",
+					"value": 1000
+				}
+			],
+			"predicate": {
+				"kind": "canvas_state",
+				"source": "appState",
+				"path": ["activeTool", "type"],
+				"expected": "selection",
+				"observed": "hand"
+			},
+			"regression_test": "fixtures/pairs/tests/10840/regression.test.mjs"
+		}
+	]
+}
