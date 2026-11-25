@@ -74,7 +74,12 @@ function status(state, notice = "") {
 }
 
 function actionText(entry) {
-	return [human(entry.action), entry.target ?? entry.detail ?? entry.reason]
+	return [
+		human(entry.action),
+		entry.target ??
+			entry.detail ??
+			(entry.type !== "action" ? entry.reason : null),
+	]
 		.filter(Boolean)
 		.join(" · ");
 }
@@ -90,6 +95,20 @@ function usage(entry) {
 		parts.push(`${tokens.filter(count).reduce((a, b) => a + b, 0)} tokens`);
 	if (count(entry.cost_micro_usd)) parts.push(`${entry.cost_micro_usd} µUSD`);
 	return parts.join(" · ");
+}
+
+// The selected frame and its timeline row describe the same recorded action.
+function explanations(event, timelineRow = false) {
+	const fields = element("dl", null, "explanations");
+	for (const [key, label] of [
+		["observation", "Observation"],
+		["reason", "Reason"],
+	]) {
+		const value = element("dd", event?.[key] ?? "Not recorded");
+		if (timelineRow) value.dataset.testid = `step-${key}`;
+		fields.append(element("dt", label), value);
+	}
+	return fields;
 }
 
 function buildMoments(run) {
@@ -163,7 +182,22 @@ function showFrame(moment) {
 function selectMoment(index, seek = true) {
 	selected = index;
 	const moment = moments[index];
-	const step = moment?.step ?? moment?.event ?? moment?.shot;
+	const step = moment?.event ?? moment?.step ?? moment?.shot;
+	const decision = byId("decision");
+	if (moment) {
+		const reported = { ...moment.event, ...moment.step };
+		decision.replaceChildren(
+			explanations(moment.event),
+			element(
+				"p",
+				usage(reported) || "Step usage unreported",
+				"decision-usage",
+			),
+		);
+	} else
+		decision.replaceChildren(
+			element("p", "Waiting for an action.", "decision-empty"),
+		);
 	byId("active").textContent = step
 		? actionText(step) || "Captured frame"
 		: "Waiting for actions";
@@ -250,7 +284,8 @@ function timeline(run) {
 			element("span", stamp(step.t_s), "step-time"),
 		);
 		const row = element("li");
-		row.append(button);
+		row.dataset.testid = "replay-step";
+		row.append(button, explanations(moments[index].event, true));
 		return row;
 	});
 	byId("steps").replaceChildren(...buttons);
@@ -358,22 +393,34 @@ function evidence(data) {
 		meter.append(gauge, empty(`${label} ${money(cap)}`));
 	} else meter.append(empty(`${label} ${money(cap)}`));
 	const candidates = list(data.candidates);
+	byId("no-census").hidden = candidates.length > 0;
 	byId("census").replaceChildren(
-		...(candidates.length ? candidates : [run]).map((item) =>
-			element(
-				"li",
-				`#${item.issue} · ${human(item.status ?? item.verdict ?? item.state)}`,
-			),
-		),
+		...candidates.map(({ issue, status, href }) => {
+			const row = element("li");
+			row.dataset.testid = "census-row";
+			const number = element(href ? "a" : "span", `#${issue}`);
+			if (href) number.href = href;
+			if (issue === run.issue) number.setAttribute("aria-current", "page");
+			row.append(number, element("span", human(status)));
+			return row;
+		}),
 	);
 	proofPanel(data);
+}
+
+// Recorded steps can arrive before their browser frames. Follow the newest capture.
+function latestCapture() {
+	return Math.max(
+		0,
+		moments.findLastIndex((moment) => moment.shot),
+	);
 }
 
 function draw(data) {
 	const prior = moments[selected];
 	const follow =
 		(!snapshot && data.run.state === "finished") ||
-		(live && selected >= moments.length - 1);
+		(live && (!snapshot || selected === latestCapture()));
 	const focus = document.activeElement.closest("#steps button")?.value;
 	snapshot = data;
 	const { run } = data;
@@ -402,7 +449,7 @@ function draw(data) {
 	timeline(run);
 	evidence(data);
 	const index = follow
-		? moments.length - 1
+		? latestCapture()
 		: moments.findIndex(
 				(m) => m.time === prior?.time && m.index === prior?.index,
 			);

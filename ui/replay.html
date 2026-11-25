@@ -9,11 +9,11 @@
 <style>@@CSS@@</style>
 </head>
 <body>
-<a class="skip" href="#viewer">Skip to recording</a>
+<a class="skip" href="#viewer">Skip to replay</a>
 <header class="mast">
 	<div class="shell mast-inner">
 		<div class="brand"><i class="mark" aria-hidden="true"></i>Foley</div>
-		<div class="mode"><i aria-hidden="true"></i><span id="mode">Recorded replay</span></div>
+		<div class="mast-nav"><a href="#census-heading">Issue index</a><div class="mode"><i aria-hidden="true"></i><span id="mode">Recorded replay</span></div></div>
 	</div>
 </header>
 <main class="shell">
@@ -23,21 +23,23 @@
 	</div>
 	<p id="notice" role="status" hidden></p>
 	<div class="viewer" id="viewer" tabindex="-1">
-		<div class="channels">
-			<section class="channel" data-testid="recording" aria-labelledby="recording-heading">
-				<div class="channel-head"><h2 id="recording-heading">Reporter recording</h2><span class="tag" id="source-kind"></span></div>
-				<div class="screen" id="recording"><span>No recording yet</span></div>
-			</section>
-			<section class="channel" data-testid="replay" aria-labelledby="replay-heading">
-				<div class="channel-head"><h2 id="replay-heading">Ember reproduction</h2><span class="tag ember" id="frame-count"></span></div>
-				<div class="screen" id="frame"><span>No captured frame yet</span></div>
-			</section>
-		</div>
+		<section class="channel" data-testid="replay" aria-labelledby="replay-heading">
+			<div class="channel-head"><h2 id="replay-heading">Ember reproduction</h2><span class="tag ember" id="frame-count"></span></div>
+			<div class="screen" id="frame"><span>No captured frame yet</span></div>
+		</section>
+		<section class="decision" aria-labelledby="decision-heading">
+			<h2 id="decision-heading">Ember’s decision</h2>
+			<div id="decision"><p class="decision-empty">Waiting for an action.</p></div>
+		</section>
 		<div class="transport">
 			<div class="time" id="clock">00:00</div>
 			<div class="selection"><strong id="active">Waiting for actions</strong><span id="position"></span></div>
 			<div class="controls"><button id="prev" aria-label="Previous moment" disabled>‹</button><button id="next" aria-label="Next moment" disabled>›</button></div>
 		</div>
+		<section class="channel" data-testid="recording" aria-labelledby="recording-heading">
+			<div class="channel-head"><h2 id="recording-heading">Reporter recording</h2><span class="tag" id="source-kind"></span></div>
+			<div class="screen" id="recording"><span>No recording yet</span></div>
+		</section>
 	</div>
 	<div class="readout">
 		<section data-testid="location"><h2>Code location</h2><div id="anchors"></div></section>
@@ -55,7 +57,7 @@
 
 		</aside>
 	</div>
-	<section class="census"><div class="section-head"><h2>Census index</h2></div><ul id="census"></ul></section>
+	<section class="census" data-testid="census-index" aria-labelledby="census-heading"><div class="section-head"><h2 id="census-heading" tabindex="-1">Issue census</h2></div><ul id="census"></ul><p class="muted" id="no-census">No census rows received.</p></section>
 </main>
 <footer class="shell"><span>Foley&nbsp; / &nbsp;Run record</span><span data-testid="run-state" id="state" role="status">loading</span></footer>
 <script type="application/json" id="data">@@DATA@@</script>

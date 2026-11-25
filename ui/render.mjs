@@ -10,7 +10,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
-import { insideRun, validateRun } from "../src/run-schema.mjs";
+import { insideRun, STATUSES, validateRun } from "../src/run-schema.mjs";
 
 const media = new Map(
 	Object.entries({
@@ -64,9 +64,65 @@ async function optional(root, name) {
 	}
 }
 
+// Inspect only metadata. A symlink in either path component cannot grant a link.
+async function siblingHasReplay(root, issue) {
+	const path = join(root, "..", String(issue), "replay.html");
+	try {
+		return (await realpath(path)) === path && (await stat(path)).isFile();
+	} catch (error) {
+		if (["ENOENT", "ENOTDIR", "EACCES", "ELOOP"].includes(error.code))
+			return false;
+		throw error;
+	}
+}
+
+// Legacy exports wrapped the rows in { candidates }. Live snapshots stay inside root.
+async function censusRows(root, document, run, inline) {
+	const rows = Array.isArray(document) ? document : document?.candidates;
+	const result = [];
+	for (const row of rows ?? [
+		{ issue: run.issue, status: run.verdict ?? run.state },
+	]) {
+		const { issue, status } = row ?? {};
+		if (!Number.isSafeInteger(issue) || issue < 1) continue;
+		const current = issue === run.issue;
+		if (
+			!STATUSES.has(status) &&
+			!(current && !Array.isArray(document) && status === run.state)
+		)
+			continue;
+		let href;
+		if (inline && current) href = "replay.html";
+		else if (inline && (await siblingHasReplay(root, issue)))
+			href = `../${issue}/replay.html`;
+		result.push({ issue, status, href });
+	}
+	return result;
+}
+
+// Run folders may also come from disk, independently of model-turn validation.
+const CREDENTIAL_SHAPES = [
+	/-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+	/\b(?:sk-(?:proj-)?|ghp_|gho_|ghs_|github_pat_|xox[bp]-|GOCSPX-)[A-Za-z0-9_-]{20,}/,
+	/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/,
+	/\bAIza[0-9A-Za-z_-]{35}\b/,
+	/\b[A-Za-z0-9_]*(?:api[_-]?key|secret|token)\b["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{24,}/i,
+];
+
 export async function snapshot(root, inline) {
 	const run = JSON.parse(await readArtifact(root, "run.json"));
 	if (!validateRun(run)) throw new Error("Invalid run document");
+	for (const event of run.replay.events) {
+		if (
+			event.type === "action" &&
+			CREDENTIAL_SHAPES.some(
+				(pattern) =>
+					pattern.test(event.observation ?? "") ||
+					pattern.test(event.reason ?? ""),
+			)
+		)
+			throw new Error("Invalid action explanation");
+	}
 	const [proof, replay, census, source] = await Promise.all([
 		optional(root, "proof.json"),
 		optional(root, "replay.json"),
@@ -112,11 +168,7 @@ export async function snapshot(root, inline) {
 		},
 		observed: reproduction?.observed,
 		reproStatus: reproduction?.status,
-		candidates:
-			JSON.parse(census)?.candidates?.map(({ issue, status }) => ({
-				issue,
-				status,
-			})) ?? [],
+		candidates: await censusRows(root, JSON.parse(census), run, inline),
 	};
 }
 

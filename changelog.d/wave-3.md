@@ -56,3 +56,6 @@
   existing bound. The backlog writes `census.json` (`{issue, status}` for every
   candidate, in census order) to each started run folder after every stage, by
   file replacement, so the report sees the current outcome.
+- Replay steps show the recorded model observation, action reason, and attributed
+  usage alongside the selected frame. The issue census lists every recorded
+  status and links to sibling replay files available at export.
