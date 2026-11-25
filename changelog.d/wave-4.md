@@ -66,3 +66,8 @@
   - the reproducing actions handed to proof;
   - the failure check's live value on each turn;
   - the target's documented shortcuts as data.
+- Evaluation and backlog (S6). Issue 9852 verified on 3 of 5 unchanged runs;
+  the held-out set gave 1 failure observed of 8; the census backlog gave every
+  one of 50 issues a status (36 attempted, 5 failures observed). The client
+  now accepts a JSON reply after leading prose, and proof keeps going after a
+  malformed reply. A redacted token trace of the verified run is in `trace/9852/`.
