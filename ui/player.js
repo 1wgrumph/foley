@@ -355,15 +355,35 @@ function proofPanel({ run, proof, source }) {
 function evidence(data) {
 	const { run } = data;
 	const pred = run.predicate;
+	const shown = (v) => (typeof v === "string" ? v : JSON.stringify(v));
 	byId("predicate").replaceChildren(
 		...(pred
 			? [
-					pair("Expected", pred.expected),
-					pair("Failure value", pred.observed),
-					pair(human(pred.kind), pred.selector),
+					pair("Expected", shown(pred.expected)),
+					pair("Failure value", shown(pred.observed)),
+					pair(
+						human(pred.kind),
+						pred.selector ??
+							pred.message ??
+							[pred.source, ...list(pred.path)].join("."),
+					),
 				]
 			: [empty("No failure predicate recorded.")]),
 	);
+	// Watch's timestamped notes, shown as plain text.
+	for (const id of ["uncertainty", "narration-evidence"]) {
+		const notes = list(run[id.replace("-", "_")]).map((note) => {
+			const item = element("li", null, "evidence-line");
+			item.append(
+				element("code", stamp(note.t_s)),
+				element("span", ` ${note.text}`),
+			);
+			return item;
+		});
+		byId(id).replaceChildren(
+			...(notes.length ? notes : [element("li", "None recorded.", "muted")]),
+		);
+	}
 	const anchors = list(run.anchors).map((a) => {
 		const anchor = element("p", null, "evidence-line");
 		anchor.append(element("code", `${a.file}:${a.line}`));

@@ -24,6 +24,16 @@ function step(s) {
 	return parts.join(" ");
 }
 
+// Watch's timestamped notes, each as plain text in a code span.
+const notes = (title, list) =>
+	Array.isArray(list) && list.length
+		? [
+				"",
+				`## ${title}`,
+				...list.map((n) => `- ${code(`${n.t_s}s`)} ${code(n.text)}`),
+			]
+		: [];
+
 export async function report(run, { runDir }) {
 	const p = run.predicate;
 	const lines = [
@@ -34,6 +44,8 @@ export async function report(run, { runDir }) {
 		...(p
 			? ["", `Expected ${code(p.expected)}; observed ${code(p.observed)}.`]
 			: []),
+		...notes("Uncertainty", run.uncertainty),
+		...notes("Narration evidence", run.narration_evidence),
 		"",
 		"## Code anchors",
 		...(run.anchors?.length
