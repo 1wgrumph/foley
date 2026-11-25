@@ -352,6 +352,23 @@ function proofPanel({ run, proof, source }) {
 	if (source) section.append(element("pre", source));
 }
 
+// Watch's timestamped notes, shown as plain text.
+function watchNotes(run) {
+	for (const id of ["uncertainty", "narration-evidence"]) {
+		const notes = list(run[id.replace("-", "_")]).map((note) => {
+			const item = element("li", null, "evidence-line");
+			item.append(
+				element("code", `${note.t_s}s`),
+				element("span", ` ${note.text}`),
+			);
+			return item;
+		});
+		byId(id).replaceChildren(
+			...(notes.length ? notes : [element("li", "None recorded.", "muted")]),
+		);
+	}
+}
+
 function evidence(data) {
 	const { run } = data;
 	const pred = run.predicate;
@@ -370,20 +387,7 @@ function evidence(data) {
 				]
 			: [empty("No failure predicate recorded.")]),
 	);
-	// Watch's timestamped notes, shown as plain text.
-	for (const id of ["uncertainty", "narration-evidence"]) {
-		const notes = list(run[id.replace("-", "_")]).map((note) => {
-			const item = element("li", null, "evidence-line");
-			item.append(
-				element("code", `${note.t_s}s`),
-				element("span", ` ${note.text}`),
-			);
-			return item;
-		});
-		byId(id).replaceChildren(
-			...(notes.length ? notes : [element("li", "None recorded.", "muted")]),
-		);
-	}
+	watchNotes(run);
 	const anchors = list(run.anchors).map((a) => {
 		const anchor = element("p", null, "evidence-line");
 		anchor.append(element("code", `${a.file}:${a.line}`));
