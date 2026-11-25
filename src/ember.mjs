@@ -381,6 +381,8 @@ async function locked(p, fn) {
 				.map((o) => ({
 					type: "recovery",
 					callId: o.callId,
+					caseId: o.caseId,
+					...(o.stage && { stage: o.stage }),
 					booked_micro_usd: o.upperBound,
 					cap_ledger_micro_usd: total(ledger),
 				}));
@@ -423,7 +425,7 @@ async function locked(p, fn) {
 	return { value: r.value };
 }
 
-async function reserve(p, { callId, bound, caseId, caseBudget, live }) {
+async function reserve(p, { callId, bound, caseId, stage, caseBudget, live }) {
 	try {
 		const { value } = await transaction(p, (ledger, healthy) => {
 			if (!ledger || !healthy)
@@ -449,6 +451,7 @@ async function reserve(p, { callId, bound, caseId, caseBudget, live }) {
 				callId,
 				upperBound: bound,
 				caseId,
+				...(stage && { stage }),
 				pid: process.pid,
 				start: START,
 			});
@@ -470,7 +473,14 @@ async function settle(p, callId, usage, meta) {
 	const { value, traceFailed } = await transaction(p, (ledger) => {
 		const open = ledger?.open.find((o) => o.callId === callId);
 		if (!open) return { value: false };
-		const event = { ...meta, callId, ...usage?.tokens };
+		// The case and stage travel with the call record, in the same transaction.
+		const event = {
+			...meta,
+			callId,
+			caseId: open.caseId,
+			...(open.stage && { stage: open.stage }),
+			...usage?.tokens,
+		};
 		if (!usage)
 			return {
 				value: true,
@@ -583,6 +593,7 @@ async function call({
 	max_output_tokens,
 	caseId,
 	caseBudget,
+	stage,
 	timeoutMs = DEFAULT_TIMEOUT_MS,
 }) {
 	const p = paths();
@@ -593,6 +604,7 @@ async function call({
 		caseId !== "" &&
 		caseId.length <= MAX_CASE_ID &&
 		!caseId.includes(cfg.key) &&
+		(stage === undefined || /^[a-z]{1,32}$/.test(stage)) &&
 		(caseBudget === undefined || isCount(caseBudget)) &&
 		Number.isSafeInteger(timeoutMs) &&
 		timeoutMs > 0;
@@ -608,6 +620,7 @@ async function call({
 			callId,
 			bound: req.bound,
 			caseId,
+			stage,
 			caseBudget,
 			live: cfg.live,
 		});
