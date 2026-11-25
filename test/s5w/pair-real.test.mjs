@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import {
 	cpSync,
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -30,7 +31,7 @@ const issue = 9852;
 // The copied linked-worktree metadata shares only the existing Git object store.
 function copyBuild(source, destination, commit) {
 	const git = (tree, ...args) =>
-		runCommand("git", ["-C", tree, ...args]).trim();
+		runCommand("git", ["--no-optional-locks", "-C", tree, ...args]).trim();
 	assert.equal(git(source, "rev-parse", "HEAD"), commit);
 	assert.equal(
 		git(source, "status", "--porcelain", "--untracked-files=no"),
@@ -128,9 +129,22 @@ test("TC-R15-4/pair-real-9852", {
 				pairArgs(recording, issue, false),
 				360000,
 			);
+			const runDir = join(root, "out", "runs", String(issue));
+			const proofPath = join(runDir, "proof.json");
+			if (result.code !== 0 && existsSync(proofPath)) {
+				const proof = readJson(proofPath);
+				result.stderr += JSON.stringify({
+					status: proof.status,
+					reason: proof.reason,
+					attempts: proof.attempts.map(({ reason, bug, fixed }) => ({
+						reason,
+						bug,
+						fixed,
+					})),
+				});
+			}
 			assertExit(result, 0);
 			assert.match(result.stdout, /proof_verified/);
-			const runDir = join(root, "out", "runs", String(issue));
 			const core = readJson(join(runDir, "core-proof.json"));
 			assert.equal(core.fixture, false);
 			assert.deepEqual(core.pair, {

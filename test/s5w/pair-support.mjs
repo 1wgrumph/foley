@@ -1,7 +1,7 @@
 // The synthetic pair uses the existing owned archive app, with a distinct
 // build directory on each side. No index.html exists at either checkout root.
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, readFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { serveApp } from "../../fixtures/stages/app-server.mjs";
 import {
@@ -51,9 +51,11 @@ export function pin(dir, variant) {
 	const git = (...args) =>
 		runCommand("git", ["-C", dir, ...args], { env: gitEnv }).trim();
 	git("init", "-q");
+	// Like the real pair, build output is not part of the source revision.
+	writeFileSync(join(dir, ".gitignore"), "build/\n");
 	git("add", ".");
 	git("commit", "-qm", "Pin owned archive source");
-	const page = join(dir, "built");
+	const page = join(dir, "build");
 	cpSync(fixture(variant), page, { recursive: true });
 	return { dir, page, commit: git("rev-parse", "HEAD") };
 }
