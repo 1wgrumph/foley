@@ -59,3 +59,31 @@
 - Replay steps show the recorded model observation, action reason, and attributed
   usage alongside the selected frame. The issue census lists every recorded
   status and links to sibling replay files available at export.
+
+### Fixed (wave-3 review, run integrity)
+
+- `foley run` and `foley backlog` hold a kernel `flock` on `out/foley-run.lock`
+  for the whole pipeline; a concurrent command refuses with `run_active`, and a
+  killed owner's lock is released by the kernel (W3-01).
+- Both commands drive each issue through one stage journal,
+  `out/runs/<issue>/state.json`: start and commit records, at most two attempts
+  per stage, resume only from the journal. A stage that throws is not committed,
+  so a failed report never becomes a verified proof (W3-02, W3-08).
+- Each Ember call record carries its case and stage, written in the same ledger
+  transaction. Run, backlog and per-stage spend, including booked amounts, are
+  rebuilt from those records and survive interruption (W3-03).
+- `completion.json` is written last, after the report, final run document,
+  static page, an exact artifact trace and a passing core-proof check; an
+  interrupted export is repeated without model calls (W3-08).
+- `checkCoreProof` requires the complete artifact inventory, an exact trace,
+  matching run identity, an observed predicate and verified rerun results
+  (W3-09).
+- Live mode publishes the run document after every repro capture (W3-13).
+- Census rows are published before an issue's first request and its terminal
+  status before export (W3-14).
+- Recordings and cached census media are checked for type, size, duration and
+  content before any copy or full read, and hashed as a stream; an audio decode
+  failure is a typed `refused_input` (W3-15).
+- Preflight refuses targets with tracked changes; a resume with a different
+  recording, revision, runner or fixture mode refuses with `resume_mismatch`;
+  `backlog` accepts `--fixture` (W3-16).
