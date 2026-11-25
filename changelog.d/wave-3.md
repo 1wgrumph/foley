@@ -98,3 +98,19 @@
   ledger. The Node minimum is 22.13.0 (stable `--permission`) in `package.json`,
   the lockfile and preflight. `tools/check-public.mjs` reports
   `assignment-metadata` in return files, and three returns were cleaned.
+- Wave-3 review repair, proof quality (W3-04 to W3-07, W3-17, W3-18).
+  `prove` runs the target's own Vitest as well as node-test, through
+  `tools/isolate.sh`: a pivot into a minimal read-only root with the candidate
+  layered over a read-only overlay of each build, no network, no capabilities,
+  an empty environment and time and memory limits. A proof is verified only
+  when a failing assertion on the bug build reports the predicate's observed
+  and expected values, the fixed build passes, and both builds' own pages,
+  driven by the recorded steps, show the observed value and the expected value.
+  Otherwise the result is `inconclusive` or a named rejection; model labels and
+  code text are never evidence. Predicates are discriminated into
+  `visible_text`, `element_count`, `console_error` and `canvas_state`, each
+  checked from page data only; a null or invalid predicate stops before any
+  paid call. Reproduction turns are validated whole before any action. Watch
+  keeps bounded, timestamped `uncertainty` and `narration_evidence` through the
+  run, comment and replay. One credential-shape predicate
+  (`src/text-safety.mjs`) serves the input and display boundaries.
