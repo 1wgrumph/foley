@@ -1,0 +1,33 @@
+{
+  "status": "red",
+  "pinned_revision": "d7b86761f4d20085ae8927161e13d853e979321c",
+  "command": "node --test test/w3r/L.test.mjs",
+  "exit_code": 1,
+  "log": "w3r-L-red.log",
+  "log_sha256": "99b2950aee5a57d646454d077e4308dfc98343758b93feb15ad15ab46f93ab55",
+  "ids": [
+    "TC-R05-1/graph-tie",
+    "TC-R05-1/json-number-grammar",
+    "TC-R10-1/eval-population",
+    "TC-R10-2/eval-split",
+    "TC-R10-3/eval-execution",
+    "TC-R10-3/envelope-ledger",
+    "TC-R10-3/envelope-ceilings",
+    "TC-R11-1/return-metadata",
+    "TC-R13-1/node-minimum",
+    "TC-R13-1/node-preflight"
+  ],
+  "assertion_failures": 10,
+  "repeat": {
+    "runs": 5,
+    "assertion_failures": 50,
+    "same_ids": true,
+    "log_sha256": "6cd35c8a2c2a1b425fc80ac15e0a2de01de7fc8c09d7e0b4b85a91009b2258dd"
+  },
+  "two_copy": {
+    "runs": 2,
+    "assertion_failures": 20,
+    "same_ids": true,
+    "log_sha256": "3f382c7fba84db01ca298baeade4984a009a73f540465556c3d528e6b89ed811"
+  }
+}
