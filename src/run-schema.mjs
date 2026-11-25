@@ -253,18 +253,90 @@ export async function writeSpendSummary(outDir) {
 }
 
 const MANIFEST_FILES = new Set(["core-proof.json", "artifact-trace.jsonl"]);
+const readJsonFile = async (path) => JSON.parse(await readFile(path, "utf8"));
 
-// ok only when every artifact exists inside the run folder (after symlinks), matches
-// its manifest digest and has a matching artifact-trace event.
+/**
+ * The complete artifact inventory of a run folder: what each recorded stage
+ * must have left, plus the report, run document and static page. Shared by the
+ * pipeline's finalization and checkCoreProof.
+ */
+export function requiredArtifacts(run, stages, replay) {
+	const has = (name) => Object.hasOwn(stages ?? {}, name);
+	return [
+		...new Set(
+			[
+				run?.recording,
+				stages?.watch === "ok" && "steps.json",
+				has("locate") && "anchors.json",
+				has("repro") && "replay.json",
+				...(has("repro")
+					? (replay?.screenshots ?? []).map((s) => s?.path)
+					: []),
+				has("prove") && "proof.json",
+				run?.test?.path,
+				"comment.md",
+				"run.json",
+				"replay.html",
+			].filter(Boolean),
+		),
+	].sort();
+}
+
+const exitOf = (result) => result?.exitCode;
+
+// A verified proof: every stage passed, the browser observed the failure, and the
+// accepted test failed on the bug build and passed on the fixed build when run.
+function verifiedSemantics(manifest, run, replay, proof) {
+	const st = manifest.stages ?? {};
+	const rerun = proof?.rerun_without_ember;
+	const bug = exitOf(rerun?.bug);
+	const fixed = exitOf(rerun?.fixed);
+	return (
+		st.watch === "ok" &&
+		["ok", "miss"].includes(st.locate) &&
+		st.repro === "reproduced" &&
+		st.prove === "verified" &&
+		st.report === "ok" &&
+		validateRun(run) &&
+		run.state === "finished" &&
+		run.verdict === "proof_verified" &&
+		run.test?.verdict === "verified" &&
+		replay?.observed === true &&
+		proof?.status === "verified" &&
+		proof.path === run.test.path &&
+		Number.isSafeInteger(bug) &&
+		bug !== 0 &&
+		(fixed === undefined || fixed === null || fixed === 0)
+	);
+}
+
+async function sameDigest(root, runDir, path, digest) {
+	try {
+		const real = await realpath(join(runDir, path));
+		const rel = relative(root, real);
+		if (rel.startsWith(`..${sep}`) || rel === ".." || isAbsolute(rel))
+			return false;
+		return sha256(await readFile(real)) === digest;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * ok only for a complete verified proof: the manifest lists exactly the required
+ * inventory, the trace covers exactly that inventory once, every file inside the
+ * run folder (after symlinks) matches its digest, the run document's identity
+ * matches the manifest, and the stage, predicate and runner results verify.
+ * digest_mismatch: a listed file is missing or changed. incomplete: the inventory
+ * or trace is not exact. not_verified: consistent record of a non-proof outcome.
+ */
 export async function checkCoreProof(runDir) {
 	let proof;
-	let traced;
+	let events;
 	try {
-		proof = JSON.parse(await readFile(join(runDir, "core-proof.json"), "utf8"));
-		traced = new Map(
-			(await readLines(join(runDir, "artifact-trace.jsonl")))
-				.filter((e) => e.type === "artifact")
-				.map((e) => [e.path, e.sha256]),
+		proof = await readJsonFile(join(runDir, "core-proof.json"));
+		events = (await readLines(join(runDir, "artifact-trace.jsonl"))).filter(
+			(e) => e?.type === "artifact",
 		);
 	} catch {
 		return { status: "invalid" };
@@ -275,23 +347,31 @@ export async function checkCoreProof(runDir) {
 	if (proof?.schema !== "foley.core-proof/1" || entries.length === 0)
 		return { status: "invalid" };
 	const root = await realpath(runDir);
+	const traced = new Map(events.map((e) => [e.path, e.sha256]));
 	for (const [path, digest] of entries) {
-		if (
-			!insideRun(path) ||
-			MANIFEST_FILES.has(path) ||
-			traced.get(path) !== digest
-		)
+		if (!insideRun(path) || MANIFEST_FILES.has(path))
 			return { status: "digest_mismatch" };
-		try {
-			const real = await realpath(join(runDir, path));
-			const rel = relative(root, real);
-			if (rel.startsWith(`..${sep}`) || rel === ".." || isAbsolute(rel))
-				return { status: "digest_mismatch" };
-			if (sha256(await readFile(real)) !== digest)
-				return { status: "digest_mismatch" };
-		} catch {
+		if (!(await sameDigest(root, runDir, path, digest)))
 			return { status: "digest_mismatch" };
-		}
 	}
-	return { status: "ok" };
+	const optionalJson = (name) =>
+		readJsonFile(join(runDir, name)).catch(() => null);
+	const [run, replay, report] = await Promise.all(
+		["run.json", "replay.json", "proof.json"].map(optionalJson),
+	);
+	const listed = entries.map(([path]) => path).sort();
+	const required = requiredArtifacts(run, proof.stages, replay);
+	const exact =
+		events.length === traced.size &&
+		traced.size === listed.length &&
+		entries.every(([path, digest]) => traced.get(path) === digest) &&
+		JSON.stringify(listed) === JSON.stringify(required);
+	if (!exact) return { status: "incomplete" };
+	const identity =
+		run?.issue_url === proof.issue_url &&
+		run?.target_revision === proof.target_revision &&
+		run?.fixture === proof.fixture;
+	if (!identity || !verifiedSemantics(proof, run, replay, report))
+		return { status: "not_verified" };
+	return { status: "ok", fixture: proof.fixture === true };
 }
