@@ -168,11 +168,12 @@ function runIsolated(
 }
 
 // First line of each failing test's error message in the TAP output of either
-// runner (node:test "error:", Vitest "message:").
+// runner (node:test "error:", Vitest "message:"). Vitest writes a multi-line
+// message (for example a Testing Library DOM dump) inside one quoted string.
 function failureMessages(output) {
 	return [
 		...output.matchAll(
-			/^\s*(?:error: (?:\|-\r?\n\s*(.*)|'(.*)'|"(.*)")|message: "(.*)")$/gm,
+			/^\s*(?:error: (?:\|-\r?\n\s*(.*)|'(.*)'|"(.*)")|message: "(.*?)"?)$/gm,
 		),
 	].map((match) => (match[1] ?? match[2] ?? match[3] ?? match[4]).trim());
 }
