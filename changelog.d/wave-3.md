@@ -16,3 +16,7 @@
   with untrusted text in code spans. `src/score.mjs` computes the evaluation
   quantities. `src/run-schema.mjs` validates steps and run documents, writes the
   reconciled spend summary and checks core-proof artifact digests.
+- Each run can export a self-contained replay with linked recording and browser
+  frames, action costs, code anchors, and regression-test results. The read-only
+  loopback viewer follows new run records and keeps the last received frames
+  available after disconnect.

@@ -10,7 +10,8 @@
   },
   "scripts": {
     "preflight": "bash tools/preflight-tools.sh",
-    "check-public": "gitleaks detect --no-banner --redact && node tools/check-public.mjs --tree . && node tools/check-public.mjs --self-test fixtures/public-negative/"
+    "check-public": "gitleaks detect --no-banner --redact && node tools/check-public.mjs --tree . && node tools/check-public.mjs --self-test fixtures/public-negative/",
+    "build:ui": "node ui/build.mjs"
   },
   "dependencies": {
     "playwright": "1.65.1"
