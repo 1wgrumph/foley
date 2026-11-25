@@ -311,13 +311,43 @@ const headOf = (dir) => {
 	}
 };
 
+// One side of a pair: its single receipt build, its checkout at the manifest
+// commit with no tracked changes, and its built page inside that checkout.
+function pairSide({ folder, root, builds, side, commit }) {
+	const build = builds.filter((b) => b?.side === side);
+	if (
+		build.length !== 1 ||
+		typeof build[0].page !== "string" ||
+		!SHA1.test(build[0].commit ?? "")
+	)
+		throw new Refusal(
+			"pair_invalid",
+			`receipt has no single valid ${side} build`,
+		);
+	if (build[0].commit !== commit)
+		throw new Refusal(
+			"pair_commit_mismatch",
+			`receipt ${side} commit differs from the manifest`,
+		);
+	const checkout = within(folder, join(root, side), `${side} checkout`);
+	if (headOf(checkout) !== commit)
+		throw new Refusal(
+			"pair_commit_mismatch",
+			`${side} checkout is not at ${commit}`,
+		);
+	clean(checkout, `${side} checkout`);
+	const page = within(checkout, resolve(build[0].page), `${side} page`);
+	if (!existsSync(join(page, "index.html")))
+		throw new Refusal("pair_build_missing", `${side} page has no index.html`);
+	return { checkout, page };
+}
+
 /**
  * Resolves `foley run --pair <issue>` from fixtures/pairs/pairs.json and the
  * pair's build receipt under out/pairs/<issue>/. Pair fields are data: commits
  * and digests are checked by pattern, paths must stay inside the pair folder,
  * and nothing is fetched or built. Returns the run options a pair fixes.
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a flat list of independent pair checks, each refusing before any model call
 export function pairOptions(issue) {
 	if (!Number.isSafeInteger(issue) || issue <= 0)
 		throw new Refusal("bad_argument", "--pair must be a positive integer");
@@ -353,34 +383,8 @@ export function pairOptions(issue) {
 			"receipt is for another issue or its scan did not pass",
 		);
 	const resolved = {};
-	for (const [side, commit] of Object.entries(sides)) {
-		const build = builds.filter((b) => b?.side === side);
-		if (
-			build.length !== 1 ||
-			typeof build[0].page !== "string" ||
-			!SHA1.test(build[0].commit ?? "")
-		)
-			throw new Refusal(
-				"pair_invalid",
-				`receipt has no single valid ${side} build`,
-			);
-		if (build[0].commit !== commit)
-			throw new Refusal(
-				"pair_commit_mismatch",
-				`receipt ${side} commit differs from the manifest`,
-			);
-		const checkout = within(folder, join(root, side), `${side} checkout`);
-		if (headOf(checkout) !== commit)
-			throw new Refusal(
-				"pair_commit_mismatch",
-				`${side} checkout is not at ${commit}`,
-			);
-		clean(checkout, `${side} checkout`);
-		const page = within(checkout, resolve(build[0].page), `${side} page`);
-		if (!existsSync(join(page, "index.html")))
-			throw new Refusal("pair_build_missing", `${side} page has no index.html`);
-		resolved[side] = { checkout, page };
-	}
+	for (const [side, commit] of Object.entries(sides))
+		resolved[side] = pairSide({ folder, root, builds, side, commit });
 	return {
 		issue,
 		issueUrl: pair.url,
