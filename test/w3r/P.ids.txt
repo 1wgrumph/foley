@@ -2,6 +2,7 @@ TC-R07-1/native-vitest
 TC-R07-2/no-independent-control
 TC-R07-2/unrelated-build-difference
 TC-R07-2/predicate-provenance
+TC-R07-2/unavailable-fixed-oracle
 TC-R06-4/discriminated-predicate
 TC-R06-4/page-oracles
 TC-R06-4/target-canvas-state

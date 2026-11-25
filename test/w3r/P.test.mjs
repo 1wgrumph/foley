@@ -254,6 +254,42 @@ test("secondary label", () => {
 	);
 });
 
+test("TC-R07-2/unavailable-fixed-oracle", { timeout: 120000 }, async () => {
+	const prove = await product("src/prove.mjs", "prove");
+	await temporary((root) =>
+		withEmber(
+			root,
+			[candidate(proofCode), { mode: "api_error" }],
+			async ({ callEmber }) => {
+				const fixed = join(root, "fixed");
+				cpSync(fixture("app-fixed"), fixed, { recursive: true });
+				// The test runner can pass; the page cannot establish the expected
+				// transition because its actual control is unavailable.
+				writeFileSync(
+					join(fixed, "index.html"),
+					"<!doctype html><title>Unavailable fixture page</title><p>Updating interface</p>",
+				);
+				const { runDir, options } = ownedProof(root, callEmber, {
+					fixedTargetDir: fixed,
+				});
+				const result = await prove(
+					archive.steps,
+					[anchor],
+					archive.predicate,
+					options,
+				);
+				assert.equal(
+					result.status,
+					"not_verified",
+					"Absence of an oracle is not a successful fixed control",
+				);
+				assert.equal(result.attempts[0]?.reason, "inconclusive");
+				assert.equal(existsSync(join(runDir, "regression.test.mjs")), false);
+			},
+		),
+	);
+});
+
 test("TC-R06-4/discriminated-predicate", async () => {
 	const validateSteps = await product("src/run-schema.mjs", "validateSteps");
 	const valid = [
